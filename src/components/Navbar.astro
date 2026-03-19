@@ -27,18 +27,84 @@ const isHomePage = currentPath === "/";
       </div>
     </a>
 
-    <details class="menu-dropdown">
-      <summary>Menu</summary>
-      <div class:list={["dropdown-panel", isHomePage && "dropdown-panel-home"]}>
-        {links.map((link) => (
-          <a
-            href={link.href}
-            class={currentPath === link.href ? "is-active" : ""}
-          >
-            {link.label}
-          </a>
-        ))}
-      </div>
-    </details>
+    <div class="topbar-actions">
+      <div id="auth-status" class="auth-status">Checking session...</div>
+
+      <details class="menu-dropdown">
+        <summary>Menu</summary>
+        <div class:list={["dropdown-panel", isHomePage && "dropdown-panel-home"]}>
+          {links.map((link) => (
+            <a
+              href={link.href}
+              class={currentPath === link.href ? "is-active" : ""}
+            >
+              {link.label}
+            </a>
+          ))}
+
+          <a id="login-link" href="/login">Login</a>
+          <a id="signup-link" href="/signup">Sign up</a>
+          <button id="logout-btn" type="button" class="nav-logout-btn" style="display:none;">
+            Log out
+          </button>
+        </div>
+      </details>
+    </div>
   </div>
 </header>
+
+<script>
+  // CHANGED: navbar now checks /api/me and shows login state from backend session
+  const authStatusEl = document.getElementById("auth-status");
+  const loginLink = document.getElementById("login-link");
+  const signupLink = document.getElementById("signup-link");
+  const logoutBtn = document.getElementById("logout-btn");
+
+  function setLoggedOut() {
+    if (authStatusEl) authStatusEl.textContent = "Not signed in";
+    if (loginLink) loginLink.style.display = "";
+    if (signupLink) signupLink.style.display = "";
+    if (logoutBtn) logoutBtn.style.display = "none";
+  }
+
+  function setLoggedIn(email) {
+    if (authStatusEl) authStatusEl.textContent = email;
+    if (loginLink) loginLink.style.display = "none";
+    if (signupLink) signupLink.style.display = "none";
+    if (logoutBtn) logoutBtn.style.display = "block";
+  }
+
+  async function loadCurrentUser() {
+    try {
+      const response = await fetch("/api/me", {
+        credentials: "include", // CHANGED: read current backend session
+      });
+
+      const data = await response.json().catch(() => ({}));
+
+      if (data?.ok && data?.user?.email) {
+        setLoggedIn(data.user.email);
+      } else {
+        setLoggedOut();
+      }
+    } catch (error) {
+      console.error("Failed to load current user:", error);
+      setLoggedOut();
+    }
+  }
+
+  logoutBtn?.addEventListener("click", async () => {
+    try {
+      await fetch("/api/auth/logout", {
+        method: "POST",
+        credentials: "include", // CHANGED: log out backend session
+      });
+    } catch (error) {
+      console.error("Logout failed:", error);
+    }
+
+    window.location.href = "/login";
+  });
+
+  loadCurrentUser();
+</script>

@@ -2586,3 +2586,186 @@ img {
     grid-template-columns: repeat(2, minmax(0, 1fr));
   }
 }
+
+.auth-page {
+  min-height: calc(100vh - 120px);
+  display: grid;
+  align-items: center;
+  padding: 1rem 0 2rem;
+}
+
+.auth-shell {
+  display: grid;
+  gap: 1rem;
+}
+
+.auth-intro {
+  padding: 0.5rem 0;
+}
+
+.auth-intro h1 {
+  font-family: "Playfair Display", serif;
+  font-size: clamp(2.2rem, 10vw, 4.25rem);
+  line-height: 0.95;
+  margin: 0 0 0.8rem;
+}
+
+.auth-intro p:last-child {
+  color: var(--muted);
+  line-height: 1.7;
+  max-width: 36rem;
+}
+
+.auth-card {
+  background: var(--surface);
+  border: 1px solid var(--line);
+  border-radius: 28px;
+  padding: 1.15rem;
+  box-shadow: var(--shadow);
+}
+
+.auth-title {
+  margin: 0 0 0.35rem;
+  font-family: "Playfair Display", serif;
+  font-size: 1.8rem;
+}
+
+.auth-subtitle,
+.auth-note,
+.auth-footer {
+  color: var(--muted);
+}
+
+.auth-note {
+  background: #f4efe6;
+  border: 1px solid var(--line);
+  border-radius: 16px;
+  padding: 0.8rem 0.9rem;
+  margin: 0.85rem 0 0;
+}
+
+.auth-form,
+.oauth-form {
+  display: grid;
+  gap: 0.75rem;
+  margin-top: 1rem;
+}
+
+.auth-form label {
+  font-size: 0.92rem;
+  font-weight: 700;
+}
+
+.auth-form input {
+  width: 100%;
+  border: 1px solid var(--line);
+  border-radius: 16px;
+  background: #fcfaf6;
+  padding: 0.9rem 1rem;
+  font: inherit;
+  color: var(--text);
+}
+
+.auth-form input:focus {
+  outline: 2px solid rgba(47, 93, 98, 0.18);
+  border-color: var(--accent);
+}
+
+.auth-button {
+  border: 0;
+  border-radius: 999px;
+  padding: 0.95rem 1rem;
+  font: inherit;
+  font-weight: 700;
+  cursor: pointer;
+  background: var(--text);
+  color: white;
+}
+
+.auth-button-secondary {
+  background: #ebe3d8;
+  color: var(--text);
+}
+
+.auth-footer {
+  margin-top: 1rem;
+}
+
+.auth-footer a {
+  color: var(--accent);
+  font-weight: 700;
+}
+
+@media (min-width: 900px) {
+  .auth-shell {
+    grid-template-columns: 1.15fr 0.95fr;
+    align-items: center;
+    gap: 1.5rem;
+  }
+
+  .auth-card {
+    padding: 1.4rem;
+  }
+}
+
+.save-toolbar {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  margin: 1rem 0;
+  padding: 0.9rem 1rem;
+  border: 1px solid var(--line);
+  border-radius: 18px;
+  background: var(--surface);
+  box-shadow: var(--shadow);
+}
+
+.save-status {
+  color: var(--muted);
+  font-size: 0.95rem;
+}
+
+.button-primary,
+.secondary-btn,
+.danger-btn,
+.ghost-link,
+.edu-button {
+  cursor: pointer;
+}
+
+/* CHANGED: navbar auth state */
+.topbar-actions {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+}
+
+.auth-status {
+  max-width: 220px;
+  padding: 0.55rem 0.8rem;
+  border: 1px solid var(--line);
+  border-radius: 999px;
+  background: var(--surface);
+  color: var(--muted);
+  font-size: 0.9rem;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.nav-logout-btn {
+  width: 100%;
+  border: 0;
+  background: var(--surface-2);
+  color: var(--text);
+  padding: 0.8rem 0.9rem;
+  border-radius: 12px;
+  text-align: left;
+  cursor: pointer;
+  font: inherit;
+}
+
+.nav-logout-btn:hover {
+  background: var(--text);
+  color: white;
+}

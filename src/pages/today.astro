@@ -1,161 +1,89 @@
 ---
 import BaseLayout from "../layouts/BaseLayout.astro";
-import {
-  topPriorities,
-  todos,
-  morningRoutine,
-  nightRoutine,
-  affirmations,
-  defaultCalendarEmbed,
-} from "../data/today";
 
-const now = new Date();
-const formattedDate = now.toLocaleDateString("en-US", {
-  month: "long",
-  day: "numeric",
-  year: "numeric",
-});
-const weekday = now.toLocaleDateString("en-US", { weekday: "long" });
+const defaultMorning = [
+  "Brush teeth",
+  "Wash face",
+  "Stretch",
+  "Journal / reflect",
+  "Exercise",
+  "Create to-do list",
+  "Update calendar",
+];
+
+const defaultNight = [
+  "Clean room",
+  "Shower",
+  "Floss",
+  "Set bedtime",
+  "Create calm environment",
+  "Journal / reflect",
+  "Stretch / yoga",
+  "Turn off phone 30–60 mins before bed",
+  "Prepare for tomorrow",
+  "Read",
+];
+
+const calendarEmbed = `https://calendar.google.com/calendar/embed?src=mason.fleming000%40gmail.com&ctz=America%2FIndiana%2FIndianapolis`;
 ---
 
-<BaseLayout title="Today | Lifestyle App" description="Daily dashboard">
-  <section class="hero">
-    <div class="hero-card">
-      <p class="kicker">Today</p>
-      <h1>{formattedDate}</h1>
-      <p>{weekday} — keep the day simple, intentional, and forward-moving.</p>
-    </div>
-  </section>
-
-  <section class="section">
-    <div class="metric-grid">
-      <article class="metric">
-        <p class="metric-label">Top priority count</p>
-        <p class="big-number">{topPriorities.length}</p>
-      </article>
-      <article class="metric">
-        <p class="metric-label">Routine anchor</p>
-        <p class="big-number">AM / PM</p>
-      </article>
-    </div>
-  </section>
-
+<BaseLayout title="Today | Lifestyle App">
+  <!-- CALENDAR -->
   <section class="section">
     <article class="card soft">
-      <div class="section-header">
-        <div>
-          <h2 class="section-title">Calendar</h2>
-          <p class="section-subtitle">Paste or remove your calendar embed link anytime.</p>
-        </div>
-      </div>
+      <h2 class="section-title">Calendar</h2>
 
-      <form id="calendar-form" class="todo-form">
-        <input
-          id="calendar-input"
-          type="text"
-          class="todo-input"
-          value={defaultCalendarEmbed}
-          placeholder="Paste calendar embed URL..."
-        />
-        <button type="submit" class="todo-add-btn">Save</button>
-      </form>
-
-      <div class="pill-row" style="margin-top: 0.75rem;">
-        <button id="calendar-clear-btn" type="button" class="pill action-btn">Remove Calendar</button>
-        <button id="calendar-reset-btn" type="button" class="pill action-btn">Reset Default</button>
-      </div>
-
-      <div id="calendar-embed-wrap" class="calendar-embed" style="margin-top: 1rem;">
+      <div class="calendar-embed">
         <iframe
-          id="calendar-frame"
-          src={defaultCalendarEmbed}
+          src={calendarEmbed}
           style="border:0"
           loading="lazy"
-          referrerpolicy="no-referrer-when-downgrade"
         ></iframe>
       </div>
-
-      <p id="calendar-empty" class="section-subtitle" style="display:none; margin-top: 1rem;">
-        No calendar embed set yet.
-      </p>
     </article>
   </section>
 
+  <!-- TODO -->
   <section class="section">
-    <h2 class="section-title">Top Priorities</h2>
     <article class="card">
-      <ul class="list-clean">
-        {topPriorities.map((item) => <li>{item}</li>)}
-      </ul>
+      <h2 class="section-title">Today</h2>
+
+      <form id="todo-form" class="todo-form">
+        <input
+          id="todo-input"
+          type="text"
+          class="todo-input"
+          placeholder="Add a task..."
+        />
+        <button type="submit" class="todo-add-btn">Add</button>
+      </form>
+
+      <ul id="todo-list" class="todo-list"></ul>
     </article>
   </section>
 
+  <!-- ROUTINES -->
   <section class="section">
     <div class="grid two">
-      <article class="card">
-        <h2 class="section-title">To-Do List</h2>
-
-        <form id="todo-form" class="todo-form">
-          <input
-            id="todo-input"
-            type="text"
-            class="todo-input"
-            placeholder="Add a task..."
-          />
-          <button type="submit" class="todo-add-btn">Add</button>
-        </form>
-
-        <ul id="todo-list" class="todo-list"></ul>
-      </article>
-
-      <article class="card soft">
-        <h2 class="section-title">Affirmations</h2>
-        <ul class="list-clean">
-          {affirmations.map((item) => <li>{item}</li>)}
-        </ul>
-      </article>
-    </div>
-  </section>
-
-  <section class="section">
-    <div class="grid two">
-      <article class="card">
+      <article class="card today-checklist-card today-morning">
         <h2 class="section-title">Morning</h2>
-
-        <form class="todo-form routine-form" data-target-list="morning-list">
-          <input
-            type="text"
-            class="todo-input routine-input"
-            placeholder="Add morning task..."
-          />
-          <button type="submit" class="todo-add-btn">Add</button>
-        </form>
 
         <ul
           id="morning-list"
           class="routine-list"
           data-storage-key="today-morning-routine"
-          data-default-items={JSON.stringify(morningRoutine)}
+          data-default-items={JSON.stringify(defaultMorning)}
         ></ul>
       </article>
 
-      <article class="card">
+      <article class="card today-checklist-card today-night">
         <h2 class="section-title">Night</h2>
-
-        <form class="todo-form routine-form" data-target-list="night-list">
-          <input
-            type="text"
-            class="todo-input routine-input"
-            placeholder="Add night task..."
-          />
-          <button type="submit" class="todo-add-btn">Add</button>
-        </form>
 
         <ul
           id="night-list"
           class="routine-list"
           data-storage-key="today-night-routine"
-          data-default-items={JSON.stringify(nightRoutine)}
+          data-default-items={JSON.stringify(defaultNight)}
         ></ul>
       </article>
     </div>
@@ -163,38 +91,20 @@ const weekday = now.toLocaleDateString("en-US", { weekday: "long" });
 
   <script is:inline>
     const TODO_STORAGE_KEY = "today-tasks-v1";
-    const CALENDAR_STORAGE_KEY = "today-calendar-embed-v1";
-    const DEFAULT_CALENDAR_EMBED = {JSON.stringify(defaultCalendarEmbed)};
-    const STARTER_TODOS = {JSON.stringify(todos.map((text) => ({ text, done: false })))};
+
+    const starterTodos = [
+      { text: "Review calendar", done: false },
+      { text: "Complete highest-priority work", done: false },
+      { text: "Exercise", done: false },
+    ];
 
     const todoListEl = document.getElementById("todo-list");
     const todoForm = document.getElementById("todo-form");
     const todoInput = document.getElementById("todo-input");
 
-    const calendarForm = document.getElementById("calendar-form");
-    const calendarInput = document.getElementById("calendar-input");
-    const calendarFrame = document.getElementById("calendar-frame");
-    const calendarWrap = document.getElementById("calendar-embed-wrap");
-    const calendarEmpty = document.getElementById("calendar-empty");
-    const calendarClearBtn = document.getElementById("calendar-clear-btn");
-    const calendarResetBtn = document.getElementById("calendar-reset-btn");
-
-    function escapeHtml(text) {
-      return text
-        .replaceAll("&", "&amp;")
-        .replaceAll("<", "&lt;")
-        .replaceAll(">", "&gt;")
-        .replaceAll('"', "&quot;")
-        .replaceAll("'", "&#039;");
-    }
-
     function loadTodos() {
-      try {
-        const raw = localStorage.getItem(TODO_STORAGE_KEY);
-        return raw ? JSON.parse(raw) : STARTER_TODOS;
-      } catch {
-        return STARTER_TODOS;
-      }
+      const raw = localStorage.getItem(TODO_STORAGE_KEY);
+      return raw ? JSON.parse(raw) : starterTodos;
     }
 
     function saveTodos(todos) {
@@ -226,21 +136,10 @@ const weekday = now.toLocaleDateString("en-US", { weekday: "long" });
         const text = document.createElement("span");
         text.textContent = todo.text;
 
-        const removeBtn = document.createElement("button");
-        removeBtn.type = "button";
-        removeBtn.className = "item-delete-btn";
-        removeBtn.textContent = "Delete";
-
-        removeBtn.addEventListener("click", () => {
-          const next = loadTodos().filter((_, i) => i !== index);
-          saveTodos(next);
-          renderTodos();
-        });
-
         label.appendChild(checkbox);
         label.appendChild(text);
+
         li.appendChild(label);
-        li.appendChild(removeBtn);
         todoListEl.appendChild(li);
       });
     }
@@ -258,64 +157,16 @@ const weekday = now.toLocaleDateString("en-US", { weekday: "long" });
       renderTodos();
     });
 
-    function loadCalendarEmbed() {
-      return localStorage.getItem(CALENDAR_STORAGE_KEY) ?? DEFAULT_CALENDAR_EMBED;
-    }
-
-    function saveCalendarEmbed(value) {
-      localStorage.setItem(CALENDAR_STORAGE_KEY, value);
-    }
-
-    function renderCalendar() {
-      const value = loadCalendarEmbed().trim();
-
-      calendarInput.value = value;
-
-      if (!value) {
-        calendarWrap.style.display = "none";
-        calendarEmpty.style.display = "block";
-        calendarFrame.removeAttribute("src");
-        return;
-      }
-
-      calendarWrap.style.display = "block";
-      calendarEmpty.style.display = "none";
-      calendarFrame.src = value;
-    }
-
-    calendarForm?.addEventListener("submit", (e) => {
-      e.preventDefault();
-      const value = calendarInput.value.trim();
-      saveCalendarEmbed(value);
-      renderCalendar();
-    });
-
-    calendarClearBtn?.addEventListener("click", () => {
-      saveCalendarEmbed("");
-      renderCalendar();
-    });
-
-    calendarResetBtn?.addEventListener("click", () => {
-      saveCalendarEmbed(DEFAULT_CALENDAR_EMBED);
-      renderCalendar();
-    });
-
     function setupRoutineList(id) {
       const list = document.getElementById(id);
       const key = list.dataset.storageKey;
       const defaults = JSON.parse(list.dataset.defaultItems);
-      const form = document.querySelector(`[data-target-list="${id}"]`);
-      const input = form?.querySelector(".routine-input");
 
       function load() {
-        try {
-          const raw = localStorage.getItem(key);
-          return raw
-            ? JSON.parse(raw)
-            : defaults.map((text) => ({ text, done: false }));
-        } catch {
-          return defaults.map((text) => ({ text, done: false }));
-        }
+        const raw = localStorage.getItem(key);
+        return raw
+          ? JSON.parse(raw)
+          : defaults.map((text) => ({ text, done: false }));
       }
 
       function save(data) {
@@ -347,42 +198,17 @@ const weekday = now.toLocaleDateString("en-US", { weekday: "long" });
           const span = document.createElement("span");
           span.textContent = item.text;
 
-          const removeBtn = document.createElement("button");
-          removeBtn.type = "button";
-          removeBtn.className = "item-delete-btn";
-          removeBtn.textContent = "Delete";
-
-          removeBtn.addEventListener("click", () => {
-            const next = load().filter((_, index) => index !== i);
-            save(next);
-            render();
-          });
-
           label.appendChild(cb);
           label.appendChild(span);
           li.appendChild(label);
-          li.appendChild(removeBtn);
           list.appendChild(li);
         });
       }
-
-      form?.addEventListener("submit", (e) => {
-        e.preventDefault();
-        const value = input?.value.trim();
-        if (!value) return;
-
-        const next = load();
-        next.unshift({ text: value, done: false });
-        save(next);
-        input.value = "";
-        render();
-      });
 
       render();
     }
 
     renderTodos();
-    renderCalendar();
     setupRoutineList("morning-list");
     setupRoutineList("night-list");
   </script>
