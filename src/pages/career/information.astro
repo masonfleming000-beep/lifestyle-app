@@ -1,0 +1,1332 @@
+---
+import BaseLayout from "../../layouts/BaseLayout.astro";
+---
+
+<BaseLayout title="Career Information | Lifestyle App" description="Private information builder">
+  <section class="hero">
+    <div class="hero-card">
+      <p class="kicker">Career</p>
+      <h1>Information Builder</h1>
+      <p>
+        Add and organize your private career information here. Each section gets its
+        own form layout, and only items marked visible will appear in the portfolio.
+      </p>
+    </div>
+  </section>
+
+  <section class="section">
+    <div class="career-topbar">
+      <a href="/career" class="ghost-link">← Back to Career</a>
+      <a href="/career-portfolio" class="edu-button">Go to Portfolio</a>
+    </div>
+  </section>
+
+  <section class="section">
+    <div class="career-shell">
+      <article class="card career-panel-card">
+        <div class="career-panel-header">
+          <div>
+            <h2 class="section-title">Add New Entry</h2>
+            <p class="section-subtitle">
+              Pick a section first. The form changes based on what you're adding.
+            </p>
+          </div>
+        </div>
+
+        <div class="dynamic-builder-shell">
+          <label class="edu-label">
+            <span>Section</span>
+            <select id="dynamic-section-select" class="form-input">
+              <option value="projects">Projects</option>
+              <option value="school">School Development</option>
+              <option value="experience">Work Experience</option>
+              <option value="about">About / Story</option>
+              <option value="looking">What I'm Looking For</option>
+              <option value="pitch">Pitch</option>
+              <option value="stats">Stats</option>
+              <option value="contact">Contact Info</option>
+              <option value="timeline">Timeline</option>
+              <option value="recommendations">Recommendations</option>
+              <option value="star">STAR Moments</option>
+            </select>
+          </label>
+
+          <div id="dynamic-form-area"></div>
+        </div>
+      </article>
+
+      <article class="card career-panel-card">
+        <div class="career-panel-header">
+          <div>
+            <h2 class="section-title">Saved Entries</h2>
+            <p class="section-subtitle">
+              Everything stays private here until marked visible for portfolio.
+            </p>
+          </div>
+        </div>
+
+        <div class="saved-sections">
+          <details class="saved-dropdown" open>
+            <summary>Projects <span id="count-projects">0</span></summary>
+            <div id="info-projects" class="grid one"></div>
+          </details>
+
+          <details class="saved-dropdown">
+            <summary>School Development <span id="count-school">0</span></summary>
+            <div id="info-school" class="grid one"></div>
+          </details>
+
+          <details class="saved-dropdown">
+            <summary>Work Experience <span id="count-experience">0</span></summary>
+            <div id="info-experience" class="grid one"></div>
+          </details>
+
+          <details class="saved-dropdown">
+            <summary>About / Story <span id="count-about">0</span></summary>
+            <div id="info-about" class="grid one"></div>
+          </details>
+
+          <details class="saved-dropdown">
+            <summary>What I'm Looking For <span id="count-looking">0</span></summary>
+            <div id="info-looking" class="grid one"></div>
+          </details>
+
+          <details class="saved-dropdown">
+            <summary>Pitch <span id="count-pitch">0</span></summary>
+            <div id="info-pitch" class="grid one"></div>
+          </details>
+
+          <details class="saved-dropdown">
+            <summary>Stats <span id="count-stats">0</span></summary>
+            <div id="info-stats" class="grid one"></div>
+          </details>
+
+          <details class="saved-dropdown">
+            <summary>Contact Info <span id="count-contact">0</span></summary>
+            <div id="info-contact" class="grid one"></div>
+          </details>
+
+          <details class="saved-dropdown">
+            <summary>Timeline <span id="count-timeline">0</span></summary>
+            <div id="info-timeline" class="grid one"></div>
+          </details>
+
+          <details class="saved-dropdown">
+            <summary>Recommendations <span id="count-recommendations">0</span></summary>
+            <div id="info-recommendations" class="grid one"></div>
+          </details>
+
+          <details class="saved-dropdown">
+            <summary>STAR Moments <span id="count-star">0</span></summary>
+            <div id="info-star" class="grid one"></div>
+          </details>
+        </div>
+      </article>
+
+      <article class="card career-panel-card">
+        <div class="career-panel-header">
+          <div>
+            <h2 class="section-title">Actions</h2>
+          </div>
+        </div>
+
+        <button class="delete-mini-button danger-big" id="clear-all-btn" type="button">
+          Clear Everything
+        </button>
+      </article>
+    </div>
+  </section>
+
+  <script is:inline>
+    const storageKey = "careerBuilderDataV2";
+
+    const defaultData = {
+      projects: [],
+      school: [],
+      experience: [],
+      about: [],
+      looking: [],
+      pitch: [],
+      stats: [],
+      contact: [],
+      timelineItems: [],
+      recommendations: [],
+      star: [],
+    };
+
+    function cloneDefaults() {
+      return JSON.parse(JSON.stringify(defaultData));
+    }
+
+    function makeId() {
+      if (window.crypto && typeof window.crypto.randomUUID === "function") {
+        return window.crypto.randomUUID();
+      }
+      return "id-" + Date.now() + "-" + Math.random().toString(16).slice(2);
+    }
+
+    function loadData() {
+      try {
+        const raw = localStorage.getItem(storageKey);
+        if (!raw) return cloneDefaults();
+        const parsed = JSON.parse(raw);
+        return {
+          ...cloneDefaults(),
+          ...parsed,
+          projects: Array.isArray(parsed.projects) ? parsed.projects : [],
+          school: Array.isArray(parsed.school) ? parsed.school : [],
+          experience: Array.isArray(parsed.experience) ? parsed.experience : [],
+          about: Array.isArray(parsed.about) ? parsed.about : [],
+          looking: Array.isArray(parsed.looking) ? parsed.looking : [],
+          pitch: Array.isArray(parsed.pitch) ? parsed.pitch : [],
+          stats: Array.isArray(parsed.stats) ? parsed.stats : [],
+          contact: Array.isArray(parsed.contact) ? parsed.contact : [],
+          timelineItems: Array.isArray(parsed.timelineItems) ? parsed.timelineItems : [],
+          recommendations: Array.isArray(parsed.recommendations) ? parsed.recommendations : [],
+          star: Array.isArray(parsed.star) ? parsed.star : [],
+        };
+      } catch {
+        return cloneDefaults();
+      }
+    }
+
+    function saveData(nextData) {
+      localStorage.setItem(storageKey, JSON.stringify(nextData));
+    }
+
+    let data = loadData();
+
+    function escapeHtml(value) {
+      return String(value || "")
+        .replaceAll("&", "&amp;")
+        .replaceAll("<", "&lt;")
+        .replaceAll(">", "&gt;")
+        .replaceAll('"', "&quot;")
+        .replaceAll("'", "&#039;");
+    }
+
+    function getValue(id) {
+      const el = document.getElementById(id);
+      return el ? el.value.trim() : "";
+    }
+
+    function getChecked(id) {
+      const el = document.getElementById(id);
+      return !!el?.checked;
+    }
+
+    function formatDate(dateStr) {
+      if (!dateStr) return "—";
+      const date = new Date(dateStr + "T00:00:00");
+      if (Number.isNaN(date.getTime())) return dateStr;
+      return date.toLocaleDateString("en-US", {
+        month: "short",
+        day: "numeric",
+        year: "numeric",
+      });
+    }
+
+    function setCount(id, count) {
+      const el = document.getElementById(id);
+      if (el) el.textContent = String(count);
+    }
+
+    function persistAndRefresh() {
+      saveData(data);
+      renderSavedEntries();
+    }
+
+    function deleteItem(group, id) {
+      data[group] = data[group].filter((item) => item.id !== id);
+      persistAndRefresh();
+    }
+
+    function toggleVisible(group, id) {
+      data[group] = data[group].map((item) =>
+        item.id === id ? { ...item, visible: !item.visible } : item
+      );
+      persistAndRefresh();
+    }
+
+    function buildProjectsForm() {
+      return `
+        <div class="dynamic-form-card">
+          <p class="section-helper">Projects need technical structure, visuals, team info, and build details.</p>
+
+          <div class="dynamic-form-grid">
+            <label class="edu-label">
+              <span>Project title</span>
+              <input id="dynamic-project-title" class="form-input" placeholder="Radiation Effects in GAAFET Devices" />
+            </label>
+
+            <label class="edu-label">
+              <span>Stage</span>
+              <input id="dynamic-project-stage" class="form-input" placeholder="Concept, prototyping, testing, completed" />
+            </label>
+
+            <label class="edu-label dynamic-form-full">
+              <span>Description</span>
+              <textarea id="dynamic-project-description" class="form-textarea" placeholder="Project description"></textarea>
+            </label>
+
+            <label class="edu-label">
+              <span>Members</span>
+              <input id="dynamic-project-members" class="form-input" placeholder="Names or team size" />
+            </label>
+
+            <label class="edu-label">
+              <span>Impact</span>
+              <input id="dynamic-project-impact" class="form-input" placeholder="Performance, insight, deliverable" />
+            </label>
+
+            <label class="edu-label">
+              <span>Status</span>
+              <select id="dynamic-project-status" class="form-input">
+                <option value="">Select status</option>
+                <option>Completed</option>
+                <option>In Progress</option>
+                <option>Paused</option>
+              </select>
+            </label>
+
+            <label class="edu-label">
+              <span>Timeline</span>
+              <input id="dynamic-project-timeline" class="form-input" placeholder="Spring 2025 - Summer 2025" />
+            </label>
+
+            <label class="edu-label">
+              <span>Parts / Tools</span>
+              <input id="dynamic-project-parts" class="form-input" placeholder="Sensors, boards, software, tools" />
+            </label>
+
+            <label class="edu-label">
+              <span>Specs</span>
+              <input id="dynamic-project-specs" class="form-input" placeholder="Voltage, speed, accuracy, size..." />
+            </label>
+
+            <label class="edu-label dynamic-form-full">
+              <span>Technical depth</span>
+              <textarea id="dynamic-project-depth" class="form-textarea" placeholder="Why this project is technically strong"></textarea>
+            </label>
+
+            <label class="edu-label dynamic-form-full">
+              <span>Issues / Challenges</span>
+              <textarea id="dynamic-project-issues" class="form-textarea" placeholder="Problems encountered and how they were handled"></textarea>
+            </label>
+
+            <label class="edu-label">
+              <span>Visuals</span>
+              <input id="dynamic-project-visuals" class="form-input" placeholder="/images/career/project.jpg or visual notes" />
+            </label>
+
+            <label class="edu-label">
+              <span>Diagrams</span>
+              <input id="dynamic-project-diagrams" class="form-input" placeholder="/images/career/diagram.jpg or diagram notes" />
+            </label>
+
+            <label class="edu-label">
+              <span>Link</span>
+              <input id="dynamic-project-link" class="form-input" placeholder="GitHub, demo, paper" />
+            </label>
+
+            <label class="check-row dynamic-form-full">
+              <input id="dynamic-project-visible" type="checkbox" checked />
+              <span>Show in portfolio</span>
+            </label>
+          </div>
+
+          <button class="edu-button" id="dynamic-save-project-btn" type="button">Save Project</button>
+        </div>
+      `;
+    }
+
+    function buildSchoolForm() {
+      return `
+        <div class="dynamic-form-card">
+          <p class="section-helper">School items should capture the class, what it built in you, and why it matters.</p>
+          <div class="dynamic-form-grid">
+            <label class="edu-label">
+              <span>Class / item title</span>
+              <input id="dynamic-school-title" class="form-input" placeholder="ECE 30200" />
+            </label>
+
+            <label class="edu-label">
+              <span>Professor</span>
+              <input id="dynamic-school-prof" class="form-input" placeholder="Professor name" />
+            </label>
+
+            <label class="edu-label dynamic-form-full">
+              <span>This class helped with</span>
+              <textarea id="dynamic-school-helped" class="form-textarea" placeholder="What this developed"></textarea>
+            </label>
+
+            <label class="edu-label">
+              <span>Relevance</span>
+              <input id="dynamic-school-relevance" class="form-input" placeholder="Why it matters to your path" />
+            </label>
+
+            <label class="edu-label">
+              <span>Stage / status</span>
+              <input id="dynamic-school-stage" class="form-input" placeholder="Completed, ongoing, key learning phase" />
+            </label>
+
+            <label class="edu-label dynamic-form-full">
+              <span>Notes</span>
+              <textarea id="dynamic-school-notes" class="form-textarea" placeholder="Extra notes"></textarea>
+            </label>
+
+            <label class="check-row dynamic-form-full">
+              <input id="dynamic-school-visible" type="checkbox" checked />
+              <span>Show in portfolio</span>
+            </label>
+          </div>
+
+          <button class="edu-button" id="dynamic-save-school-btn" type="button">Save School Item</button>
+        </div>
+      `;
+    }
+
+    function buildExperienceForm() {
+      return `
+        <div class="dynamic-form-card">
+          <p class="section-helper">Work experience needs role, date, impact, leader, and responsibilities.</p>
+          <div class="dynamic-form-grid">
+            <label class="edu-label">
+              <span>Role / company</span>
+              <input id="dynamic-exp-title" class="form-input" placeholder="Engineering Intern - Company" />
+            </label>
+
+            <label class="edu-label">
+              <span>Manager / boss</span>
+              <input id="dynamic-exp-boss" class="form-input" placeholder="Boss or mentor" />
+            </label>
+
+            <label class="edu-label">
+              <span>Date / range</span>
+              <input id="dynamic-exp-date" class="form-input" placeholder="May 2025 - Aug 2025" />
+            </label>
+
+            <label class="edu-label">
+              <span>Impact</span>
+              <input id="dynamic-exp-impact" class="form-input" placeholder="What changed because of your work?" />
+            </label>
+
+            <label class="edu-label dynamic-form-full">
+              <span>Responsibilities</span>
+              <textarea id="dynamic-exp-responsibilities" class="form-textarea" placeholder="One responsibility per line"></textarea>
+            </label>
+
+            <label class="edu-label">
+              <span>Pictures / visuals</span>
+              <input id="dynamic-exp-pictures" class="form-input" placeholder="/images/career/work.jpg or visual notes" />
+            </label>
+
+            <label class="check-row dynamic-form-full">
+              <input id="dynamic-exp-visible" type="checkbox" checked />
+              <span>Show in portfolio</span>
+            </label>
+          </div>
+
+          <button class="edu-button" id="dynamic-save-exp-btn" type="button">Save Experience</button>
+        </div>
+      `;
+    }
+
+    function buildAboutForm() {
+      return `
+        <div class="dynamic-form-card">
+          <p class="section-helper">About / Story should stay simple and text-driven.</p>
+          <div class="dynamic-form-grid one">
+            <label class="edu-label">
+              <span>Section title</span>
+              <input id="dynamic-about-title" class="form-input" placeholder="About Me" />
+            </label>
+
+            <label class="edu-label">
+              <span>Story</span>
+              <textarea id="dynamic-about-body" class="form-textarea" placeholder="Your background, what drives you, what you care about"></textarea>
+            </label>
+
+            <label class="check-row">
+              <input id="dynamic-about-visible" type="checkbox" checked />
+              <span>Show in portfolio</span>
+            </label>
+          </div>
+
+          <button class="edu-button" id="dynamic-save-about-btn" type="button">Save About Section</button>
+        </div>
+      `;
+    }
+
+    function buildLookingForm() {
+      return `
+        <div class="dynamic-form-card">
+          <div class="dynamic-form-grid one">
+            <label class="edu-label">
+              <span>Title</span>
+              <input id="dynamic-looking-title" class="form-input" placeholder="What I'm Looking For" />
+            </label>
+
+            <label class="edu-label">
+              <span>Details</span>
+              <textarea id="dynamic-looking-body" class="form-textarea" placeholder="Roles, environments, technologies, industries"></textarea>
+            </label>
+
+            <label class="check-row">
+              <input id="dynamic-looking-visible" type="checkbox" checked />
+              <span>Show in portfolio</span>
+            </label>
+          </div>
+
+          <button class="edu-button" id="dynamic-save-looking-btn" type="button">Save Looking For</button>
+        </div>
+      `;
+    }
+
+    function buildPitchForm() {
+      return `
+        <div class="dynamic-form-card">
+          <div class="dynamic-form-grid one">
+            <label class="edu-label">
+              <span>Headline / pitch</span>
+              <input id="dynamic-pitch-title" class="form-input" placeholder="Semiconductor + embedded systems engineer..." />
+            </label>
+
+            <label class="edu-label">
+              <span>Expanded pitch</span>
+              <textarea id="dynamic-pitch-body" class="form-textarea" placeholder="Short pitch paragraph"></textarea>
+            </label>
+
+            <label class="check-row">
+              <input id="dynamic-pitch-visible" type="checkbox" checked />
+              <span>Show in portfolio</span>
+            </label>
+          </div>
+
+          <button class="edu-button" id="dynamic-save-pitch-btn" type="button">Save Pitch</button>
+        </div>
+      `;
+    }
+
+    function buildStatsForm() {
+      return `
+        <div class="dynamic-form-card">
+          <div class="dynamic-form-grid">
+            <label class="edu-label">
+              <span>Stat title</span>
+              <input id="dynamic-stat-title" class="form-input" placeholder="Research Simulations" />
+            </label>
+
+            <label class="edu-label">
+              <span>Big stat / impact</span>
+              <input id="dynamic-stat-impact" class="form-input" placeholder="150+" />
+            </label>
+
+            <label class="edu-label dynamic-form-full">
+              <span>Description</span>
+              <textarea id="dynamic-stat-description" class="form-textarea" placeholder="What this stat means"></textarea>
+            </label>
+
+            <label class="check-row dynamic-form-full">
+              <input id="dynamic-stat-visible" type="checkbox" checked />
+              <span>Show in portfolio</span>
+            </label>
+          </div>
+
+          <button class="edu-button" id="dynamic-save-stat-btn" type="button">Save Stat</button>
+        </div>
+      `;
+    }
+
+    function buildContactForm() {
+      return `
+        <div class="dynamic-form-card">
+          <div class="dynamic-form-grid">
+            <label class="edu-label">
+              <span>GitHub</span>
+              <input id="dynamic-contact-github" class="form-input" placeholder="github.com/username" />
+            </label>
+
+            <label class="edu-label">
+              <span>Email</span>
+              <input id="dynamic-contact-email" class="form-input" placeholder="you@email.com" />
+            </label>
+
+            <label class="edu-label">
+              <span>Phone</span>
+              <input id="dynamic-contact-phone" class="form-input" placeholder="(555) 555-5555" />
+            </label>
+
+            <label class="edu-label">
+              <span>LinkedIn / website</span>
+              <input id="dynamic-contact-link" class="form-input" placeholder="linkedin.com/in/you" />
+            </label>
+
+            <label class="check-row dynamic-form-full">
+              <input id="dynamic-contact-visible" type="checkbox" checked />
+              <span>Show in portfolio</span>
+            </label>
+          </div>
+
+          <button class="edu-button" id="dynamic-save-contact-btn" type="button">Save Contact Info</button>
+        </div>
+      `;
+    }
+
+    function buildTimelineForm() {
+      return `
+        <div class="dynamic-form-card">
+          <div class="dynamic-form-grid">
+            <label class="edu-label">
+              <span>Milestone title</span>
+              <input id="dynamic-timeline-title" class="form-input" placeholder="Started semiconductor research" />
+            </label>
+
+            <label class="edu-label">
+              <span>Date</span>
+              <input id="dynamic-timeline-date" type="date" class="form-input" />
+            </label>
+
+            <label class="edu-label dynamic-form-full">
+              <span>Description</span>
+              <textarea id="dynamic-timeline-description" class="form-textarea" placeholder="What happened and why it mattered"></textarea>
+            </label>
+
+            <label class="check-row dynamic-form-full">
+              <input id="dynamic-timeline-visible" type="checkbox" checked />
+              <span>Show in portfolio</span>
+            </label>
+          </div>
+
+          <button class="edu-button" id="dynamic-save-timeline-btn" type="button">Save Timeline Item</button>
+        </div>
+      `;
+    }
+
+    function buildRecommendationsForm() {
+      return `
+        <div class="dynamic-form-card">
+          <div class="dynamic-form-grid one">
+            <label class="edu-label">
+              <span>Name / source</span>
+              <input id="dynamic-rec-title" class="form-input" placeholder="Professor / manager / reference" />
+            </label>
+
+            <label class="edu-label">
+              <span>Recommendation</span>
+              <textarea id="dynamic-rec-body" class="form-textarea" placeholder="Recommendation text or notes"></textarea>
+            </label>
+
+            <label class="edu-label">
+              <span>Role / context</span>
+              <input id="dynamic-rec-owner" class="form-input" placeholder="Professor, manager, mentor" />
+            </label>
+
+            <label class="check-row">
+              <input id="dynamic-rec-visible" type="checkbox" checked />
+              <span>Show in portfolio</span>
+            </label>
+          </div>
+
+          <button class="edu-button" id="dynamic-save-rec-btn" type="button">Save Recommendation</button>
+        </div>
+      `;
+    }
+
+    function buildStarForm() {
+      return `
+        <div class="dynamic-form-card">
+          <div class="dynamic-form-grid one">
+            <label class="edu-label">
+              <span>STAR title</span>
+              <input id="dynamic-star-title" class="form-input" placeholder="Debugging a failing prototype" />
+            </label>
+
+            <label class="edu-label">
+              <span>Situation</span>
+              <textarea id="dynamic-star-situation" class="form-textarea" placeholder="Situation"></textarea>
+            </label>
+
+            <label class="edu-label">
+              <span>Task</span>
+              <textarea id="dynamic-star-task" class="form-textarea" placeholder="Task"></textarea>
+            </label>
+
+            <label class="edu-label">
+              <span>Action</span>
+              <textarea id="dynamic-star-action" class="form-textarea" placeholder="Action"></textarea>
+            </label>
+
+            <label class="edu-label">
+              <span>Result</span>
+              <textarea id="dynamic-star-result" class="form-textarea" placeholder="Result"></textarea>
+            </label>
+
+            <label class="check-row">
+              <input id="dynamic-star-visible" type="checkbox" checked />
+              <span>Show in portfolio</span>
+            </label>
+          </div>
+
+          <button class="edu-button" id="dynamic-save-star-btn" type="button">Save STAR Example</button>
+        </div>
+      `;
+    }
+
+    function renderDynamicForm() {
+      const select = document.getElementById("dynamic-section-select");
+      const area = document.getElementById("dynamic-form-area");
+      if (!select || !area) return;
+
+      const value = select.value;
+
+      const map = {
+        projects: buildProjectsForm,
+        school: buildSchoolForm,
+        experience: buildExperienceForm,
+        about: buildAboutForm,
+        looking: buildLookingForm,
+        pitch: buildPitchForm,
+        stats: buildStatsForm,
+        contact: buildContactForm,
+        timeline: buildTimelineForm,
+        recommendations: buildRecommendationsForm,
+        star: buildStarForm,
+      };
+
+      area.innerHTML = map[value] ? map[value]() : "";
+      bindDynamicFormActions();
+    }
+
+    function bindDynamicFormActions() {
+      document.getElementById("dynamic-save-project-btn")?.addEventListener("click", () => {
+        const title = getValue("dynamic-project-title");
+        if (!title) return;
+
+        data.projects.unshift({
+          id: makeId(),
+          title,
+          description: getValue("dynamic-project-description"),
+          stage: getValue("dynamic-project-stage"),
+          completed: getValue("dynamic-project-status"),
+          timeline: getValue("dynamic-project-timeline"),
+          impact: getValue("dynamic-project-impact"),
+          members: getValue("dynamic-project-members"),
+          parts: getValue("dynamic-project-parts"),
+          specifications: getValue("dynamic-project-specs"),
+          depth: getValue("dynamic-project-depth"),
+          issues: getValue("dynamic-project-issues"),
+          visuals: getValue("dynamic-project-visuals"),
+          diagrams: getValue("dynamic-project-diagrams"),
+          link: getValue("dynamic-project-link"),
+          visible: getChecked("dynamic-project-visible"),
+        });
+
+        persistAndRefresh();
+        renderDynamicForm();
+      });
+
+      document.getElementById("dynamic-save-school-btn")?.addEventListener("click", () => {
+        const title = getValue("dynamic-school-title");
+        if (!title) return;
+
+        data.school.unshift({
+          id: makeId(),
+          title,
+          helped: getValue("dynamic-school-helped"),
+          relevance: getValue("dynamic-school-relevance"),
+          prof: getValue("dynamic-school-prof"),
+          stage: getValue("dynamic-school-stage"),
+          notes: getValue("dynamic-school-notes"),
+          visible: getChecked("dynamic-school-visible"),
+        });
+
+        persistAndRefresh();
+        renderDynamicForm();
+      });
+
+      document.getElementById("dynamic-save-exp-btn")?.addEventListener("click", () => {
+        const title = getValue("dynamic-exp-title");
+        if (!title) return;
+
+        data.experience.unshift({
+          id: makeId(),
+          title,
+          date: getValue("dynamic-exp-date"),
+          impact: getValue("dynamic-exp-impact"),
+          boss: getValue("dynamic-exp-boss"),
+          responsibilities: getValue("dynamic-exp-responsibilities")
+            .split("\n")
+            .map((x) => x.trim())
+            .filter(Boolean),
+          pictures: getValue("dynamic-exp-pictures"),
+          visible: getChecked("dynamic-exp-visible"),
+        });
+
+        persistAndRefresh();
+        renderDynamicForm();
+      });
+
+      document.getElementById("dynamic-save-about-btn")?.addEventListener("click", () => {
+        const body = getValue("dynamic-about-body");
+        if (!body) return;
+
+        data.about.unshift({
+          id: makeId(),
+          title: getValue("dynamic-about-title") || "About Me",
+          body,
+          visible: getChecked("dynamic-about-visible"),
+        });
+
+        persistAndRefresh();
+        renderDynamicForm();
+      });
+
+      document.getElementById("dynamic-save-looking-btn")?.addEventListener("click", () => {
+        const body = getValue("dynamic-looking-body");
+        if (!body) return;
+
+        data.looking.unshift({
+          id: makeId(),
+          title: getValue("dynamic-looking-title") || "What I'm Looking For",
+          body,
+          visible: getChecked("dynamic-looking-visible"),
+        });
+
+        persistAndRefresh();
+        renderDynamicForm();
+      });
+
+      document.getElementById("dynamic-save-pitch-btn")?.addEventListener("click", () => {
+        const title = getValue("dynamic-pitch-title");
+        const body = getValue("dynamic-pitch-body");
+        if (!title && !body) return;
+
+        data.pitch.unshift({
+          id: makeId(),
+          title: title || "Pitch",
+          body,
+          visible: getChecked("dynamic-pitch-visible"),
+        });
+
+        persistAndRefresh();
+        renderDynamicForm();
+      });
+
+      document.getElementById("dynamic-save-stat-btn")?.addEventListener("click", () => {
+        const title = getValue("dynamic-stat-title");
+        if (!title) return;
+
+        data.stats.unshift({
+          id: makeId(),
+          title,
+          impact: getValue("dynamic-stat-impact"),
+          description: getValue("dynamic-stat-description"),
+          visible: getChecked("dynamic-stat-visible"),
+        });
+
+        persistAndRefresh();
+        renderDynamicForm();
+      });
+
+      document.getElementById("dynamic-save-contact-btn")?.addEventListener("click", () => {
+        const github = getValue("dynamic-contact-github");
+        const email = getValue("dynamic-contact-email");
+        const phone = getValue("dynamic-contact-phone");
+        const link = getValue("dynamic-contact-link");
+        if (!github && !email && !phone && !link) return;
+
+        data.contact = [{
+          id: makeId(),
+          title: "Contact Info",
+          github,
+          email,
+          phone,
+          link,
+          visible: getChecked("dynamic-contact-visible"),
+        }];
+
+        persistAndRefresh();
+        renderDynamicForm();
+      });
+
+      document.getElementById("dynamic-save-timeline-btn")?.addEventListener("click", () => {
+        const title = getValue("dynamic-timeline-title");
+        if (!title) return;
+
+        data.timelineItems.unshift({
+          id: makeId(),
+          title,
+          date: document.getElementById("dynamic-timeline-date")?.value || "",
+          description: getValue("dynamic-timeline-description"),
+          visible: getChecked("dynamic-timeline-visible"),
+        });
+
+        persistAndRefresh();
+        renderDynamicForm();
+      });
+
+      document.getElementById("dynamic-save-rec-btn")?.addEventListener("click", () => {
+        const title = getValue("dynamic-rec-title");
+        if (!title) return;
+
+        data.recommendations.unshift({
+          id: makeId(),
+          title,
+          body: getValue("dynamic-rec-body"),
+          owner: getValue("dynamic-rec-owner"),
+          visible: getChecked("dynamic-rec-visible"),
+        });
+
+        persistAndRefresh();
+        renderDynamicForm();
+      });
+
+      document.getElementById("dynamic-save-star-btn")?.addEventListener("click", () => {
+        const title = getValue("dynamic-star-title");
+        if (!title) return;
+
+        data.star.unshift({
+          id: makeId(),
+          title,
+          situation: getValue("dynamic-star-situation"),
+          task: getValue("dynamic-star-task"),
+          action: getValue("dynamic-star-action"),
+          result: getValue("dynamic-star-result"),
+          visible: getChecked("dynamic-star-visible"),
+        });
+
+        persistAndRefresh();
+        renderDynamicForm();
+      });
+    }
+
+    function emptyCard(text) {
+      return `<article class="assignment-card"><div class="assignment-main"><p class="empty-state">${escapeHtml(text)}</p></div></article>`;
+    }
+
+    function buildSavedCard(group, item) {
+      const state = item.visible ? "Visible in Portfolio" : "Hidden from Portfolio";
+      const stateClass = item.visible ? "selected" : "";
+
+      const baseTop = `
+        <div class="selector-state ${stateClass}">${state}</div>
+      `;
+
+      if (group === "projects") {
+        return `
+          ${baseTop}
+          <h3 class="card-title">${escapeHtml(item.title || "Untitled Project")}</h3>
+          <p><strong>Description:</strong> ${escapeHtml(item.description || "—")}</p>
+          <p><strong>Stage:</strong> ${escapeHtml(item.stage || "—")}</p>
+          <p><strong>Status:</strong> ${escapeHtml(item.completed || "—")}</p>
+          <p><strong>Timeline:</strong> ${escapeHtml(item.timeline || "—")}</p>
+          <p><strong>Members:</strong> ${escapeHtml(item.members || "—")}</p>
+          <p><strong>Impact:</strong> ${escapeHtml(item.impact || "—")}</p>
+          <p><strong>Parts / Tools:</strong> ${escapeHtml(item.parts || "—")}</p>
+          <p><strong>Specs:</strong> ${escapeHtml(item.specifications || "—")}</p>
+          <p><strong>Technical depth:</strong> ${escapeHtml(item.depth || "—")}</p>
+          <p><strong>Issues:</strong> ${escapeHtml(item.issues || "—")}</p>
+          <p><strong>Visuals:</strong> ${escapeHtml(item.visuals || "—")}</p>
+          <p><strong>Diagrams:</strong> ${escapeHtml(item.diagrams || "—")}</p>
+          ${
+            item.link
+              ? `<p><strong>Link:</strong> <a href="${escapeHtml(item.link)}" target="_blank" rel="noreferrer">${escapeHtml(item.link)}</a></p>`
+              : ""
+          }
+        `;
+      }
+
+      if (group === "school") {
+        return `
+          ${baseTop}
+          <h3 class="card-title">${escapeHtml(item.title || "School Item")}</h3>
+          <p><strong>Professor:</strong> ${escapeHtml(item.prof || "—")}</p>
+          <p><strong>Helped with:</strong> ${escapeHtml(item.helped || "—")}</p>
+          <p><strong>Relevance:</strong> ${escapeHtml(item.relevance || "—")}</p>
+          <p><strong>Stage:</strong> ${escapeHtml(item.stage || "—")}</p>
+          <p><strong>Notes:</strong> ${escapeHtml(item.notes || "—")}</p>
+        `;
+      }
+
+      if (group === "experience") {
+        const responsibilities = Array.isArray(item.responsibilities) && item.responsibilities.length
+          ? `<ul class="list-clean">${item.responsibilities.map((r) => `<li>${escapeHtml(r)}</li>`).join("")}</ul>`
+          : "<p><strong>Responsibilities:</strong> —</p>";
+
+        return `
+          ${baseTop}
+          <h3 class="card-title">${escapeHtml(item.title || "Experience")}</h3>
+          <p><strong>Date:</strong> ${escapeHtml(item.date || "—")}</p>
+          <p><strong>Manager / boss:</strong> ${escapeHtml(item.boss || "—")}</p>
+          <p><strong>Impact:</strong> ${escapeHtml(item.impact || "—")}</p>
+          <p><strong>Pictures / visuals:</strong> ${escapeHtml(item.pictures || "—")}</p>
+          <div><strong>Responsibilities:</strong>${responsibilities}</div>
+        `;
+      }
+
+      if (group === "about" || group === "looking" || group === "pitch") {
+        return `
+          ${baseTop}
+          <h3 class="card-title">${escapeHtml(item.title || "Text Entry")}</h3>
+          <p>${escapeHtml(item.body || "—")}</p>
+        `;
+      }
+
+      if (group === "stats") {
+        return `
+          ${baseTop}
+          <h3 class="card-title">${escapeHtml(item.title || "Stat")}</h3>
+          <p><strong>Big stat:</strong> ${escapeHtml(item.impact || "—")}</p>
+          <p>${escapeHtml(item.description || "—")}</p>
+        `;
+      }
+
+      if (group === "contact") {
+        return `
+          ${baseTop}
+          <h3 class="card-title">${escapeHtml(item.title || "Contact")}</h3>
+          <p><strong>GitHub:</strong> ${escapeHtml(item.github || "—")}</p>
+          <p><strong>Email:</strong> ${escapeHtml(item.email || "—")}</p>
+          <p><strong>Phone:</strong> ${escapeHtml(item.phone || "—")}</p>
+          <p><strong>Link:</strong> ${escapeHtml(item.link || "—")}</p>
+        `;
+      }
+
+      if (group === "timelineItems") {
+        return `
+          ${baseTop}
+          <h3 class="card-title">${escapeHtml(item.title || "Timeline Item")}</h3>
+          <p><strong>Date:</strong> ${escapeHtml(formatDate(item.date))}</p>
+          <p>${escapeHtml(item.description || "—")}</p>
+        `;
+      }
+
+      if (group === "recommendations") {
+        return `
+          ${baseTop}
+          <h3 class="card-title">${escapeHtml(item.title || "Recommendation")}</h3>
+          <p><strong>Source:</strong> ${escapeHtml(item.owner || "—")}</p>
+          <p>${escapeHtml(item.body || "—")}</p>
+        `;
+      }
+
+      if (group === "star") {
+        return `
+          ${baseTop}
+          <h3 class="card-title">${escapeHtml(item.title || "STAR Example")}</h3>
+          <p><strong>Situation:</strong> ${escapeHtml(item.situation || "—")}</p>
+          <p><strong>Task:</strong> ${escapeHtml(item.task || "—")}</p>
+          <p><strong>Action:</strong> ${escapeHtml(item.action || "—")}</p>
+          <p><strong>Result:</strong> ${escapeHtml(item.result || "—")}</p>
+        `;
+      }
+
+      return `
+        ${baseTop}
+        <h3 class="card-title">${escapeHtml(item.title || "Entry")}</h3>
+      `;
+    }
+
+    function renderGroup(wrapId, countId, group, items, emptyText) {
+      const wrap = document.getElementById(wrapId);
+      if (!wrap) return;
+
+      setCount(countId, items.length);
+      wrap.innerHTML = "";
+
+      if (!items.length) {
+        wrap.innerHTML = emptyCard(emptyText);
+        return;
+      }
+
+      items.forEach((item) => {
+        const card = document.createElement("article");
+        card.className = "assignment-card";
+        card.innerHTML = `
+          <div class="assignment-main">
+            ${buildSavedCard(group, item)}
+          </div>
+          <div class="assignment-actions">
+            <button class="edu-button mini toggle-visibility-btn" type="button">
+              ${item.visible ? "Hide" : "Show"}
+            </button>
+            <button class="delete-mini-button" type="button">Delete</button>
+          </div>
+        `;
+
+        card.querySelector(".toggle-visibility-btn")?.addEventListener("click", () => {
+          toggleVisible(group, item.id);
+        });
+
+        card.querySelector(".delete-mini-button")?.addEventListener("click", () => {
+          deleteItem(group, item.id);
+        });
+
+        wrap.appendChild(card);
+      });
+    }
+
+    function renderSavedEntries() {
+      renderGroup("info-projects", "count-projects", "projects", data.projects, "No saved projects yet.");
+      renderGroup("info-school", "count-school", "school", data.school, "No saved school items yet.");
+      renderGroup("info-experience", "count-experience", "experience", data.experience, "No saved work experience yet.");
+      renderGroup("info-about", "count-about", "about", data.about, "No saved about entries yet.");
+      renderGroup("info-looking", "count-looking", "looking", data.looking, "No saved looking-for entries yet.");
+      renderGroup("info-pitch", "count-pitch", "pitch", data.pitch, "No saved pitch entries yet.");
+      renderGroup("info-stats", "count-stats", "stats", data.stats, "No saved stats yet.");
+      renderGroup("info-contact", "count-contact", "contact", data.contact, "No saved contact info yet.");
+
+      const timelineSorted = [...data.timelineItems].sort((a, b) => {
+        const aDate = a.date || "9999-12-31";
+        const bDate = b.date || "9999-12-31";
+        return aDate.localeCompare(bDate);
+      });
+      renderGroup("info-timeline", "count-timeline", "timelineItems", timelineSorted, "No saved timeline items yet.");
+
+      renderGroup(
+        "info-recommendations",
+        "count-recommendations",
+        "recommendations",
+        data.recommendations,
+        "No saved recommendations yet."
+      );
+
+      renderGroup("info-star", "count-star", "star", data.star, "No saved STAR moments yet.");
+    }
+
+    document.getElementById("dynamic-section-select")?.addEventListener("change", () => {
+      renderDynamicForm();
+    });
+
+    document.getElementById("clear-all-btn")?.addEventListener("click", () => {
+      localStorage.removeItem(storageKey);
+      data = cloneDefaults();
+      renderDynamicForm();
+      renderSavedEntries();
+    });
+
+    renderDynamicForm();
+    renderSavedEntries();
+  </script>
+
+  <style>
+    .career-topbar {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      gap: 1rem;
+      flex-wrap: wrap;
+    }
+
+    .ghost-link {
+      text-decoration: none;
+      font-weight: 700;
+      color: #2f5d62;
+    }
+
+    .career-shell {
+      display: grid;
+      gap: 1.25rem;
+    }
+
+    .career-panel-card {
+      border-radius: 1.25rem;
+    }
+
+    .career-panel-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: flex-start;
+      gap: 1rem;
+      margin-bottom: 1rem;
+    }
+
+    .grid.one {
+      grid-template-columns: 1fr;
+    }
+
+    .edu-label {
+      display: grid;
+      gap: 0.45rem;
+      margin-bottom: 0.95rem;
+    }
+
+    .edu-label span {
+      font-weight: 600;
+    }
+
+    .check-row {
+      display: flex;
+      align-items: center;
+      gap: 0.65rem;
+      margin-bottom: 1rem;
+      font-weight: 600;
+    }
+
+    .edu-button {
+      appearance: none;
+      border: 0;
+      border-radius: 999px;
+      padding: 0.8rem 1rem;
+      font-weight: 700;
+      cursor: pointer;
+      background: #2f5d62;
+      color: white;
+      text-decoration: none;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+    }
+
+    .edu-button.mini {
+      padding: 0.6rem 0.9rem;
+      font-size: 0.92rem;
+    }
+
+    .delete-mini-button {
+      appearance: none;
+      border: 0;
+      border-radius: 999px;
+      padding: 0.65rem 0.9rem;
+      font-weight: 700;
+      cursor: pointer;
+      background: rgba(220, 38, 38, 0.1);
+      color: #b91c1c;
+      white-space: nowrap;
+    }
+
+    .danger-big {
+      padding: 0.85rem 1rem;
+    }
+
+    .assignment-card {
+      display: flex;
+      justify-content: space-between;
+      align-items: flex-start;
+      gap: 1rem;
+      padding: 1rem;
+      border-radius: 1rem;
+      border: 1px solid rgba(0, 0, 0, 0.08);
+      background: white;
+      margin-bottom: 0.85rem;
+    }
+
+    .assignment-main {
+      flex: 1;
+      min-width: 0;
+    }
+
+    .assignment-actions {
+      display: flex;
+      gap: 0.55rem;
+      flex-wrap: wrap;
+      justify-content: flex-end;
+    }
+
+    .selector-state {
+      display: inline-flex;
+      align-items: center;
+      padding: 0.3rem 0.65rem;
+      border-radius: 999px;
+      font-size: 0.8rem;
+      font-weight: 700;
+      margin-bottom: 0.75rem;
+      background: rgba(107, 114, 128, 0.12);
+      color: #4b5563;
+    }
+
+    .selector-state.selected {
+      background: rgba(22, 163, 74, 0.12);
+      color: #15803d;
+    }
+
+    .saved-sections {
+      display: grid;
+      gap: 0.9rem;
+    }
+
+    .saved-dropdown {
+      border: 1px solid rgba(47, 93, 98, 0.12);
+      border-radius: 1rem;
+      background: rgba(47, 93, 98, 0.04);
+      overflow: hidden;
+    }
+
+    .saved-dropdown summary {
+      cursor: pointer;
+      list-style: none;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      gap: 1rem;
+      padding: 1rem 1.1rem;
+      font-weight: 700;
+    }
+
+    .saved-dropdown summary::-webkit-details-marker {
+      display: none;
+    }
+
+    .saved-dropdown > div {
+      padding: 0 1rem 1rem;
+    }
+
+    .dynamic-builder-shell {
+      display: grid;
+      gap: 1rem;
+    }
+
+    .dynamic-form-card {
+      padding: 1rem;
+      border-radius: 1rem;
+      background: rgba(47, 93, 98, 0.04);
+      border: 1px solid rgba(47, 93, 98, 0.1);
+    }
+
+    .dynamic-form-grid {
+      display: grid;
+      gap: 0.9rem;
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+    }
+
+    .dynamic-form-grid.one {
+      grid-template-columns: 1fr;
+    }
+
+    .dynamic-form-full {
+      grid-column: 1 / -1;
+    }
+
+    .section-helper {
+      margin: 0 0 0.8rem;
+      color: #6b7280;
+    }
+
+    .empty-state {
+      margin: 0;
+      color: #6b7280;
+    }
+
+    .list-clean {
+      margin-top: 0.5rem;
+    }
+
+    @media (max-width: 900px) {
+      .assignment-card {
+        flex-direction: column;
+      }
+
+      .assignment-actions {
+        width: 100%;
+        justify-content: flex-start;
+      }
+    }
+
+    @media (max-width: 800px) {
+      .dynamic-form-grid {
+        grid-template-columns: 1fr;
+      }
+    }
+  </style>
+</BaseLayout>

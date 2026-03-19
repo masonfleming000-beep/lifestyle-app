@@ -1,0 +1,696 @@
+---
+import BaseLayout from "../layouts/BaseLayout.astro";
+import { hobbies as seedHobbies } from "../data/hobbies";
+
+const seed = JSON.stringify(seedHobbies);
+---
+
+<BaseLayout title="Hobbies | Lifestyle App" description="Interactive hobby tracking and progress">
+  <section class="hero">
+    <div class="hero-card">
+      <p class="kicker">Hobbies</p>
+      <h1>Track hobbies with real progress, stages, and updates.</h1>
+      <p>
+        This version lets the user add, edit, and delete hobbies locally in the browser.
+        Data is stored in localStorage for now.
+      </p>
+    </div>
+  </section>
+
+  <section class="section">
+    <div id="hobby-app" data-seed={seed}>
+      <div class="grid two">
+        <article class="card">
+          <div class="section-header">
+            <div>
+              <h2 class="section-title">Controls</h2>
+              <p class="section-subtitle">Manage hobbies and filter what you see.</p>
+            </div>
+          </div>
+
+          <div class="form-stack">
+            <div class="button-row">
+              <button class="ui-button" id="add-hobby-btn" type="button">Add Hobby</button>
+              <button class="ui-button ui-button-secondary" id="delete-hobby-btn" type="button">
+                Delete Selected
+              </button>
+            </div>
+
+            <div class="field-group">
+              <label class="field-label" for="hobby-select">Hobby</label>
+              <select id="hobby-select" class="ui-select"></select>
+            </div>
+
+            <div class="field-group">
+              <label class="field-label" for="filter-select">Filter</label>
+              <select id="filter-select" class="ui-select">
+                <option value="All">All</option>
+                <option value="Active">Active</option>
+                <option value="Paused">Paused</option>
+                <option value="Completed">Completed</option>
+                <option value="Dropped">Dropped</option>
+                <option value="Favorites">Favorites</option>
+              </select>
+            </div>
+
+            <div class="field-group">
+              <label class="field-label" for="search-hobbies">Search</label>
+              <input id="search-hobbies" class="ui-input" type="text" placeholder="Search hobbies..." />
+            </div>
+          </div>
+        </article>
+
+        <article class="card soft">
+          <div class="section-header">
+            <div>
+              <h2 class="section-title">Hobby List</h2>
+              <p class="section-subtitle">Quick view of all hobbies.</p>
+            </div>
+          </div>
+          <div id="hobby-card-list" class="hobby-card-list"></div>
+        </article>
+      </div>
+
+      <section class="section">
+        <article class="card hobby-summary-card">
+          <div class="section-header">
+            <div>
+              <h2 class="section-title">Selected Hobby</h2>
+              <p class="section-subtitle">Edit the main details here.</p>
+            </div>
+          </div>
+
+          <div id="empty-state" class="empty-state" hidden>
+            No hobby selected yet. Add one to get started.
+          </div>
+
+          <div id="selected-hobby-panel">
+            <div class="grid two">
+              <div class="field-group">
+                <label class="field-label" for="hobby-name">Hobby Name</label>
+                <input id="hobby-name" class="ui-input" type="text" />
+              </div>
+
+              <div class="field-group">
+                <label class="field-label" for="hobby-category">Category</label>
+                <select id="hobby-category" class="ui-select">
+                  <option value="Creative">Creative</option>
+                  <option value="Fitness">Fitness</option>
+                  <option value="Learning">Learning</option>
+                  <option value="Collecting">Collecting</option>
+                  <option value="Other">Other</option>
+                </select>
+              </div>
+
+              <div class="field-group">
+                <label class="field-label" for="hobby-status">Status</label>
+                <select id="hobby-status" class="ui-select">
+                  <option value="Active">Active</option>
+                  <option value="Paused">Paused</option>
+                  <option value="Completed">Completed</option>
+                  <option value="Dropped">Dropped</option>
+                </select>
+              </div>
+
+              <div class="field-group">
+                <label class="field-label" for="hobby-started">Started On</label>
+                <input id="hobby-started" class="ui-input" type="date" />
+              </div>
+
+              <div class="field-group">
+                <label class="field-label" for="hobby-hours">Hours Spent</label>
+                <input id="hobby-hours" class="ui-input" type="number" min="0" step="1" />
+              </div>
+
+              <div class="field-group field-checkbox">
+                <label class="checkbox-row">
+                  <input id="hobby-favorite" type="checkbox" />
+                  <span>Favorite / priority hobby</span>
+                </label>
+              </div>
+            </div>
+
+            <div class="field-group">
+              <label class="field-label" for="hobby-motivation">Motivation / Goal</label>
+              <textarea id="hobby-motivation" class="ui-textarea" rows="3"></textarea>
+            </div>
+
+            <div class="field-group">
+              <label class="field-label" for="hobby-notes">Notes</label>
+              <textarea id="hobby-notes" class="ui-textarea" rows="4"></textarea>
+            </div>
+
+            <div class="summary-grid" id="summary-grid"></div>
+
+            <div class="button-row top-gap">
+              <button class="ui-button" id="save-hobby-btn" type="button">Save Hobby Changes</button>
+            </div>
+          </div>
+        </article>
+      </section>
+
+      <section class="section">
+        <div class="grid two">
+          <article class="card">
+            <div class="section-header">
+              <div>
+                <h2 class="section-title">Stages</h2>
+                <p class="section-subtitle">Track progress inside each hobby.</p>
+              </div>
+            </div>
+
+            <div class="button-row bottom-gap">
+              <button class="ui-button" id="add-stage-btn" type="button">Add Stage</button>
+            </div>
+
+            <div id="stage-list" class="stage-list"></div>
+          </article>
+
+          <article class="card soft">
+            <div class="section-header">
+              <div>
+                <h2 class="section-title">Activity Log</h2>
+                <p class="section-subtitle">Quick update history.</p>
+              </div>
+            </div>
+
+            <div class="button-row bottom-gap">
+              <button class="ui-button" id="add-log-btn" type="button">Add Log Entry</button>
+            </div>
+
+            <div id="log-list" class="timeline-list"></div>
+          </article>
+        </div>
+      </section>
+    </div>
+  </section>
+
+  <script is:inline>
+    (() => {
+      const app = document.getElementById("hobby-app");
+      if (!app) return;
+
+      const STORAGE_KEY = "lifestyle-hobbies-v1";
+      const seed = JSON.parse(app.dataset.seed || "[]");
+
+      const hobbySelect = document.getElementById("hobby-select");
+      const filterSelect = document.getElementById("filter-select");
+      const searchInput = document.getElementById("search-hobbies");
+      const hobbyCardList = document.getElementById("hobby-card-list");
+      const emptyState = document.getElementById("empty-state");
+      const selectedPanel = document.getElementById("selected-hobby-panel");
+      const summaryGrid = document.getElementById("summary-grid");
+      const stageList = document.getElementById("stage-list");
+      const logList = document.getElementById("log-list");
+
+      const hobbyName = document.getElementById("hobby-name");
+      const hobbyCategory = document.getElementById("hobby-category");
+      const hobbyStatus = document.getElementById("hobby-status");
+      const hobbyStarted = document.getElementById("hobby-started");
+      const hobbyHours = document.getElementById("hobby-hours");
+      const hobbyFavorite = document.getElementById("hobby-favorite");
+      const hobbyMotivation = document.getElementById("hobby-motivation");
+      const hobbyNotes = document.getElementById("hobby-notes");
+
+      const addHobbyBtn = document.getElementById("add-hobby-btn");
+      const deleteHobbyBtn = document.getElementById("delete-hobby-btn");
+      const saveHobbyBtn = document.getElementById("save-hobby-btn");
+      const addStageBtn = document.getElementById("add-stage-btn");
+      const addLogBtn = document.getElementById("add-log-btn");
+
+      function loadHobbies() {
+        try {
+          const saved = localStorage.getItem(STORAGE_KEY);
+          return saved ? JSON.parse(saved) : seed;
+        } catch {
+          return seed;
+        }
+      }
+
+      let hobbies = loadHobbies();
+      let selectedId = hobbies[0]?.id ?? null;
+
+      function save() {
+        localStorage.setItem(STORAGE_KEY, JSON.stringify(hobbies));
+      }
+
+      function todayString() {
+        return new Date().toISOString().slice(0, 10);
+      }
+
+      function slugify(value) {
+        return value
+          .toLowerCase()
+          .trim()
+          .replace(/[^a-z0-9]+/g, "-")
+          .replace(/^-+|-+$/g, "");
+      }
+
+      function getOverallProgress(stages) {
+        if (!stages || !stages.length) return 0;
+        const total = stages.reduce((sum, stage) => sum + (Number(stage.progress) || 0), 0);
+        return Math.round(total / stages.length);
+      }
+
+      function getCurrentStage(stages) {
+        const inProgress = stages.find((stage) => stage.status === "In Progress");
+        if (inProgress) return inProgress.name;
+        const next = stages.find((stage) => stage.status === "Not Started");
+        if (next) return next.name;
+        return stages[stages.length - 1]?.name || "No stages yet";
+      }
+
+      function getSelectedHobby() {
+        return hobbies.find((h) => h.id === selectedId) || null;
+      }
+
+      function getFilteredHobbies() {
+        const filter = filterSelect.value;
+        const search = searchInput.value.trim().toLowerCase();
+
+        return hobbies.filter((hobby) => {
+          const matchesFilter =
+            filter === "All"
+              ? true
+              : filter === "Favorites"
+              ? !!hobby.favorite
+              : hobby.status === filter;
+
+          const matchesSearch =
+            !search ||
+            hobby.name.toLowerCase().includes(search) ||
+            hobby.category.toLowerCase().includes(search) ||
+            hobby.notes.toLowerCase().includes(search);
+
+          return matchesFilter && matchesSearch;
+        });
+      }
+
+      function ensureValidSelection() {
+        const filtered = getFilteredHobbies();
+        if (!filtered.length) {
+          selectedId = null;
+          return;
+        }
+        const exists = filtered.some((h) => h.id === selectedId);
+        if (!exists) selectedId = filtered[0].id;
+      }
+
+      function renderSelect() {
+        const filtered = getFilteredHobbies();
+        hobbySelect.innerHTML = "";
+
+        filtered.forEach((hobby) => {
+          const option = document.createElement("option");
+          option.value = hobby.id;
+          option.textContent = hobby.name;
+          if (hobby.id === selectedId) option.selected = true;
+          hobbySelect.appendChild(option);
+        });
+      }
+
+      function renderCards() {
+        const filtered = getFilteredHobbies();
+        hobbyCardList.innerHTML = "";
+
+        if (!filtered.length) {
+          hobbyCardList.innerHTML = '<div class="empty-state">No hobbies match this filter.</div>';
+          return;
+        }
+
+        filtered.forEach((hobby) => {
+          const progress = getOverallProgress(hobby.stages);
+          const currentStage = getCurrentStage(hobby.stages);
+
+          const card = document.createElement("article");
+          card.className = `mini-hobby-card ${hobby.id === selectedId ? "is-selected" : ""}`;
+          card.innerHTML = `
+            <div class="mini-hobby-top">
+              <div>
+                <h3 class="card-title">${hobby.name}</h3>
+                <p class="meta">${hobby.category} · ${hobby.status}</p>
+              </div>
+              ${hobby.favorite ? '<span class="status-pill favorite-pill">★ Favorite</span>' : ""}
+            </div>
+
+            <div class="progress-block">
+              <div class="progress-row">
+                <span>Overall Progress</span>
+                <strong>${progress}%</strong>
+              </div>
+              <div class="progress-bar">
+                <div class="progress-fill" style="width:${progress}%"></div>
+              </div>
+            </div>
+
+            <p class="meta top-gap-sm"><strong>Current stage:</strong> ${currentStage}</p>
+          `;
+
+          card.addEventListener("click", () => {
+            selectedId = hobby.id;
+            render();
+          });
+
+          hobbyCardList.appendChild(card);
+        });
+      }
+
+      function renderSummary() {
+        const hobby = getSelectedHobby();
+
+        if (!hobby) {
+          emptyState.hidden = false;
+          selectedPanel.hidden = true;
+          summaryGrid.innerHTML = "";
+          return;
+        }
+
+        emptyState.hidden = true;
+        selectedPanel.hidden = false;
+
+        hobbyName.value = hobby.name || "";
+        hobbyCategory.value = hobby.category || "Other";
+        hobbyStatus.value = hobby.status || "Active";
+        hobbyStarted.value = hobby.startedOn || "";
+        hobbyHours.value = hobby.hoursSpent ?? 0;
+        hobbyFavorite.checked = !!hobby.favorite;
+        hobbyMotivation.value = hobby.motivation || "";
+        hobbyNotes.value = hobby.notes || "";
+
+        const overall = getOverallProgress(hobby.stages);
+        const currentStage = getCurrentStage(hobby.stages);
+        const completedCount = hobby.stages.filter((s) => s.status === "Done").length;
+
+        summaryGrid.innerHTML = `
+          <div class="summary-metric">
+            <p class="metric-label">Overall Progress</p>
+            <p class="big-number">${overall}%</p>
+          </div>
+          <div class="summary-metric">
+            <p class="metric-label">Current Stage</p>
+            <p class="summary-value">${currentStage}</p>
+          </div>
+          <div class="summary-metric">
+            <p class="metric-label">Hours Spent</p>
+            <p class="summary-value">${hobby.hoursSpent ?? 0}</p>
+          </div>
+          <div class="summary-metric">
+            <p class="metric-label">Stages Done</p>
+            <p class="summary-value">${completedCount}/${hobby.stages.length}</p>
+          </div>
+        `;
+      }
+
+      function renderStages() {
+        const hobby = getSelectedHobby();
+        stageList.innerHTML = "";
+
+        if (!hobby) {
+          stageList.innerHTML = '<div class="empty-state">No hobby selected.</div>';
+          return;
+        }
+
+        if (!hobby.stages.length) {
+          stageList.innerHTML = '<div class="empty-state">No stages yet. Add one.</div>';
+          return;
+        }
+
+        hobby.stages.forEach((stage, index) => {
+          const wrapper = document.createElement("article");
+          wrapper.className = "card stage-card";
+          wrapper.innerHTML = `
+            <div class="stage-head">
+              <div>
+                <input class="ui-input stage-name" value="${stage.name || ""}" placeholder="Stage name" />
+                <p class="meta top-gap-xs">Edit this stage directly below.</p>
+              </div>
+              <select class="ui-select compact-select stage-status">
+                <option value="Not Started" ${stage.status === "Not Started" ? "selected" : ""}>Not Started</option>
+                <option value="In Progress" ${stage.status === "In Progress" ? "selected" : ""}>In Progress</option>
+                <option value="Done" ${stage.status === "Done" ? "selected" : ""}>Done</option>
+              </select>
+            </div>
+
+            <div class="field-group top-gap">
+              <label class="field-label">Description</label>
+              <textarea class="ui-textarea stage-description" rows="2">${stage.description || ""}</textarea>
+            </div>
+
+            <div class="grid two top-gap">
+              <div class="field-group">
+                <label class="field-label">Progress %</label>
+                <input class="ui-input stage-progress" type="number" min="0" max="100" value="${stage.progress ?? 0}" />
+              </div>
+              <div class="field-group">
+                <label class="field-label">Target Date</label>
+                <input class="ui-input stage-target" type="date" value="${stage.targetDate || ""}" />
+              </div>
+            </div>
+
+            <div class="progress-block">
+              <div class="progress-row">
+                <span>Stage Progress</span>
+                <strong>${stage.progress ?? 0}%</strong>
+              </div>
+              <div class="progress-bar">
+                <div class="progress-fill" style="width:${stage.progress ?? 0}%"></div>
+              </div>
+            </div>
+
+            <div class="field-group top-gap">
+              <label class="field-label">Text Update</label>
+              <textarea class="ui-textarea stage-update" rows="3">${stage.update || ""}</textarea>
+            </div>
+
+            <div class="grid two top-gap">
+              <div class="field-group">
+                <label class="field-label">Evidence Type</label>
+                <select class="ui-select stage-evidence-type">
+                  <option value="Text" ${stage.evidenceType === "Text" ? "selected" : ""}>Text</option>
+                  <option value="File" ${stage.evidenceType === "File" ? "selected" : ""}>File</option>
+                  <option value="Link" ${stage.evidenceType === "Link" ? "selected" : ""}>Link</option>
+                </select>
+              </div>
+              <div class="field-group">
+                <label class="field-label">Updated On</label>
+                <input class="ui-input stage-updated" type="date" value="${stage.updatedOn || ""}" />
+              </div>
+            </div>
+
+            <div class="field-group top-gap">
+              <label class="field-label">Evidence Value</label>
+              <input class="ui-input stage-evidence-value" type="text" value="${stage.evidenceValue || ""}" placeholder="Paste note, file name, or URL" />
+            </div>
+
+            <div class="button-row top-gap">
+              <button class="ui-button save-stage-btn" type="button">Save Stage</button>
+              <button class="ui-button ui-button-secondary delete-stage-btn" type="button">Delete Stage</button>
+            </div>
+          `;
+
+          wrapper.querySelector(".save-stage-btn")?.addEventListener("click", () => {
+            const selected = getSelectedHobby();
+            if (!selected) return;
+
+            selected.stages[index] = {
+              ...selected.stages[index],
+              name: wrapper.querySelector(".stage-name")?.value || "Untitled Stage",
+              description: wrapper.querySelector(".stage-description")?.value || "",
+              status: wrapper.querySelector(".stage-status")?.value || "Not Started",
+              progress: Number(wrapper.querySelector(".stage-progress")?.value || 0),
+              targetDate: wrapper.querySelector(".stage-target")?.value || "",
+              update: wrapper.querySelector(".stage-update")?.value || "",
+              evidenceType: wrapper.querySelector(".stage-evidence-type")?.value || "Text",
+              evidenceValue: wrapper.querySelector(".stage-evidence-value")?.value || "",
+              updatedOn: wrapper.querySelector(".stage-updated")?.value || todayString(),
+            };
+
+            selected.updatedOn = todayString();
+            save();
+            render();
+          });
+
+          wrapper.querySelector(".delete-stage-btn")?.addEventListener("click", () => {
+            const selected = getSelectedHobby();
+            if (!selected) return;
+
+            const ok = window.confirm(`Delete stage "${stage.name}"?`);
+            if (!ok) return;
+
+            selected.stages.splice(index, 1);
+            selected.updatedOn = todayString();
+            save();
+            render();
+          });
+
+          stageList.appendChild(wrapper);
+        });
+      }
+
+      function renderLogs() {
+        const hobby = getSelectedHobby();
+        logList.innerHTML = "";
+
+        if (!hobby) {
+          logList.innerHTML = '<div class="empty-state">No hobby selected.</div>';
+          return;
+        }
+
+        if (!hobby.activityLog.length) {
+          logList.innerHTML = '<div class="empty-state">No activity yet. Add a log entry.</div>';
+          return;
+        }
+
+        hobby.activityLog.forEach((log, index) => {
+          const item = document.createElement("div");
+          item.className = "timeline-item";
+          item.innerHTML = `
+            <div class="timeline-dot"></div>
+            <div class="timeline-content">
+              <input class="ui-input log-text" value="${log.text}" />
+              <div class="button-row top-gap-sm">
+                <input class="ui-input compact-date log-date" type="date" value="${log.date}" />
+                <button class="ui-button save-log-btn" type="button">Save</button>
+                <button class="ui-button ui-button-secondary delete-log-btn" type="button">Delete</button>
+              </div>
+            </div>
+          `;
+
+          item.querySelector(".save-log-btn")?.addEventListener("click", () => {
+            const selected = getSelectedHobby();
+            if (!selected) return;
+            selected.activityLog[index] = {
+              text: item.querySelector(".log-text")?.value || "",
+              date: item.querySelector(".log-date")?.value || todayString(),
+            };
+            selected.updatedOn = todayString();
+            save();
+            render();
+          });
+
+          item.querySelector(".delete-log-btn")?.addEventListener("click", () => {
+            const selected = getSelectedHobby();
+            if (!selected) return;
+            selected.activityLog.splice(index, 1);
+            selected.updatedOn = todayString();
+            save();
+            render();
+          });
+
+          logList.appendChild(item);
+        });
+      }
+
+      function render() {
+        ensureValidSelection();
+        renderSelect();
+        renderCards();
+        renderSummary();
+        renderStages();
+        renderLogs();
+      }
+
+      hobbySelect.addEventListener("change", (e) => {
+        selectedId = e.target.value;
+        render();
+      });
+
+      filterSelect.addEventListener("change", render);
+      searchInput.addEventListener("input", render);
+
+      addHobbyBtn.addEventListener("click", () => {
+        const baseName = window.prompt("New hobby name?");
+        if (!baseName) return;
+
+        const newHobby = {
+          id: `${slugify(baseName)}-${Date.now()}`,
+          name: baseName,
+          category: "Other",
+          status: "Active",
+          hoursSpent: 0,
+          startedOn: todayString(),
+          updatedOn: todayString(),
+          motivation: "",
+          notes: "",
+          favorite: false,
+          stages: [],
+          milestones: [],
+          activityLog: [],
+        };
+
+        hobbies.unshift(newHobby);
+        selectedId = newHobby.id;
+        save();
+        render();
+      });
+
+      deleteHobbyBtn.addEventListener("click", () => {
+        const selected = getSelectedHobby();
+        if (!selected) return;
+
+        const ok = window.confirm(`Delete "${selected.name}"?`);
+        if (!ok) return;
+
+        hobbies = hobbies.filter((h) => h.id !== selected.id);
+        selectedId = hobbies[0]?.id ?? null;
+        save();
+        render();
+      });
+
+      saveHobbyBtn.addEventListener("click", () => {
+        const selected = getSelectedHobby();
+        if (!selected) return;
+
+        selected.name = hobbyName.value.trim() || "Untitled Hobby";
+        selected.category = hobbyCategory.value;
+        selected.status = hobbyStatus.value;
+        selected.startedOn = hobbyStarted.value || todayString();
+        selected.hoursSpent = Number(hobbyHours.value || 0);
+        selected.favorite = hobbyFavorite.checked;
+        selected.motivation = hobbyMotivation.value.trim();
+        selected.notes = hobbyNotes.value.trim();
+        selected.updatedOn = todayString();
+
+        save();
+        render();
+      });
+
+      addStageBtn.addEventListener("click", () => {
+        const selected = getSelectedHobby();
+        if (!selected) return;
+
+        selected.stages.push({
+          name: "New Stage",
+          description: "",
+          status: "Not Started",
+          progress: 0,
+          targetDate: "",
+          update: "",
+          evidenceType: "Text",
+          evidenceValue: "",
+          updatedOn: todayString(),
+        });
+
+        selected.updatedOn = todayString();
+        save();
+        render();
+      });
+
+      addLogBtn.addEventListener("click", () => {
+        const selected = getSelectedHobby();
+        if (!selected) return;
+
+        selected.activityLog.unshift({
+          date: todayString(),
+          text: "New update",
+        });
+
+        selected.updatedOn = todayString();
+        save();
+        render();
+      });
+
+      render();
+    })();
+  </script>
+</BaseLayout>

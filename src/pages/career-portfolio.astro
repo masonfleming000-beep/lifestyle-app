@@ -1,0 +1,892 @@
+---
+import BaseLayout from "../layouts/BaseLayout.astro";
+---
+
+<BaseLayout title="Career Portfolio | Lifestyle App" description="Public portfolio view">
+  <section class="hero">
+    <div class="hero-card">
+      <p class="kicker">Career</p>
+      <h1>Portfolio</h1>
+      <p>
+        This page shows only the items you have chosen from your private information library.
+      </p>
+    </div>
+  </section>
+
+  <section class="section">
+    <div class="career-topbar">
+      <a href="/career" class="ghost-link">← Back to Career</a>
+      <a href="/career-information" class="edu-button">Go to Information Builder</a>
+    </div>
+  </section>
+
+  <section class="section">
+    <div class="career-shell">
+      <article class="card career-panel-card">
+        <div class="career-panel-header">
+          <div>
+            <h2 class="section-title">Public Portfolio</h2>
+            <p class="section-subtitle">Only selected items are shown here.</p>
+          </div>
+        </div>
+
+        <div class="grid two">
+          <article class="card soft">
+            <p class="kicker">Pitch</p>
+            <h2 class="section-title" id="portfolio-pitch-title">Your pitch will show here</h2>
+            <p id="portfolio-story">Add your story and short introduction in the Information tab.</p>
+          </article>
+
+          <article class="card">
+            <p class="kicker">What I'm Looking For</p>
+            <p id="portfolio-looking">Add target roles, industries, or opportunities.</p>
+
+            <div class="career-contact-list">
+              <div><strong>GitHub:</strong> <span id="portfolio-github">—</span></div>
+              <div><strong>Email:</strong> <span id="portfolio-email">—</span></div>
+              <div><strong>Phone:</strong> <span id="portfolio-phone">—</span></div>
+            </div>
+          </article>
+        </div>
+      </article>
+
+      <article class="card career-panel-card">
+        <div class="career-panel-header">
+          <div>
+            <h2 class="section-title">Projects</h2>
+            <p class="section-subtitle">Only selected projects are shown publicly.</p>
+          </div>
+          <button class="edu-button portfolio-picker-toggle" type="button" data-target="portfolio-project-library-wrap">
+            Add from Information
+          </button>
+        </div>
+        <div id="portfolio-project-library-wrap" class="portfolio-picker-wrap hidden">
+          <div id="portfolio-project-library" class="grid two"></div>
+        </div>
+        <div id="portfolio-projects" class="grid two"></div>
+      </article>
+
+      <article class="card career-panel-card">
+        <div class="career-panel-header">
+          <div>
+            <h2 class="section-title">Work Experience</h2>
+            <p class="section-subtitle">Show only the experience you want public.</p>
+          </div>
+          <button class="edu-button portfolio-picker-toggle" type="button" data-target="portfolio-experience-library-wrap">
+            Add from Information
+          </button>
+        </div>
+        <div id="portfolio-experience-library-wrap" class="portfolio-picker-wrap hidden">
+          <div id="portfolio-experience-library" class="grid two"></div>
+        </div>
+        <div id="portfolio-experience" class="grid two"></div>
+      </article>
+
+      <article class="card career-panel-card">
+        <div class="career-panel-header">
+          <div>
+            <h2 class="section-title">School Development</h2>
+            <p class="section-subtitle">Highlight classes and academic growth selectively.</p>
+          </div>
+          <button class="edu-button portfolio-picker-toggle" type="button" data-target="portfolio-school-library-wrap">
+            Add from Information
+          </button>
+        </div>
+        <div id="portfolio-school-library-wrap" class="portfolio-picker-wrap hidden">
+          <div id="portfolio-school-library" class="grid two"></div>
+        </div>
+        <div id="portfolio-school" class="grid two"></div>
+      </article>
+
+      <article class="card career-panel-card">
+        <div class="career-panel-header">
+          <div>
+            <h2 class="section-title">Stats</h2>
+            <p class="section-subtitle">Keep only the strongest numbers in your portfolio.</p>
+          </div>
+          <button class="edu-button portfolio-picker-toggle" type="button" data-target="portfolio-stats-library-wrap">
+            Add from Information
+          </button>
+        </div>
+        <div id="portfolio-stats-library-wrap" class="portfolio-picker-wrap hidden">
+          <div id="portfolio-stats-library" class="grid two"></div>
+        </div>
+        <div id="portfolio-stats" class="grid two"></div>
+      </article>
+
+      <article class="card career-panel-card">
+        <div class="career-panel-header">
+          <div>
+            <h2 class="section-title">STAR Moments</h2>
+            <p class="section-subtitle">Choose only the best examples to display.</p>
+          </div>
+          <button class="edu-button portfolio-picker-toggle" type="button" data-target="portfolio-star-library-wrap">
+            Add from Information
+          </button>
+        </div>
+        <div id="portfolio-star-library-wrap" class="portfolio-picker-wrap hidden">
+          <div id="portfolio-star-library" class="grid two"></div>
+        </div>
+        <div id="portfolio-star" class="grid two"></div>
+      </article>
+
+      <article class="card career-panel-card">
+        <div class="career-panel-header">
+          <div>
+            <h2 class="section-title">Timeline</h2>
+            <p class="section-subtitle">Visual milestones and career path.</p>
+          </div>
+        </div>
+        <div id="portfolio-timeline-chart" class="timeline-chart-wrap"></div>
+        <div id="portfolio-timeline-list" class="timeline-list"></div>
+      </article>
+
+      <article class="card career-panel-card">
+        <div class="career-panel-header">
+          <div>
+            <h2 class="section-title">Recommendations</h2>
+            <p class="section-subtitle">Reference notes and endorsements.</p>
+          </div>
+        </div>
+        <p id="portfolio-recommendations">Add references or recommendation notes later.</p>
+      </article>
+    </div>
+  </section>
+
+  <script is:inline>
+    const storageKey = "careerBuilderDataV2";
+
+    const defaultData = {
+      pitch: "",
+      story: "",
+      looking: "",
+      github: "",
+      email: "",
+      phone: "",
+      recommendations: "",
+      projects: [],
+      school: [],
+      experience: [],
+      stats: [],
+      star: [],
+      timelineItems: [],
+      portfolioSelections: {
+        projects: [],
+        school: [],
+        experience: [],
+        stats: [],
+        star: [],
+      },
+    };
+
+    function cloneDefaults() {
+      return JSON.parse(JSON.stringify(defaultData));
+    }
+
+    function makeId() {
+      if (window.crypto && typeof window.crypto.randomUUID === "function") {
+        return window.crypto.randomUUID();
+      }
+      return "id-" + Date.now() + "-" + Math.random().toString(16).slice(2);
+    }
+
+    function normalizeArray(value) {
+      return Array.isArray(value) ? value : [];
+    }
+
+    function normalizeProjectStages(value) {
+      if (!Array.isArray(value)) return [];
+      return value
+        .map((stage, index) => {
+          if (typeof stage === "string") {
+            return {
+              id: makeId(),
+              name: stage,
+              description: "",
+              completedDate: "",
+              order: index,
+            };
+          }
+          return {
+            id: stage?.id || makeId(),
+            name: stage?.name || "",
+            description: stage?.description || "",
+            completedDate: stage?.completedDate || "",
+            order: typeof stage?.order === "number" ? stage.order : index,
+          };
+        })
+        .filter((stage) => stage.name);
+    }
+
+    function loadData() {
+      try {
+        const raw = localStorage.getItem(storageKey);
+        if (!raw) return cloneDefaults();
+        const parsed = JSON.parse(raw);
+        return {
+          ...cloneDefaults(),
+          ...parsed,
+          projects: normalizeArray(parsed.projects).map((project) => ({
+            ...project,
+            stages: normalizeProjectStages(project?.stages),
+          })),
+          school: normalizeArray(parsed.school),
+          experience: normalizeArray(parsed.experience),
+          stats: normalizeArray(parsed.stats),
+          star: normalizeArray(parsed.star),
+          timelineItems: normalizeArray(parsed.timelineItems),
+          portfolioSelections: {
+            projects: normalizeArray(parsed?.portfolioSelections?.projects),
+            school: normalizeArray(parsed?.portfolioSelections?.school),
+            experience: normalizeArray(parsed?.portfolioSelections?.experience),
+            stats: normalizeArray(parsed?.portfolioSelections?.stats),
+            star: normalizeArray(parsed?.portfolioSelections?.star),
+          },
+        };
+      } catch {
+        return cloneDefaults();
+      }
+    }
+
+    function saveData(nextData) {
+      localStorage.setItem(storageKey, JSON.stringify(nextData));
+    }
+
+    let data = loadData();
+
+    function escapeHtml(value) {
+      return String(value || "")
+        .replaceAll("&", "&amp;")
+        .replaceAll("<", "&lt;")
+        .replaceAll(">", "&gt;")
+        .replaceAll('"', "&quot;")
+        .replaceAll("'", "&#039;");
+    }
+
+    function formatDate(dateStr) {
+      if (!dateStr) return "—";
+      const date = new Date(dateStr + "T00:00:00");
+      if (Number.isNaN(date.getTime())) return "—";
+      return date.toLocaleDateString("en-US", {
+        month: "short",
+        day: "numeric",
+        year: "numeric",
+      });
+    }
+
+    function formatRange(start, end, ongoing) {
+      if (!start && !end && !ongoing) return "—";
+      if (ongoing && start) return `${formatDate(start)} - Present`;
+      if (start && end) return `${formatDate(start)} - ${formatDate(end)}`;
+      if (start) return formatDate(start);
+      return end ? formatDate(end) : "—";
+    }
+
+    function sortProjectStages(stages = []) {
+      return [...stages].sort((a, b) => {
+        const aHasDate = !!a.completedDate;
+        const bHasDate = !!b.completedDate;
+
+        if (aHasDate && bHasDate) {
+          const byDate = a.completedDate.localeCompare(b.completedDate);
+          if (byDate !== 0) return byDate;
+        }
+
+        if (aHasDate && !bHasDate) return -1;
+        if (!aHasDate && bHasDate) return 1;
+
+        return (a.order ?? 0) - (b.order ?? 0);
+      });
+    }
+
+    function sortTimelineItems(items = []) {
+      return [...items].sort((a, b) => {
+        const aDate = a.date || "9999-12-31";
+        const bDate = b.date || "9999-12-31";
+        return aDate.localeCompare(bDate);
+      });
+    }
+
+    function buildVerticalTimeline(items, options = {}) {
+      const {
+        emptyText = "No timeline items yet.",
+        type = "milestone",
+        showPending = true,
+      } = options;
+
+      if (!items.length) {
+        return `<p class="empty-state">${escapeHtml(emptyText)}</p>`;
+      }
+
+      return `
+        <div class="vertical-timeline centered-timeline">
+          ${items
+            .map((item, index) => {
+              const isLast = index === items.length - 1;
+              const isComplete = !!item.completedDate || !!item.date;
+              const title = item.name || item.title || "Untitled";
+              const description = item.description || "";
+              const meta = item.completedDate
+                ? formatDate(item.completedDate)
+                : item.date
+                  ? formatDate(item.date)
+                  : showPending
+                    ? "Pending"
+                    : "";
+
+              return `
+                <article class="timeline-node ${isComplete ? "is-complete" : "is-pending"}">
+                  <div class="timeline-card timeline-card-left">
+                    <div class="timeline-meta">${escapeHtml(meta || "—")}</div>
+                    <h3 class="timeline-title">${escapeHtml(title)}</h3>
+                    ${description ? `<p class="timeline-description">${escapeHtml(description)}</p>` : ""}
+                    ${type === "stage" && !item.completedDate ? `<div class="timeline-status-badge">Pending</div>` : ""}
+                  </div>
+
+                  <div class="timeline-center-rail">
+                    <div class="timeline-node-dot"></div>
+                    ${
+                      !isLast
+                        ? `
+                      <div class="timeline-arrow">
+                        <span class="timeline-arrow-line"></span>
+                        <span class="timeline-arrow-head">↓</span>
+                      </div>
+                    `
+                        : ""
+                    }
+                  </div>
+
+                  <div class="timeline-spacer"></div>
+                </article>
+              `;
+            })
+            .join("")}
+        </div>
+      `;
+    }
+
+    function isSelected(group, id) {
+      return data.portfolioSelections[group].includes(id);
+    }
+
+    function toggleSelection(group, id) {
+      const arr = data.portfolioSelections[group];
+      data.portfolioSelections[group] = arr.includes(id)
+        ? arr.filter((itemId) => itemId !== id)
+        : [...arr, id];
+      saveData(data);
+      renderPortfolio();
+    }
+
+    document.querySelectorAll(".portfolio-picker-toggle").forEach((button) => {
+      button.addEventListener("click", () => {
+        const targetId = button.getAttribute("data-target");
+        const wrap = document.getElementById(targetId);
+        if (!wrap) return;
+        wrap.classList.toggle("hidden");
+        button.textContent = wrap.classList.contains("hidden")
+          ? "Add from Information"
+          : "Hide Selection List";
+      });
+    });
+
+    function createEmptyCard(text) {
+      const el = document.createElement("article");
+      el.className = "card";
+      el.innerHTML = `<p class="empty-state">${text}</p>`;
+      return el;
+    }
+
+    function renderSelectableLibrary({
+      wrapId,
+      selectedWrapId,
+      items,
+      group,
+      emptyLibraryText,
+      emptySelectedText,
+      buildCardHtml,
+    }) {
+      const libraryWrap = document.getElementById(wrapId);
+      const selectedWrap = document.getElementById(selectedWrapId);
+
+      libraryWrap.innerHTML = "";
+      selectedWrap.innerHTML = "";
+
+      const selectedItems = items.filter((item) => isSelected(group, item.id));
+      const availableItems = items.filter((item) => !isSelected(group, item.id));
+
+      if (!availableItems.length) {
+        libraryWrap.appendChild(createEmptyCard(emptyLibraryText));
+      } else {
+        availableItems.forEach((item) => {
+          const card = document.createElement("article");
+          card.className = "assignment-card portfolio-pick-card";
+          card.innerHTML = `
+            <div class="assignment-main">${buildCardHtml(item)}</div>
+            <button class="edu-button mini" type="button">Add</button>
+          `;
+          card.querySelector("button").addEventListener("click", () => toggleSelection(group, item.id));
+          libraryWrap.appendChild(card);
+        });
+      }
+
+      if (!selectedItems.length) {
+        selectedWrap.appendChild(createEmptyCard(emptySelectedText));
+      } else {
+        selectedItems.forEach((item) => {
+          const card = document.createElement("article");
+          card.className = "assignment-card portfolio-live-card";
+          card.innerHTML = `
+            <div class="assignment-main">${buildCardHtml(item)}</div>
+            <button class="delete-mini-button" type="button">Remove</button>
+          `;
+          card.querySelector("button").addEventListener("click", () => toggleSelection(group, item.id));
+          selectedWrap.appendChild(card);
+        });
+      }
+    }
+
+    function renderTimelineList(wrapId, items) {
+      const wrap = document.getElementById(wrapId);
+      wrap.innerHTML = "";
+
+      if (!items.length) {
+        wrap.innerHTML = '<p class="empty-state">No timeline items yet.</p>';
+        return;
+      }
+
+      items.forEach((item) => {
+        const row = document.createElement("article");
+        row.className = "timeline-item";
+        row.innerHTML = `
+          <div class="timeline-dot"></div>
+          <div class="timeline-content">
+            <div class="timeline-date">${formatDate(item.date)}</div>
+            <h3 class="card-title">${escapeHtml(item.title || "Untitled milestone")}</h3>
+            <p>${escapeHtml(item.description || "—")}</p>
+          </div>
+        `;
+        wrap.appendChild(row);
+      });
+    }
+
+    function buildProjectCardHtml(project) {
+      const sortedStages = sortProjectStages(project.stages || []);
+      const completedStages = sortedStages.filter((stage) => stage.completedDate);
+
+      return `
+        <h3 class="card-title">${escapeHtml(project.title || "Untitled Project")}</h3>
+        <p><strong>Description:</strong> ${escapeHtml(project.description || "—")}</p>
+        <p><strong>Status:</strong> ${escapeHtml(project.completed || "—")}</p>
+        <p><strong>Timeline:</strong> ${escapeHtml(formatRange(project.startDate, project.endDate, project.ongoing))}</p>
+
+        <div class="portfolio-stage-block">
+          <div class="portfolio-stage-header">
+            <strong>Stage Timeline</strong>
+            <span>${completedStages.length} completed / ${sortedStages.length} total</span>
+          </div>
+          <div class="timeline-chart-wrap compact">
+            ${buildVerticalTimeline(sortedStages, {
+              type: "stage",
+              emptyText: "No stages defined yet.",
+            })}
+          </div>
+        </div>
+      `;
+    }
+
+    function renderPortfolio() {
+      document.getElementById("portfolio-pitch-title").textContent = data.pitch || "Your pitch will show here";
+      document.getElementById("portfolio-story").textContent = data.story || "Add your story and short introduction in the Information Builder.";
+      document.getElementById("portfolio-looking").textContent = data.looking || "Add target roles, industries, or opportunities.";
+      document.getElementById("portfolio-github").textContent = data.github || "—";
+      document.getElementById("portfolio-email").textContent = data.email || "—";
+      document.getElementById("portfolio-phone").textContent = data.phone || "—";
+      document.getElementById("portfolio-recommendations").textContent = data.recommendations || "Add references or recommendation notes later.";
+
+      renderSelectableLibrary({
+        wrapId: "portfolio-project-library",
+        selectedWrapId: "portfolio-projects",
+        items: data.projects,
+        group: "projects",
+        emptyLibraryText: "No more projects available to add.",
+        emptySelectedText: "No projects selected for portfolio yet.",
+        buildCardHtml: buildProjectCardHtml,
+      });
+
+      renderSelectableLibrary({
+        wrapId: "portfolio-experience-library",
+        selectedWrapId: "portfolio-experience",
+        items: data.experience,
+        group: "experience",
+        emptyLibraryText: "No more experience available to add.",
+        emptySelectedText: "No work experience selected for portfolio yet.",
+        buildCardHtml: (item) => `
+          <h3 class="card-title">${escapeHtml(item.title || "Experience")}</h3>
+          <p><strong>Timeline:</strong> ${escapeHtml(formatRange(item.startDate, item.endDate, item.ongoing))}</p>
+          <p><strong>Impact:</strong> ${escapeHtml(item.impact || "—")}</p>
+          <p><strong>Manager:</strong> ${escapeHtml(item.boss || "—")}</p>
+          <div class="mini-list">${(item.responsibilities || []).map((r) => `<span class="class-chip">${escapeHtml(r)}</span>`).join("")}</div>
+        `,
+      });
+
+      renderSelectableLibrary({
+        wrapId: "portfolio-school-library",
+        selectedWrapId: "portfolio-school",
+        items: data.school,
+        group: "school",
+        emptyLibraryText: "No more school items available to add.",
+        emptySelectedText: "No school items selected for portfolio yet.",
+        buildCardHtml: (item) => `
+          <h3 class="card-title">${escapeHtml(item.title || "School Item")}</h3>
+          <p><strong>Helped with:</strong> ${escapeHtml(item.helped || "—")}</p>
+          <p><strong>Relevance:</strong> ${escapeHtml(item.relevance || "—")}</p>
+          <p><strong>Professor:</strong> ${escapeHtml(item.prof || "—")}</p>
+        `,
+      });
+
+      renderSelectableLibrary({
+        wrapId: "portfolio-stats-library",
+        selectedWrapId: "portfolio-stats",
+        items: data.stats,
+        group: "stats",
+        emptyLibraryText: "No more stats available to add.",
+        emptySelectedText: "No stats selected for portfolio yet.",
+        buildCardHtml: (item) => `
+          <h3 class="card-title">${escapeHtml(item.title || "Experience Title")}</h3>
+          <p>${escapeHtml(item.description || "—")}</p>
+        `,
+      });
+
+      renderSelectableLibrary({
+        wrapId: "portfolio-star-library",
+        selectedWrapId: "portfolio-star",
+        items: data.star,
+        group: "star",
+        emptyLibraryText: "No more STAR moments available to add.",
+        emptySelectedText: "No STAR moments selected for portfolio yet.",
+        buildCardHtml: (item) => `
+          <h3 class="card-title">${escapeHtml(item.title || "STAR Example")}</h3>
+          <p><strong>Situation:</strong> ${escapeHtml(item.situation || "—")}</p>
+          <p><strong>Task:</strong> ${escapeHtml(item.task || "—")}</p>
+          <p><strong>Action:</strong> ${escapeHtml(item.action || "—")}</p>
+          <p><strong>Result:</strong> ${escapeHtml(item.result || "—")}</p>
+        `,
+      });
+
+      const sortedTimelineItems = sortTimelineItems(data.timelineItems);
+      document.getElementById("portfolio-timeline-chart").innerHTML = buildVerticalTimeline(sortedTimelineItems, {
+        type: "milestone",
+        emptyText: "No timeline items yet.",
+      });
+      renderTimelineList("portfolio-timeline-list", sortedTimelineItems);
+    }
+
+    renderPortfolio();
+  </script>
+
+  <style>
+    .career-topbar {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      gap: 1rem;
+      flex-wrap: wrap;
+    }
+
+    .ghost-link {
+      text-decoration: none;
+      font-weight: 700;
+      color: #2f5d62;
+    }
+
+    .career-shell {
+      display: grid;
+      gap: 1.25rem;
+    }
+
+    .career-panel-card {
+      border-radius: 1.25rem;
+    }
+
+    .career-panel-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: flex-start;
+      gap: 1rem;
+      margin-bottom: 1rem;
+    }
+
+    .portfolio-picker-wrap {
+      margin-bottom: 1rem;
+      padding: 1rem;
+      border: 1px solid rgba(0, 0, 0, 0.08);
+      border-radius: 1rem;
+      background: rgba(0, 0, 0, 0.02);
+    }
+
+    .portfolio-picker-wrap.hidden {
+      display: none;
+    }
+
+    .assignment-card {
+      display: flex;
+      justify-content: space-between;
+      align-items: flex-start;
+      gap: 1rem;
+      padding: 1rem;
+      border-radius: 1rem;
+      border: 1px solid rgba(0, 0, 0, 0.08);
+      background: white;
+      margin-bottom: 0.85rem;
+    }
+
+    .assignment-main {
+      flex: 1;
+      min-width: 0;
+    }
+
+    .portfolio-pick-card {
+      background: rgba(47, 93, 98, 0.06);
+    }
+
+    .portfolio-live-card {
+      background: rgba(22, 163, 74, 0.06);
+    }
+
+    .edu-button {
+      appearance: none;
+      border: 0;
+      border-radius: 999px;
+      padding: 0.8rem 1rem;
+      font-weight: 700;
+      cursor: pointer;
+      background: #2f5d62;
+      color: white;
+      text-decoration: none;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+    }
+
+    .edu-button.mini {
+      padding: 0.6rem 0.9rem;
+      font-size: 0.92rem;
+    }
+
+    .delete-mini-button {
+      appearance: none;
+      border: 0;
+      border-radius: 999px;
+      padding: 0.65rem 0.9rem;
+      font-weight: 700;
+      cursor: pointer;
+      background: rgba(220, 38, 38, 0.1);
+      color: #b91c1c;
+      white-space: nowrap;
+    }
+
+    .mini-list {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 0.5rem;
+      margin-top: 0.5rem;
+    }
+
+    .class-chip {
+      display: inline-flex;
+      align-items: center;
+      gap: 0.45rem;
+      padding: 0.45rem 0.7rem;
+      border-radius: 999px;
+      background: rgba(47, 93, 98, 0.09);
+      color: #234246;
+      font-size: 0.9rem;
+      font-weight: 600;
+    }
+
+    .timeline-chart-wrap {
+      width: 100%;
+      padding: 1rem;
+      border-radius: 1rem;
+      background: rgba(47, 93, 98, 0.04);
+      border: 1px solid rgba(47, 93, 98, 0.08);
+      margin-bottom: 1rem;
+    }
+
+    .timeline-chart-wrap.compact {
+      margin-top: 0.75rem;
+      margin-bottom: 0;
+    }
+
+    .vertical-timeline.centered-timeline {
+      display: grid;
+      gap: 1rem;
+    }
+
+    .timeline-node {
+      display: grid;
+      grid-template-columns: minmax(0, 1fr) 40px minmax(0, 1fr);
+      gap: 1rem;
+      align-items: start;
+    }
+
+    .timeline-card-left {
+      grid-column: 1;
+      text-align: right;
+    }
+
+    .timeline-center-rail {
+      grid-column: 2;
+      display: grid;
+      justify-items: center;
+      align-content: start;
+    }
+
+    .timeline-spacer {
+      grid-column: 3;
+    }
+
+    .timeline-node-dot {
+      width: 14px;
+      height: 14px;
+      border-radius: 999px;
+      background: #2f5d62;
+      border: 3px solid white;
+      box-shadow: 0 0 0 2px rgba(47, 93, 98, 0.25);
+      margin-top: 0.35rem;
+    }
+
+    .timeline-node.is-pending .timeline-node-dot {
+      background: white;
+      border-color: #2f5d62;
+    }
+
+    .timeline-arrow {
+      display: grid;
+      justify-items: center;
+      margin-top: 0.35rem;
+      min-height: 44px;
+    }
+
+    .timeline-arrow-line {
+      width: 2px;
+      height: 30px;
+      background: rgba(47, 93, 98, 0.3);
+      border-radius: 999px;
+    }
+
+    .timeline-arrow-head {
+      font-size: 0.95rem;
+      line-height: 1;
+      color: #2f5d62;
+      margin-top: 0.15rem;
+    }
+
+    .timeline-card {
+      padding: 0.95rem 1rem;
+      border-radius: 1rem;
+      background: white;
+      border: 1px solid rgba(47, 93, 98, 0.1);
+    }
+
+    .timeline-meta {
+      font-size: 0.82rem;
+      font-weight: 700;
+      color: #2f5d62;
+      margin-bottom: 0.35rem;
+    }
+
+    .timeline-title {
+      margin: 0 0 0.35rem;
+      font-size: 1rem;
+      font-weight: 700;
+      color: #1f2937;
+    }
+
+    .timeline-description {
+      margin: 0;
+      color: #4b5563;
+    }
+
+    .timeline-status-badge {
+      margin-top: 0.65rem;
+      display: inline-flex;
+      align-items: center;
+      padding: 0.28rem 0.6rem;
+      border-radius: 999px;
+      background: rgba(107, 114, 128, 0.12);
+      color: #4b5563;
+      font-size: 0.78rem;
+      font-weight: 700;
+    }
+
+    .timeline-list {
+      display: grid;
+      gap: 0.9rem;
+    }
+
+    .timeline-item {
+      display: grid;
+      grid-template-columns: 20px 1fr;
+      gap: 0.85rem;
+      align-items: start;
+      padding: 1rem;
+      border-radius: 1rem;
+      background: rgba(47, 93, 98, 0.05);
+      border: 1px solid rgba(47, 93, 98, 0.1);
+    }
+
+    .timeline-dot {
+      width: 12px;
+      height: 12px;
+      border-radius: 999px;
+      background: #2f5d62;
+      margin-top: 0.4rem;
+    }
+
+    .timeline-date {
+      font-size: 0.85rem;
+      font-weight: 700;
+      color: #2f5d62;
+      margin-bottom: 0.35rem;
+    }
+
+    .portfolio-stage-block {
+      margin-top: 1rem;
+      padding: 0.95rem;
+      border-radius: 1rem;
+      background: rgba(47, 93, 98, 0.05);
+      border: 1px solid rgba(47, 93, 98, 0.1);
+    }
+
+    .portfolio-stage-header {
+      display: flex;
+      justify-content: space-between;
+      gap: 1rem;
+      align-items: center;
+      margin-bottom: 0.25rem;
+      font-size: 0.95rem;
+    }
+
+    .empty-state {
+      margin: 0;
+      color: #6b7280;
+    }
+
+    @media (max-width: 900px) {
+      .timeline-item,
+      .timeline-node {
+        grid-template-columns: 1fr;
+      }
+
+      .timeline-card-left,
+      .timeline-center-rail,
+      .timeline-spacer {
+        grid-column: auto;
+        text-align: left;
+      }
+    }
+  </style>
+</BaseLayout>

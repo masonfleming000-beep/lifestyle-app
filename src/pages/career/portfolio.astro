@@ -1,0 +1,376 @@
+---
+import BaseLayout from "../../layouts/BaseLayout.astro";
+---
+
+<BaseLayout title="Career Portfolio | Lifestyle App" description="Public-facing portfolio">
+  <section class="hero">
+    <div class="hero-card">
+      <p class="kicker">Career / Portfolio</p>
+      <h1>Selected public portfolio</h1>
+      <p>
+        This page only shows the items marked visible from the Information page.
+      </p>
+    </div>
+  </section>
+
+  <div id="portfolio-root" class="grid one"></div>
+
+  <script>
+    const STORAGE_KEY = "career-content-v1";
+
+    const defaultData = {
+      projects: [],
+      school: [],
+      work: [],
+      about: [],
+      looking: [],
+      pitch: [],
+      stats: [],
+      contact: [],
+      timeline: [],
+      recommendations: [],
+      star: [],
+    };
+
+    function getData() {
+      const saved = localStorage.getItem(STORAGE_KEY);
+      if (!saved) return structuredClone(defaultData);
+      try {
+        const parsed = JSON.parse(saved);
+        return { ...structuredClone(defaultData), ...parsed };
+      } catch {
+        return structuredClone(defaultData);
+      }
+    }
+
+    function titleMap(section) {
+      const map = {
+        projects: "Projects",
+        school: "School Development",
+        work: "Work Experience",
+        about: "About / Story",
+        looking: "What I'm Looking For",
+        pitch: "Pitch",
+        stats: "Stats",
+        contact: "Contact Info",
+        timeline: "Timeline",
+        recommendations: "Recommendations",
+        star: "STAR Moments",
+      };
+      return map[section] || section;
+    }
+
+    function visibleItems(data, section) {
+      return (data[section] || []).filter((item) => item.visible);
+    }
+
+    function renderTextSection(title, items) {
+      return `
+        <section class="section">
+          <details class="card dropdown-card" open>
+            <summary class="dropdown-summary">
+              <div>
+                <h2 class="section-title">${title}</h2>
+                <p class="section-subtitle">${items.length} selected item(s)</p>
+              </div>
+            </summary>
+            <div class="dropdown-body">
+              <div class="grid one">
+                ${items
+                  .map(
+                    (item) => `
+                    <article class="card soft">
+                      <h3 class="card-title">${item.title || ""}</h3>
+                      ${item.subtitle ? `<p class="meta">${item.subtitle}</p>` : ""}
+                      ${item.body ? `<p>${item.body}</p>` : ""}
+                    </article>
+                  `
+                  )
+                  .join("")}
+              </div>
+            </div>
+          </details>
+        </section>
+      `;
+    }
+
+    function renderProjectLikeSection(title, items) {
+      return `
+        <section class="section">
+          <details class="card dropdown-card" open>
+            <summary class="dropdown-summary">
+              <div>
+                <h2 class="section-title">${title}</h2>
+                <p class="section-subtitle">${items.length} selected item(s)</p>
+              </div>
+            </summary>
+            <div class="dropdown-body">
+              <div class="grid two">
+                ${items
+                  .map(
+                    (item) => `
+                    <article class="card">
+                      <h3 class="card-title">${item.title || "Untitled"}</h3>
+                      <p class="meta">
+                        ${item.subtitle || ""}
+                        ${item.date ? ` · ${item.date}` : ""}
+                        ${item.subtype ? ` · ${item.subtype}` : ""}
+                      </p>
+
+                      ${item.image ? `<img src="${item.image}" alt="${item.title || "Visual"}" class="portfolio-image" />` : ""}
+                      ${item.body ? `<p>${item.body}</p>` : ""}
+
+                      <div class="entry-meta-grid">
+                        ${item.stage ? `<div><strong>Stage:</strong> ${item.stage}</div>` : ""}
+                        ${item.impact ? `<div><strong>Impact:</strong> ${item.impact}</div>` : ""}
+                        ${item.members ? `<div><strong>Members:</strong> ${item.members}</div>` : ""}
+                        ${item.owner ? `<div><strong>Lead:</strong> ${item.owner}</div>` : ""}
+                      </div>
+
+                      ${
+                        item.tags?.length
+                          ? `<div class="pill-row">${item.tags
+                              .map((tag) => `<span class="pill">${tag}</span>`)
+                              .join("")}</div>`
+                          : ""
+                      }
+
+                      ${
+                        item.bullets?.length
+                          ? `<ul class="list-clean">${item.bullets
+                              .map((bullet) => `<li>${bullet}</li>`)
+                              .join("")}</ul>`
+                          : ""
+                      }
+
+                      ${
+                        item.link
+                          ? `<p><a href="${item.link}" target="_blank" rel="noreferrer">Open link</a></p>`
+                          : ""
+                      }
+                    </article>
+                  `
+                  )
+                  .join("")}
+              </div>
+            </div>
+          </details>
+        </section>
+      `;
+    }
+
+    function renderStatsSection(title, items) {
+      return `
+        <section class="section">
+          <details class="card dropdown-card" open>
+            <summary class="dropdown-summary">
+              <div>
+                <h2 class="section-title">${title}</h2>
+                <p class="section-subtitle">${items.length} selected item(s)</p>
+              </div>
+            </summary>
+            <div class="dropdown-body">
+              <div class="metric-grid">
+                ${items
+                  .map(
+                    (item) => `
+                    <article class="metric">
+                      <p class="metric-label">${item.title || item.subtitle || "Stat"}</p>
+                      <p class="big-number">${item.impact || item.body || "--"}</p>
+                      ${
+                        item.bullets?.length
+                          ? `<ul class="list-clean">${item.bullets
+                              .map((bullet) => `<li>${bullet}</li>`)
+                              .join("")}</ul>`
+                          : ""
+                      }
+                    </article>
+                  `
+                  )
+                  .join("")}
+              </div>
+            </div>
+          </details>
+        </section>
+      `;
+    }
+
+    function renderContactSection(title, items) {
+      return `
+        <section class="section">
+          <details class="card dropdown-card" open>
+            <summary class="dropdown-summary">
+              <div>
+                <h2 class="section-title">${title}</h2>
+              </div>
+            </summary>
+            <div class="dropdown-body">
+              <div class="grid one">
+                ${items
+                  .map(
+                    (item) => `
+                    <article class="card soft">
+                      <h3 class="card-title">${item.title}</h3>
+                      ${item.body ? `<p>${item.body}</p>` : ""}
+                      ${item.link ? `<p><a href="${item.link}" target="_blank" rel="noreferrer">${item.link}</a></p>` : ""}
+                    </article>
+                  `
+                  )
+                  .join("")}
+              </div>
+            </div>
+          </details>
+        </section>
+      `;
+    }
+
+    function renderTimelineSection(title, items) {
+      return `
+        <section class="section">
+          <details class="card dropdown-card" open>
+            <summary class="dropdown-summary">
+              <div>
+                <h2 class="section-title">${title}</h2>
+              </div>
+            </summary>
+            <div class="dropdown-body">
+              <div class="timeline-list">
+                ${items
+                  .map(
+                    (item) => `
+                    <article class="timeline-item">
+                      <div class="timeline-dot"></div>
+                      <div class="timeline-content">
+                        <p class="timeline-date">${item.date || ""}</p>
+                        <h3 class="card-title">${item.title || ""}</h3>
+                        ${item.subtitle ? `<p class="meta">${item.subtitle}</p>` : ""}
+                        ${item.body ? `<p>${item.body}</p>` : ""}
+                      </div>
+                    </article>
+                  `
+                  )
+                  .join("")}
+              </div>
+            </div>
+          </details>
+        </section>
+      `;
+    }
+
+    function renderRecommendationsSection(title, items) {
+      return `
+        <section class="section">
+          <details class="card dropdown-card" open>
+            <summary class="dropdown-summary">
+              <div>
+                <h2 class="section-title">${title}</h2>
+              </div>
+            </summary>
+            <div class="dropdown-body">
+              <div class="grid one">
+                ${items
+                  .map(
+                    (item) => `
+                    <article class="card quote-card soft">
+                      <p class="quote-text">“${item.body || item.title || ""}”</p>
+                      <span class="quote-author">${item.owner || item.subtitle || "Recommendation"}</span>
+                    </article>
+                  `
+                  )
+                  .join("")}
+              </div>
+            </div>
+          </details>
+        </section>
+      `;
+    }
+
+    function renderStarSection(title, items) {
+      return `
+        <section class="section">
+          <details class="card dropdown-card" open>
+            <summary class="dropdown-summary">
+              <div>
+                <h2 class="section-title">${title}</h2>
+              </div>
+            </summary>
+            <div class="dropdown-body">
+              <div class="grid one">
+                ${items
+                  .map(
+                    (item) => `
+                    <article class="card">
+                      <h3 class="card-title">${item.title || "STAR Entry"}</h3>
+                      ${item.date ? `<p class="meta">${item.date}</p>` : ""}
+                      <div class="star-grid">
+                        <div><strong>Situation</strong><p>${item.subtitle || "-"}</p></div>
+                        <div><strong>Task</strong><p>${item.stage || "-"}</p></div>
+                        <div><strong>Action</strong><p>${item.body || "-"}</p></div>
+                        <div><strong>Result</strong><p>${item.impact || "-"}</p></div>
+                      </div>
+                    </article>
+                  `
+                  )
+                  .join("")}
+              </div>
+            </div>
+          </details>
+        </section>
+      `;
+    }
+
+    function renderPortfolio() {
+      const root = document.getElementById("portfolio-root");
+      if (!root) return;
+
+      const data = getData();
+      let html = "";
+
+      const about = visibleItems(data, "about");
+      const looking = visibleItems(data, "looking");
+      const pitch = visibleItems(data, "pitch");
+      const projects = visibleItems(data, "projects");
+      const school = visibleItems(data, "school");
+      const work = visibleItems(data, "work");
+      const stats = visibleItems(data, "stats");
+      const contact = visibleItems(data, "contact");
+      const timeline = visibleItems(data, "timeline");
+      const recommendations = visibleItems(data, "recommendations");
+      const star = visibleItems(data, "star");
+
+      if (!Object.values(data).some((arr) => arr.some((item) => item.visible))) {
+        html = `
+          <section class="section">
+            <article class="card">
+              <h2 class="section-title">Nothing selected yet</h2>
+              <p>
+                Go to <a href="/career/information">Career Information</a> and mark entries
+                as visible in portfolio.
+              </p>
+            </article>
+          </section>
+        `;
+        root.innerHTML = html;
+        return;
+      }
+
+      if (about.length) html += renderTextSection(titleMap("about"), about);
+      if (looking.length) html += renderTextSection(titleMap("looking"), looking);
+      if (pitch.length) html += renderTextSection(titleMap("pitch"), pitch);
+
+      if (projects.length) html += renderProjectLikeSection(titleMap("projects"), projects);
+      if (school.length) html += renderProjectLikeSection(titleMap("school"), school);
+      if (work.length) html += renderProjectLikeSection(titleMap("work"), work);
+
+      if (stats.length) html += renderStatsSection(titleMap("stats"), stats);
+      if (timeline.length) html += renderTimelineSection(titleMap("timeline"), timeline);
+      if (recommendations.length) html += renderRecommendationsSection(titleMap("recommendations"), recommendations);
+      if (star.length) html += renderStarSection(titleMap("star"), star);
+      if (contact.length) html += renderContactSection(titleMap("contact"), contact);
+
+      root.innerHTML = html;
+    }
+
+    renderPortfolio();
+  </script>
+</BaseLayout>

@@ -1,11 +1,243 @@
 ---
-import Welcome from '../components/Welcome.astro';
-import Layout from '../layouts/Layout.astro';
+import BaseLayout from "../layouts/BaseLayout.astro";
+import { quotes, morals } from "../data/home";
 
-// Welcome to Astro! Wondering what to do next? Check out the Astro documentation at https://docs.astro.build
-// Don't want to use any of this? Delete everything in this file, the `assets`, `components`, and `layouts` directories, and start fresh.
+const navCards = [
+  { href: "/today", title: "Today", text: "Daily dashboard, routines, and priorities." },
+  { href: "/fitness", title: "Fitness", text: "Training hub for running and lifting." },
+  { href: "/nutrition", title: "Nutrition", text: "Macros, food reminders, and tracking." },
+  { href: "/mind", title: "Mind", text: "Recovery, yoga, and calming techniques." },
+  { href: "/education", title: "Education", text: "Classes, school goals, and planning." },
+  { href: "/career", title: "Career", text: "Professional direction, projects, and skills." },
+  { href: "/hobbies", title: "Hobbies", text: "Personal interests and development." },
+];
+
+const defaultQuotes = JSON.stringify(quotes);
+const defaultMorals = JSON.stringify(morals);
 ---
 
-<Layout>
-	<Welcome />
-</Layout>
+<BaseLayout title="Home | Lifestyle App" description="Personal lifestyle home page">
+  <section class="hero">
+    <div class="hero-card">
+      <p class="kicker">Home</p>
+      <h1>Your life, organized simply.</h1>
+      <p>Use this page as the main hub. Tap into each area below.</p>
+    </div>
+  </section>
+
+  <section class="section">
+    <div class="section-header">
+      <div>
+        <h2 class="section-title">Navigate</h2>
+        <p class="section-subtitle">Choose a section.</p>
+      </div>
+    </div>
+
+    <div class="grid two">
+      {navCards.map((card) => (
+        <a href={card.href} class="link-card">
+          <h3>{card.title}</h3>
+          <p>{card.text}</p>
+        </a>
+      ))}
+    </div>
+  </section>
+
+  <section class="section">
+    <details class="dropdown-card" open>
+      <summary class="dropdown-summary">
+        <div>
+          <h2 class="section-title">Featured Quotes</h2>
+          <p class="section-subtitle">Open when you want perspective.</p>
+        </div>
+        <span class="dropdown-icon">+</span>
+      </summary>
+
+      <div class="dropdown-body">
+        <form id="quote-form" class="input-card">
+          <h3 class="card-title">Add Quote</h3>
+          <div class="form-stack">
+            <input id="quote-text" type="text" placeholder="Quote text" required />
+            <input id="quote-author" type="text" placeholder="Author or reminder source" />
+            <button type="submit" class="action-btn">Add Quote</button>
+          </div>
+        </form>
+
+        <div id="quotes-list" class="grid three"></div>
+      </div>
+    </details>
+  </section>
+
+  <section class="section">
+    <details class="dropdown-card">
+      <summary class="dropdown-summary">
+        <div>
+          <h2 class="section-title">Core Reminders</h2>
+          <p class="section-subtitle">Keep these tucked away until needed.</p>
+        </div>
+        <span class="dropdown-icon">+</span>
+      </summary>
+
+      <div class="dropdown-body">
+        <form id="reminder-form" class="input-card">
+          <h3 class="card-title">Add Core Reminder</h3>
+          <div class="form-stack">
+            <input id="reminder-title" type="text" placeholder="Reminder title" required />
+            <textarea id="reminder-text" placeholder="Reminder details" rows="4" required></textarea>
+            <button type="submit" class="action-btn">Add Reminder</button>
+          </div>
+        </form>
+
+        <div id="reminders-list" class="grid three"></div>
+      </div>
+    </details>
+  </section>
+
+  <script
+    type="application/json"
+    id="default-home-data"
+    set:html={JSON.stringify({ quotes, morals })}
+  ></script>
+
+  <script>
+    const storageKeys = {
+      quotes: "lifestyle-home-quotes",
+      morals: "lifestyle-home-morals",
+    };
+
+    const defaults = JSON.parse(
+      document.getElementById("default-home-data")?.textContent || '{"quotes":[],"morals":[]}'
+    );
+
+    const quotesList = document.getElementById("quotes-list");
+    const remindersList = document.getElementById("reminders-list");
+
+    const quoteForm = document.getElementById("quote-form");
+    const quoteTextInput = document.getElementById("quote-text");
+    const quoteAuthorInput = document.getElementById("quote-author");
+
+    const reminderForm = document.getElementById("reminder-form");
+    const reminderTitleInput = document.getElementById("reminder-title");
+    const reminderTextInput = document.getElementById("reminder-text");
+
+    function getSavedData(key, fallback) {
+      try {
+        const raw = localStorage.getItem(key);
+        return raw ? JSON.parse(raw) : fallback;
+      } catch {
+        return fallback;
+      }
+    }
+
+    let currentQuotes = getSavedData(storageKeys.quotes, defaults.quotes);
+    let currentMorals = getSavedData(storageKeys.morals, defaults.morals);
+
+    function saveQuotes() {
+      localStorage.setItem(storageKeys.quotes, JSON.stringify(currentQuotes));
+    }
+
+    function saveMorals() {
+      localStorage.setItem(storageKeys.morals, JSON.stringify(currentMorals));
+    }
+
+    function renderQuotes() {
+      if (!quotesList) return;
+
+      quotesList.innerHTML = "";
+
+      currentQuotes.forEach((quote, index) => {
+        const article = document.createElement("article");
+        article.className = "card quote-card soft";
+
+        article.innerHTML = `
+          <div>
+            <p class="quote-text">“${escapeHtml(quote.text)}”</p>
+            <span class="quote-author">${escapeHtml(quote.author || "Personal reminder")}</span>
+          </div>
+          <button class="delete-btn" data-quote-index="${index}" type="button">Remove</button>
+        `;
+
+        quotesList.appendChild(article);
+      });
+
+      quotesList.querySelectorAll("[data-quote-index]").forEach((btn) => {
+        btn.addEventListener("click", (event) => {
+          const index = Number(event.currentTarget.getAttribute("data-quote-index"));
+          currentQuotes.splice(index, 1);
+          saveQuotes();
+          renderQuotes();
+        });
+      });
+    }
+
+    function renderMorals() {
+      if (!remindersList) return;
+
+      remindersList.innerHTML = "";
+
+      currentMorals.forEach((item, index) => {
+        const article = document.createElement("article");
+        article.className = "card";
+
+        article.innerHTML = `
+          <h3 class="card-title">${escapeHtml(item.title)}</h3>
+          <p>${escapeHtml(item.text)}</p>
+          <button class="delete-btn" data-reminder-index="${index}" type="button">Remove</button>
+        `;
+
+        remindersList.appendChild(article);
+      });
+
+      remindersList.querySelectorAll("[data-reminder-index]").forEach((btn) => {
+        btn.addEventListener("click", (event) => {
+          const index = Number(event.currentTarget.getAttribute("data-reminder-index"));
+          currentMorals.splice(index, 1);
+          saveMorals();
+          renderMorals();
+        });
+      });
+    }
+
+    function escapeHtml(value) {
+      return String(value)
+        .replaceAll("&", "&amp;")
+        .replaceAll("<", "&lt;")
+        .replaceAll(">", "&gt;")
+        .replaceAll('"', "&quot;")
+        .replaceAll("'", "&#039;");
+    }
+
+    quoteForm?.addEventListener("submit", (event) => {
+      event.preventDefault();
+
+      const text = quoteTextInput?.value.trim();
+      const author = quoteAuthorInput?.value.trim() || "Personal reminder";
+
+      if (!text) return;
+
+      currentQuotes.unshift({ text, author });
+      saveQuotes();
+      renderQuotes();
+
+      quoteForm.reset();
+    });
+
+    reminderForm?.addEventListener("submit", (event) => {
+      event.preventDefault();
+
+      const title = reminderTitleInput?.value.trim();
+      const text = reminderTextInput?.value.trim();
+
+      if (!title || !text) return;
+
+      currentMorals.unshift({ title, text });
+      saveMorals();
+      renderMorals();
+
+      reminderForm.reset();
+    });
+
+    renderQuotes();
+    renderMorals();
+  </script>
+</BaseLayout>

@@ -1,0 +1,510 @@
+---
+import BaseLayout from "../layouts/BaseLayout.astro";
+import { liftingGroups } from "../data/weightlifting";
+---
+
+<BaseLayout title="Weight Training | Lifestyle App" description="Weight training dashboard">
+  <section class="hero">
+    <div class="hero-card">
+      <p class="kicker">Weight Training</p>
+      <h1>Train by muscle group.</h1>
+      <p>
+        Keep your defaults, add your own sections, add workouts to any section,
+        and remove any section you do not want showing.
+      </p>
+    </div>
+  </section>
+
+  <section class="section">
+    <article class="card soft">
+      <div class="section-header">
+        <div>
+          <h2 class="section-title">Custom Sections</h2>
+          <p class="section-subtitle">Create your own muscle groups or workout buckets.</p>
+        </div>
+      </div>
+
+      <div class="custom-group-form">
+        <input
+          id="new-group-title"
+          class="text-input"
+          type="text"
+          placeholder="New section name (ex. Triceps, Forearms, Full Body)"
+        />
+        <button type="button" class="secondary-btn" id="create-group-btn">
+          Add section
+        </button>
+      </div>
+    </article>
+  </section>
+
+  <section class="section">
+    <div class="grid one" id="weightlifting-groups">
+      {liftingGroups.map((group) => (
+        <details
+          class="lift-group"
+          data-group-id={group.id}
+          data-group-title={group.title}
+          data-is-custom="false"
+        >
+          <summary>
+            <div class="lift-group-summary">
+              <div>
+                <p class="kicker">Muscle Group</p>
+                <h2 class="section-title">{group.title}</h2>
+              </div>
+              <label class="group-hit-toggle" onclick="event.stopPropagation();">
+                <input
+                  type="checkbox"
+                  class="group-hit-checkbox"
+                  data-group-hit={group.id}
+                  aria-label={`Mark ${group.title} for today`}
+                />
+                <span>Today</span>
+              </label>
+            </div>
+          </summary>
+
+          <div class="lift-group-body">
+            <div class="lift-group-tools">
+              <button
+                type="button"
+                class="secondary-btn add-exercise-btn"
+                data-add-group={group.id}
+              >
+                Add exercise
+              </button>
+            </div>
+
+            <div
+              class="exercise-grid"
+              id={`group-${group.id}`}
+              data-group-id={group.id}
+              data-default-exercises={JSON.stringify(group.exercises)}
+            ></div>
+
+            <div class="group-bottom-actions">
+              <button
+                type="button"
+                class="danger-btn delete-group-btn"
+                data-delete-section={group.id}
+                data-is-custom="false"
+              >
+                Delete section
+              </button>
+            </div>
+          </div>
+        </details>
+      ))}
+    </div>
+  </section>
+
+  <script
+    is:inline
+    define:vars={{
+      defaultGroups: liftingGroups,
+    }}
+  >
+    const GROUP_DONE_KEY = "lift-group-done-v3";
+    const EXERCISE_DATA_PREFIX = "lift-exercises-";
+    const EXERCISE_DONE_PREFIX = "lift-exercise-done-";
+    const CUSTOM_GROUPS_KEY = "lift-custom-groups-v1";
+    const HIDDEN_GROUPS_KEY = "lift-hidden-groups-v1";
+
+    function slugify(value) {
+      return value
+        .toLowerCase()
+        .trim()
+        .replace(/[^a-z0-9]+/g, "-")
+        .replace(/^-+|-+$/g, "");
+    }
+
+    function readJSON(key, fallback) {
+      try {
+        const raw = localStorage.getItem(key);
+        return raw ? JSON.parse(raw) : fallback;
+      } catch {
+        return fallback;
+      }
+    }
+
+    function writeJSON(key, value) {
+      localStorage.setItem(key, JSON.stringify(value));
+    }
+
+    function loadGroupDone() {
+      return readJSON(GROUP_DONE_KEY, {});
+    }
+
+    function saveGroupDone(value) {
+      writeJSON(GROUP_DONE_KEY, value);
+    }
+
+    function getExercises(groupId, defaults) {
+      return readJSON(EXERCISE_DATA_PREFIX + groupId, defaults);
+    }
+
+    function saveExercises(groupId, exercises) {
+      writeJSON(EXERCISE_DATA_PREFIX + groupId, exercises);
+    }
+
+    function getExerciseDone(groupId) {
+      return readJSON(EXERCISE_DONE_PREFIX + groupId, {});
+    }
+
+    function saveExerciseDone(groupId, value) {
+      writeJSON(EXERCISE_DONE_PREFIX + groupId, value);
+    }
+
+    function getCustomGroups() {
+      return readJSON(CUSTOM_GROUPS_KEY, []);
+    }
+
+    function saveCustomGroups(groups) {
+      writeJSON(CUSTOM_GROUPS_KEY, groups);
+    }
+
+    function getHiddenGroups() {
+      return readJSON(HIDDEN_GROUPS_KEY, []);
+    }
+
+    function saveHiddenGroups(groupIds) {
+      writeJSON(HIDDEN_GROUPS_KEY, groupIds);
+    }
+
+    function hideGroup(groupId) {
+      const hidden = getHiddenGroups();
+      if (!hidden.includes(groupId)) {
+        hidden.push(groupId);
+        saveHiddenGroups(hidden);
+      }
+    }
+
+    function unhideGroup(groupId) {
+      const next = getHiddenGroups().filter((id) => id !== groupId);
+      saveHiddenGroups(next);
+    }
+
+    function removeStorageForGroup(groupId) {
+      localStorage.removeItem(EXERCISE_DATA_PREFIX + groupId);
+      localStorage.removeItem(EXERCISE_DONE_PREFIX + groupId);
+
+      const groupDone = loadGroupDone();
+      delete groupDone[groupId];
+      saveGroupDone(groupDone);
+    }
+
+    function makeMetric(label, value) {
+      return `
+        <div class="exercise-metric">
+          <span class="exercise-metric-label">${label}</span>
+          <span class="exercise-metric-value">${value || "-"}</span>
+        </div>
+      `;
+    }
+
+    function makeGroupMarkup(group, isCustom = false) {
+      const details = document.createElement("details");
+      details.className = "lift-group";
+      details.dataset.groupId = group.id;
+      details.dataset.groupTitle = group.title;
+      details.dataset.isCustom = String(isCustom);
+
+      details.innerHTML = `
+        <summary>
+          <div class="lift-group-summary">
+            <div>
+              <p class="kicker">Muscle Group</p>
+              <h2 class="section-title">${group.title}</h2>
+            </div>
+            <label class="group-hit-toggle" onclick="event.stopPropagation();">
+              <input
+                type="checkbox"
+                class="group-hit-checkbox"
+                data-group-hit="${group.id}"
+                aria-label="Mark ${group.title} for today"
+              />
+              <span>Today</span>
+            </label>
+          </div>
+        </summary>
+
+        <div class="lift-group-body">
+          <div class="lift-group-tools">
+            <button
+              type="button"
+              class="secondary-btn add-exercise-btn"
+              data-add-group="${group.id}"
+            >
+              Add exercise
+            </button>
+          </div>
+
+          <div
+            class="exercise-grid"
+            id="group-${group.id}"
+            data-group-id="${group.id}"
+            data-default-exercises='${JSON.stringify(group.exercises)}'
+          ></div>
+
+          <div class="group-bottom-actions">
+            <button
+              type="button"
+              class="danger-btn delete-group-btn"
+              data-delete-section="${group.id}"
+              data-is-custom="${String(isCustom)}"
+            >
+              Delete section
+            </button>
+          </div>
+        </div>
+      `;
+
+      return details;
+    }
+
+    function renderGroup(groupEl) {
+      const groupId = groupEl.dataset.groupId;
+      const grid = document.getElementById(`group-${groupId}`);
+      const defaults = JSON.parse(grid.dataset.defaultExercises || "[]");
+      const exercises = getExercises(groupId, defaults);
+      const doneMap = getExerciseDone(groupId);
+
+      grid.innerHTML = "";
+
+      exercises.forEach((exercise, index) => {
+        const safeVideo = exercise.video || "";
+        const article = document.createElement("article");
+        article.className = "exercise-card" + (doneMap[index] ? " is-done" : "");
+
+        article.innerHTML = `
+          <div class="exercise-header">
+            <div>
+              <h3 class="card-title">${exercise.name}</h3>
+            </div>
+            <label class="exercise-check">
+              <input type="checkbox" ${doneMap[index] ? "checked" : ""} data-exercise-check="${groupId}" data-index="${index}" />
+              <span>Done</span>
+            </label>
+          </div>
+
+          <div class="exercise-metrics">
+            ${makeMetric("Weight", exercise.weight)}
+            ${makeMetric("Sets", exercise.sets)}
+            ${makeMetric("Reps", exercise.reps)}
+            ${makeMetric("Weeks since increase", exercise.weeksSinceIncrease)}
+          </div>
+
+          ${
+            safeVideo
+              ? `
+            <div class="exercise-video-shell">
+              <iframe
+                src="${safeVideo}"
+                title="${exercise.name}"
+                frameborder="0"
+                allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share"
+                referrerpolicy="strict-origin-when-cross-origin"
+                allowfullscreen
+                loading="lazy"
+              ></iframe>
+            </div>
+          `
+              : ""
+          }
+
+          <div class="exercise-actions">
+            <button type="button" class="secondary-btn delete-exercise-btn" data-delete-group="${groupId}" data-index="${index}">
+              Delete exercise
+            </button>
+          </div>
+        `;
+
+        grid.appendChild(article);
+      });
+
+      grid.querySelectorAll("[data-exercise-check]").forEach((checkbox) => {
+        checkbox.addEventListener("change", (e) => {
+          const target = e.currentTarget;
+          const idx = Number(target.dataset.index);
+          const next = getExerciseDone(groupId);
+          next[idx] = target.checked;
+          saveExerciseDone(groupId, next);
+          renderGroup(groupEl);
+        });
+      });
+
+      grid.querySelectorAll("[data-delete-group]").forEach((btn) => {
+        btn.addEventListener("click", (e) => {
+          const idx = Number(e.currentTarget.dataset.index);
+          const nextExercises = getExercises(groupId, defaults).filter((_, i) => i !== idx);
+          saveExercises(groupId, nextExercises);
+
+          const oldDone = getExerciseDone(groupId);
+          const nextDone = {};
+          nextExercises.forEach((_, newIndex) => {
+            const oldIndex = newIndex >= idx ? newIndex + 1 : newIndex;
+            nextDone[newIndex] = !!oldDone[oldIndex];
+          });
+          saveExerciseDone(groupId, nextDone);
+
+          renderGroup(groupEl);
+        });
+      });
+    }
+
+    function wireGroupDoneCheckbox(groupEl) {
+      const groupDone = loadGroupDone();
+      const checkbox = groupEl.querySelector("[data-group-hit]");
+      if (!checkbox) return;
+
+      const groupId = checkbox.dataset.groupHit;
+      checkbox.checked = !!groupDone[groupId];
+
+      checkbox.addEventListener("change", () => {
+        const next = loadGroupDone();
+        next[groupId] = checkbox.checked;
+        saveGroupDone(next);
+      });
+    }
+
+    function wireAddExerciseButton(groupEl) {
+      const btn = groupEl.querySelector("[data-add-group]");
+      if (!btn) return;
+
+      btn.addEventListener("click", () => {
+        const groupId = btn.dataset.addGroup;
+        const grid = document.getElementById(`group-${groupId}`);
+        const defaults = JSON.parse(grid.dataset.defaultExercises || "[]");
+        const exercises = getExercises(groupId, defaults);
+
+        const name = window.prompt("Exercise name:");
+        if (!name) return;
+
+        const weight = window.prompt("Weight:", "") ?? "";
+        const sets = window.prompt("Sets:", "3-4") ?? "";
+        const reps = window.prompt("Reps:", "8-12") ?? "";
+        const weeksSinceIncrease = window.prompt("Weeks since increase:", "") ?? "";
+        const video = window.prompt("YouTube embed URL:", "") ?? "";
+
+        exercises.push({
+          name,
+          weight,
+          sets,
+          reps,
+          weeksSinceIncrease,
+          video,
+        });
+
+        saveExercises(groupId, exercises);
+        renderGroup(groupEl);
+      });
+    }
+
+    function wireDeleteGroupButton(groupEl) {
+      const btn = groupEl.querySelector("[data-delete-section]");
+      if (!btn) return;
+
+      btn.addEventListener("click", () => {
+        const groupId = btn.dataset.deleteSection;
+        const isCustom = btn.dataset.isCustom === "true";
+        const confirmed = window.confirm("Delete this entire section?");
+        if (!confirmed) return;
+
+        if (isCustom) {
+          const nextGroups = getCustomGroups().filter((group) => group.id !== groupId);
+          saveCustomGroups(nextGroups);
+          removeStorageForGroup(groupId);
+        } else {
+          hideGroup(groupId);
+        }
+
+        groupEl.remove();
+      });
+    }
+
+    function setupGroup(groupEl) {
+      renderGroup(groupEl);
+      wireGroupDoneCheckbox(groupEl);
+      wireAddExerciseButton(groupEl);
+      wireDeleteGroupButton(groupEl);
+    }
+
+    function hideDefaultGroupsMarkedHidden() {
+      const hidden = getHiddenGroups();
+      hidden.forEach((groupId) => {
+        const existing = document.querySelector(`.lift-group[data-group-id="${groupId}"]`);
+        if (existing) existing.remove();
+      });
+    }
+
+    function renderCustomGroups() {
+      const container = document.getElementById("weightlifting-groups");
+      const customGroups = getCustomGroups();
+      const hidden = getHiddenGroups();
+
+      customGroups.forEach((group) => {
+        if (hidden.includes(group.id)) return;
+        if (container.querySelector(`[data-group-id="${group.id}"]`)) return;
+        const groupEl = makeGroupMarkup(group, true);
+        container.appendChild(groupEl);
+        setupGroup(groupEl);
+      });
+    }
+
+    function setupCreateGroup() {
+      const btn = document.getElementById("create-group-btn");
+      const input = document.getElementById("new-group-title");
+
+      btn.addEventListener("click", () => {
+        const rawTitle = input.value.trim();
+        if (!rawTitle) return;
+
+        const baseId = slugify(rawTitle);
+        const allExistingIds = [
+          ...defaultGroups.map((group) => group.id),
+          ...getCustomGroups().map((group) => group.id),
+        ];
+
+        let nextId = baseId || `group-${Date.now()}`;
+        let counter = 2;
+
+        while (allExistingIds.includes(nextId)) {
+          nextId = `${baseId}-${counter}`;
+          counter += 1;
+        }
+
+        const newGroup = {
+          id: nextId,
+          title: rawTitle,
+          exercises: [],
+        };
+
+        const nextGroups = [...getCustomGroups(), newGroup];
+        saveCustomGroups(nextGroups);
+        unhideGroup(nextId);
+
+        const container = document.getElementById("weightlifting-groups");
+        const groupEl = makeGroupMarkup(newGroup, true);
+        container.appendChild(groupEl);
+        setupGroup(groupEl);
+        groupEl.open = true;
+
+        input.value = "";
+      });
+    }
+
+    function setupWeightTraining() {
+      hideDefaultGroupsMarkedHidden();
+
+      document.querySelectorAll(".lift-group").forEach((groupEl) => {
+        setupGroup(groupEl);
+      });
+
+      renderCustomGroups();
+      setupCreateGroup();
+    }
+
+    setupWeightTraining();
+  </script>
+</BaseLayout>

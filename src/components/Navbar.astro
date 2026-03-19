@@ -1,0 +1,44 @@
+---
+const links = [
+  { href: "/", label: "Home" },
+  { href: "/today", label: "Today" },
+  { href: "/fitness", label: "Fitness" },
+  { href: "/nutrition", label: "Nutrition" },
+  { href: "/mind", label: "Mind" },
+  { href: "/education", label: "Education" },
+  { href: "/career", label: "Career" },
+  { href: "/hobbies", label: "Hobbies" },
+];
+
+const currentPath = Astro.url.pathname;
+const currentPage =
+  links.find((link) => link.href === currentPath)?.label ?? "Menu";
+
+const isHomePage = currentPath === "/";
+---
+
+<header class="topbar">
+  <div class="topbar-inner compact">
+    <a href="/" class="brand">
+      <span class="brand-mark">MF</span>
+      <div>
+        <p class="brand-kicker">Life</p>
+        <h1>{currentPage}</h1>
+      </div>
+    </a>
+
+    <details class="menu-dropdown">
+      <summary>Menu</summary>
+      <div class:list={["dropdown-panel", isHomePage && "dropdown-panel-home"]}>
+        {links.map((link) => (
+          <a
+            href={link.href}
+            class={currentPath === link.href ? "is-active" : ""}
+          >
+            {link.label}
+          </a>
+        ))}
+      </div>
+    </details>
+  </div>
+</header>

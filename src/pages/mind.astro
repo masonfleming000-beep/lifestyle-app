@@ -1,0 +1,458 @@
+---
+import BaseLayout from "../layouts/BaseLayout.astro";
+import { yogaItems, soothingTechniques } from "../data/mind";
+---
+
+<BaseLayout title="Mind | Lifestyle App" description="Mind and recovery page">
+  <section class="hero">
+    <div class="hero-card">
+      <p class="kicker">Mind</p>
+      <h1>Recover, reset, and calm the system.</h1>
+      <p>
+        A cleaner version of your old mind page with yoga / rehab and soothing
+        techniques organized into dropdown sections.
+      </p>
+    </div>
+  </section>
+
+  <section class="section">
+    <article class="card soft">
+      <div class="section-header">
+        <div>
+          <h2 class="section-title">Yoga / Rehabilitation</h2>
+          <p class="section-subtitle">
+            Expand each movement for details and video.
+          </p>
+        </div>
+      </div>
+
+      <form id="yoga-form" class="mind-form">
+        <h3 class="card-title">Add Exercise</h3>
+
+        <div class="mind-form-grid">
+          <label>
+            <span>Title</span>
+            <input type="text" name="title" placeholder="Ex: Hip Flexor Stretch" required />
+          </label>
+
+          <label>
+            <span>Video URL</span>
+            <input
+              type="url"
+              name="video"
+              placeholder="https://www.youtube.com/embed/..."
+              required
+            />
+          </label>
+
+          <label>
+            <span>Weight</span>
+            <input type="text" name="weight" placeholder="Ex: 30" />
+          </label>
+
+          <label>
+            <span>Sets</span>
+            <input type="text" name="sets" placeholder="Ex: 3-4" required />
+          </label>
+
+          <label>
+            <span>Reps</span>
+            <input type="text" name="reps" placeholder="Ex: 8-12" required />
+          </label>
+
+          <label>
+            <span>Weeks</span>
+            <input type="text" name="weeks" placeholder="Ex: 4" required />
+          </label>
+        </div>
+
+        <div class="mind-form-actions">
+          <button type="submit" class="action-btn">Add Exercise</button>
+          <button type="button" id="restore-yoga-defaults" class="secondary-btn">
+            Restore Default Exercises
+          </button>
+        </div>
+      </form>
+
+      <div id="yoga-list" class="grid two"></div>
+    </article>
+  </section>
+
+  <section class="section">
+    <article class="card">
+      <div class="section-header">
+        <div>
+          <h2 class="section-title">Soothing Techniques</h2>
+          <p class="section-subtitle">
+            Expand a technique when you need a reset.
+          </p>
+        </div>
+      </div>
+
+      <form id="technique-form" class="mind-form">
+        <h3 class="card-title">Add Technique</h3>
+
+        <div class="mind-form-grid">
+          <label>
+            <span>Title</span>
+            <input type="text" name="title" placeholder="Ex: Box Breathing" required />
+          </label>
+
+          <label class="full-width">
+            <span>Points</span>
+            <textarea
+              name="points"
+              rows="5"
+              placeholder="One point per line"
+              required
+            ></textarea>
+          </label>
+        </div>
+
+        <div class="mind-form-actions">
+          <button type="submit" class="action-btn">Add Technique</button>
+          <button type="button" id="restore-technique-defaults" class="secondary-btn">
+            Restore Default Techniques
+          </button>
+        </div>
+      </form>
+
+      <div id="technique-list" class="mind-stack"></div>
+    </article>
+  </section>
+
+  <script
+    is:inline
+    define:vars={{
+      defaultYogaItems: yogaItems,
+      defaultSoothingTechniques: soothingTechniques,
+    }}
+  >
+    const YOGA_STORAGE_KEY = "mind-custom-yoga-items";
+    const TECHNIQUE_STORAGE_KEY = "mind-custom-soothing-techniques";
+    const HIDDEN_DEFAULT_YOGA_KEY = "mind-hidden-default-yoga-items";
+    const HIDDEN_DEFAULT_TECHNIQUE_KEY = "mind-hidden-default-techniques";
+
+    function getCustomYogaItems() {
+      try {
+        return JSON.parse(localStorage.getItem(YOGA_STORAGE_KEY) || "[]");
+      } catch {
+        return [];
+      }
+    }
+
+    function saveCustomYogaItems(items) {
+      localStorage.setItem(YOGA_STORAGE_KEY, JSON.stringify(items));
+    }
+
+    function getCustomTechniques() {
+      try {
+        return JSON.parse(localStorage.getItem(TECHNIQUE_STORAGE_KEY) || "[]");
+      } catch {
+        return [];
+      }
+    }
+
+    function saveCustomTechniques(items) {
+      localStorage.setItem(TECHNIQUE_STORAGE_KEY, JSON.stringify(items));
+    }
+
+    function getHiddenDefaultYogaIds() {
+      try {
+        return JSON.parse(localStorage.getItem(HIDDEN_DEFAULT_YOGA_KEY) || "[]");
+      } catch {
+        return [];
+      }
+    }
+
+    function saveHiddenDefaultYogaIds(ids) {
+      localStorage.setItem(HIDDEN_DEFAULT_YOGA_KEY, JSON.stringify(ids));
+    }
+
+    function getHiddenDefaultTechniqueIds() {
+      try {
+        return JSON.parse(localStorage.getItem(HIDDEN_DEFAULT_TECHNIQUE_KEY) || "[]");
+      } catch {
+        return [];
+      }
+    }
+
+    function saveHiddenDefaultTechniqueIds(ids) {
+      localStorage.setItem(HIDDEN_DEFAULT_TECHNIQUE_KEY, JSON.stringify(ids));
+    }
+
+    function escapeHtml(value) {
+      return String(value)
+        .replaceAll("&", "&amp;")
+        .replaceAll("<", "&lt;")
+        .replaceAll(">", "&gt;")
+        .replaceAll('"', "&quot;")
+        .replaceAll("'", "&#039;");
+    }
+
+    function renderYogaItems() {
+      const yogaList = document.getElementById("yoga-list");
+      const customYogaItems = getCustomYogaItems();
+      const hiddenDefaultYogaIds = getHiddenDefaultYogaIds();
+
+      const allYogaItems = [
+        ...defaultYogaItems
+          .map((item, index) => ({
+            ...item,
+            id: `default-yoga-${index}`,
+            isDefault: true,
+          }))
+          .filter((item) => !hiddenDefaultYogaIds.includes(item.id)),
+        ...customYogaItems.map((item) => ({
+          ...item,
+          isDefault: false,
+        })),
+      ];
+
+      yogaList.innerHTML = allYogaItems
+        .map(
+          (item) => `
+            <details class="mind-dropdown">
+              <summary class="mind-summary">
+                <div>
+                  <h3 class="card-title">${escapeHtml(item.title)}</h3>
+                  <p class="meta">
+                    ${item.isDefault ? "Default exercise" : "Custom exercise"}
+                  </p>
+                </div>
+                <span class="mind-summary-icon">+</span>
+              </summary>
+
+              <div class="mind-dropdown-body">
+                <div class="metric-grid yoga-metrics">
+                  <article class="metric">
+                    <p class="metric-label">Weight</p>
+                    <p class="big-number">${escapeHtml(item.stats.weight || "--")}</p>
+                  </article>
+                  <article class="metric">
+                    <p class="metric-label">Sets</p>
+                    <p class="big-number">${escapeHtml(item.stats.sets)}</p>
+                  </article>
+                  <article class="metric">
+                    <p class="metric-label">Reps</p>
+                    <p class="big-number">${escapeHtml(item.stats.reps)}</p>
+                  </article>
+                  <article class="metric">
+                    <p class="metric-label">Weeks</p>
+                    <p class="big-number">${escapeHtml(item.stats.weeks)}</p>
+                  </article>
+                </div>
+
+                <div class="video-wrap">
+                  <iframe
+                    src="${escapeHtml(item.video)}"
+                    title="${escapeHtml(item.title)}"
+                    frameborder="0"
+                    allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share"
+                    referrerpolicy="strict-origin-when-cross-origin"
+                    allowfullscreen
+                  ></iframe>
+                </div>
+
+                <div class="mind-item-actions">
+                  <button
+                    type="button"
+                    class="delete-btn"
+                    data-delete-yoga-id="${escapeHtml(item.id)}"
+                    data-yoga-default="${item.isDefault ? "true" : "false"}"
+                  >
+                    Delete Exercise
+                  </button>
+                </div>
+              </div>
+            </details>
+          `
+        )
+        .join("");
+    }
+
+    function renderTechniques() {
+      const techniqueList = document.getElementById("technique-list");
+      const customTechniques = getCustomTechniques();
+      const hiddenDefaultTechniqueIds = getHiddenDefaultTechniqueIds();
+
+      const allTechniques = [
+        ...defaultSoothingTechniques
+          .map((item, index) => ({
+            ...item,
+            id: `default-technique-${index}`,
+            isDefault: true,
+          }))
+          .filter((item) => !hiddenDefaultTechniqueIds.includes(item.id)),
+        ...customTechniques.map((item) => ({
+          ...item,
+          isDefault: false,
+        })),
+      ];
+
+      techniqueList.innerHTML = allTechniques
+        .map(
+          (item) => `
+            <details class="mind-dropdown soothing-dropdown">
+              <summary class="mind-summary">
+                <div>
+                  <h3 class="card-title">${escapeHtml(item.title)}</h3>
+                  <p class="meta">
+                    ${item.isDefault ? "Default technique" : "Custom technique"}
+                  </p>
+                </div>
+                <span class="mind-summary-icon">+</span>
+              </summary>
+
+              <div class="mind-dropdown-body">
+                <ul class="list-clean">
+                  ${item.points.map((point) => `<li>${escapeHtml(point)}</li>`).join("")}
+                </ul>
+
+                <div class="mind-item-actions">
+                  <button
+                    type="button"
+                    class="delete-btn"
+                    data-delete-technique-id="${escapeHtml(item.id)}"
+                    data-technique-default="${item.isDefault ? "true" : "false"}"
+                  >
+                    Delete Technique
+                  </button>
+                </div>
+              </div>
+            </details>
+          `
+        )
+        .join("");
+    }
+
+    function setupYogaForm() {
+      const form = document.getElementById("yoga-form");
+
+      form.addEventListener("submit", (event) => {
+        event.preventDefault();
+
+        const formData = new FormData(form);
+        const newItem = {
+          id: crypto.randomUUID(),
+          title: String(formData.get("title") || "").trim(),
+          video: String(formData.get("video") || "").trim(),
+          stats: {
+            weight: String(formData.get("weight") || "").trim(),
+            sets: String(formData.get("sets") || "").trim(),
+            reps: String(formData.get("reps") || "").trim(),
+            weeks: String(formData.get("weeks") || "").trim(),
+          },
+        };
+
+        const items = getCustomYogaItems();
+        items.push(newItem);
+        saveCustomYogaItems(items);
+        form.reset();
+        renderYogaItems();
+      });
+    }
+
+    function setupTechniqueForm() {
+      const form = document.getElementById("technique-form");
+
+      form.addEventListener("submit", (event) => {
+        event.preventDefault();
+
+        const formData = new FormData(form);
+        const rawPoints = String(formData.get("points") || "").trim();
+
+        const newItem = {
+          id: crypto.randomUUID(),
+          title: String(formData.get("title") || "").trim(),
+          points: rawPoints
+            .split("\n")
+            .map((point) => point.trim())
+            .filter(Boolean),
+        };
+
+        const items = getCustomTechniques();
+        items.push(newItem);
+        saveCustomTechniques(items);
+        form.reset();
+        renderTechniques();
+      });
+    }
+
+    function setupDeleteHandlers() {
+      document.addEventListener("click", (event) => {
+        const target = event.target;
+        if (!(target instanceof HTMLElement)) return;
+
+        const yogaId = target.getAttribute("data-delete-yoga-id");
+        if (yogaId) {
+          event.preventDefault();
+          event.stopPropagation();
+
+          const isDefault = target.getAttribute("data-yoga-default") === "true";
+
+          if (isDefault) {
+            const hiddenIds = getHiddenDefaultYogaIds();
+            if (!hiddenIds.includes(yogaId)) {
+              hiddenIds.push(yogaId);
+              saveHiddenDefaultYogaIds(hiddenIds);
+            }
+          } else {
+            const items = getCustomYogaItems().filter((item) => item.id !== yogaId);
+            saveCustomYogaItems(items);
+          }
+
+          renderYogaItems();
+          return;
+        }
+
+        const techniqueId = target.getAttribute("data-delete-technique-id");
+        if (techniqueId) {
+          event.preventDefault();
+          event.stopPropagation();
+
+          const isDefault = target.getAttribute("data-technique-default") === "true";
+
+          if (isDefault) {
+            const hiddenIds = getHiddenDefaultTechniqueIds();
+            if (!hiddenIds.includes(techniqueId)) {
+              hiddenIds.push(techniqueId);
+              saveHiddenDefaultTechniqueIds(hiddenIds);
+            }
+          } else {
+            const items = getCustomTechniques().filter((item) => item.id !== techniqueId);
+            saveCustomTechniques(items);
+          }
+
+          renderTechniques();
+        }
+      });
+    }
+
+    function setupRestoreButtons() {
+      const restoreYogaBtn = document.getElementById("restore-yoga-defaults");
+      const restoreTechniqueBtn = document.getElementById("restore-technique-defaults");
+
+      if (restoreYogaBtn) {
+        restoreYogaBtn.addEventListener("click", () => {
+          saveHiddenDefaultYogaIds([]);
+          renderYogaItems();
+        });
+      }
+
+      if (restoreTechniqueBtn) {
+        restoreTechniqueBtn.addEventListener("click", () => {
+          saveHiddenDefaultTechniqueIds([]);
+          renderTechniques();
+        });
+      }
+    }
+
+    renderYogaItems();
+    renderTechniques();
+    setupYogaForm();
+    setupTechniqueForm();
+    setupDeleteHandlers();
+    setupRestoreButtons();
+  </script>
+</BaseLayout>

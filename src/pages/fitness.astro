@@ -1,0 +1,37 @@
+---
+import BaseLayout from "../layouts/BaseLayout.astro";
+import { fitnessLinks, weeklySplit } from "../data/fitness";
+---
+
+<BaseLayout title="Fitness | Lifestyle App" description="Fitness landing page">
+  <section class="hero">
+    <div class="hero-card">
+      <p class="kicker">Fitness</p>
+      <h1>Train for performance, discipline, and long-term health.</h1>
+      <p>
+        Use this as the hub for running, weight training, and future tracked
+        progress.
+      </p>
+    </div>
+  </section>
+
+  <section class="section">
+    <div class="grid two">
+      {fitnessLinks.map((item) => (
+        <a href={item.href} class="link-card">
+          <h3>{item.title}</h3>
+          <p>{item.description}</p>
+        </a>
+      ))}
+    </div>
+  </section>
+
+  <section class="section">
+    <article class="card">
+      <h2 class="section-title">Weekly Training Notes</h2>
+      <ul class="list-clean">
+        {weeklySplit.map((item) => <li>{item}</li>)}
+      </ul>
+    </article>
+  </section>
+</BaseLayout>

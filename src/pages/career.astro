@@ -1,0 +1,47 @@
+---
+import BaseLayout from "../layouts/BaseLayout.astro";
+---
+
+<BaseLayout title="Career | Lifestyle App" description="Career hub">
+  <section class="hero">
+    <div class="hero-card">
+      <p class="kicker">Career</p>
+      <h1>Build once. Curate later.</h1>
+      <p>
+        Use the information side to add, organize, and manage your career content.
+        Use the portfolio side to show only the pieces you want public-facing.
+      </p>
+    </div>
+  </section>
+
+  <section class="section">
+    <div class="grid two">
+      <a href="/career/portfolio" class="link-card">
+        <h3>Portfolio</h3>
+        <p>
+          Public-facing view. Only displays the items you choose to show.
+        </p>
+      </a>
+
+      <a href="/career/information" class="link-card">
+        <h3>Information</h3>
+        <p>
+          Add and manage projects, work experience, school development,
+          story, stats, timeline, STAR moments, and more.
+        </p>
+      </a>
+    </div>
+  </section>
+
+  <section class="section">
+    <article class="card">
+      <h2 class="section-title">How this works</h2>
+      <ul class="list-clean">
+        <li>Add content in the Information page.</li>
+        <li>Mark items as visible in portfolio when you want them public.</li>
+        <li>Portfolio automatically reads and displays only selected content.</li>
+        <li>Each section uses a layout that fits what it contains.</li>
+      </ul>
+    </article>
+  </section>
+</BaseLayout>

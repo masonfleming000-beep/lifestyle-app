@@ -1,0 +1,434 @@
+---
+import BaseLayout from "../../layouts/BaseLayout.astro";
+---
+
+<BaseLayout
+  title="Workout Builder | Lifestyle App"
+  description="Build and track custom running workouts"
+>
+  <section class="hero">
+    <div class="hero-card">
+      <p class="kicker">Running</p>
+      <h1>Workout Builder</h1>
+      <p>
+        Choose a workout type, set your parameters, and track each step live as
+        you go.
+      </p>
+    </div>
+  </section>
+
+  <section class="section">
+    <article class="card">
+      <div class="section-header">
+        <div>
+          <h2 class="section-title">Choose Workout Type</h2>
+          <p class="section-subtitle">
+            Build HIIT, intervals, recovery runs, or long runs.
+          </p>
+        </div>
+      </div>
+
+      <div class="workout-type-grid">
+        <button class="workout-type-button is-active" type="button" data-type="hiit">HIIT</button>
+        <button class="workout-type-button" type="button" data-type="intervals">Intervals</button>
+        <button class="workout-type-button" type="button" data-type="recovery">Recovery Run</button>
+        <button class="workout-type-button" type="button" data-type="longrun">Long Run</button>
+      </div>
+    </article>
+  </section>
+
+  <section class="section">
+    <article class="card soft">
+      <div class="section-header">
+        <div>
+          <h2 class="section-title">Set Workout</h2>
+          <p class="section-subtitle">Customize the workout before you start.</p>
+        </div>
+      </div>
+
+      <form id="workout-builder-form" class="workout-form">
+        <div id="workout-form-fields"></div>
+
+        <div class="workout-form-actions">
+          <button type="submit" class="button-primary">Start Workout</button>
+        </div>
+      </form>
+    </article>
+  </section>
+
+  <section class="section">
+    <article class="card" id="live-workout-card" hidden>
+      <div class="section-header">
+        <div>
+          <h2 class="section-title">Live Workout</h2>
+          <p class="section-subtitle">
+            Fill in your real results and check each step off as you go.
+          </p>
+        </div>
+      </div>
+
+      <div id="live-workout-summary" class="live-workout-summary"></div>
+      <ul id="live-workout-steps" class="routine-list workout-live-list"></ul>
+
+      <div class="workout-form-actions">
+        <button id="reset-workout-button" type="button" class="button-secondary">
+          Reset Workout
+        </button>
+      </div>
+    </article>
+  </section>
+
+  <script is:inline>
+    const workoutTypes = {
+      hiit: {
+        label: "HIIT",
+        fields: [
+          { name: "rounds", label: "Intervals", type: "number", min: 1, value: 8 },
+          { name: "workSeconds", label: "Work Time (seconds)", type: "number", min: 5, value: 30 },
+          { name: "restSeconds", label: "Rest Time (seconds)", type: "number", min: 5, value: 30 },
+        ],
+      },
+      intervals: {
+        label: "Intervals",
+        fields: [
+          { name: "sprintCount", label: "Number of Sprints", type: "number", min: 1, value: 4 },
+          { name: "sprintDistance", label: "Sprint Distance", type: "text", value: "200m" },
+          { name: "sprintTargetTime", label: "Sprint Target Time", type: "text", value: "0:35" },
+          { name: "restDistance", label: "Jog Rest Distance", type: "text", value: "100m" },
+        ],
+      },
+      recovery: {
+        label: "Recovery Run",
+        fields: [
+          { name: "pace", label: "Target Pace", type: "text", value: "9:00 / mile" },
+          { name: "distance", label: "Distance (miles)", type: "number", min: 1, step: "0.5", value: 3 },
+        ],
+      },
+      longrun: {
+        label: "Long Run",
+        fields: [
+          { name: "pace", label: "Target Pace", type: "text", value: "8:30 / mile" },
+          { name: "distance", label: "Distance (miles)", type: "number", min: 1, step: "0.5", value: 10 },
+        ],
+      },
+    };
+
+    let selectedType = "hiit";
+    let activeWorkout = null;
+
+    const typeButtons = document.querySelectorAll(".workout-type-button");
+    const formFields = document.getElementById("workout-form-fields");
+    const form = document.getElementById("workout-builder-form");
+    const liveWorkoutCard = document.getElementById("live-workout-card");
+    const liveWorkoutSummary = document.getElementById("live-workout-summary");
+    const liveWorkoutSteps = document.getElementById("live-workout-steps");
+    const resetWorkoutButton = document.getElementById("reset-workout-button");
+
+    function renderTypeButtons() {
+      typeButtons.forEach((button) => {
+        button.classList.toggle("is-active", button.dataset.type === selectedType);
+      });
+    }
+
+    function renderFormFields() {
+      const config = workoutTypes[selectedType];
+
+      formFields.innerHTML = config.fields
+        .map((field) => {
+          return `
+            <label class="workout-field">
+              <span>${field.label}</span>
+              <input
+                name="${field.name}"
+                type="${field.type}"
+                value="${field.value ?? ""}"
+                min="${field.min ?? ""}"
+                step="${field.step ?? ""}"
+                required
+              />
+            </label>
+          `;
+        })
+        .join("");
+    }
+
+    function getFormValues() {
+      const data = new FormData(form);
+      return Object.fromEntries(data.entries());
+    }
+
+    function createStep({
+      text,
+      target = "",
+      actualLabel = "Actual Time / Result",
+      actualPlaceholder = "Enter actual result",
+    }) {
+      return {
+        text,
+        target,
+        done: false,
+        actual: "",
+        actualLabel,
+        actualPlaceholder,
+      };
+    }
+
+    function buildWorkout(type, values) {
+      if (type === "hiit") {
+        const rounds = Number(values.rounds);
+        const workSeconds = Number(values.workSeconds);
+        const restSeconds = Number(values.restSeconds);
+
+        const steps = [];
+
+        for (let i = 1; i <= rounds; i++) {
+          steps.push(
+            createStep({
+              text: `Interval ${i}: Work`,
+              target: `${workSeconds}s`,
+              actualLabel: "Actual Work Time / Notes",
+              actualPlaceholder: "Example: 31s\nFelt strong",
+            })
+          );
+
+          if (i < rounds) {
+            steps.push(
+              createStep({
+                text: `Rest ${i}: Recovery`,
+                target: `${restSeconds}s`,
+                actualLabel: "Actual Rest Time / Notes",
+                actualPlaceholder: "Example: 35s\nWalked part of it",
+              })
+            );
+          }
+        }
+
+        return {
+          type,
+          title: workoutTypes[type].label,
+          summary: `${rounds} intervals · ${workSeconds}s work · ${restSeconds}s rest`,
+          steps,
+        };
+      }
+
+      if (type === "intervals") {
+        const sprintCount = Number(values.sprintCount);
+        const sprintDistance = values.sprintDistance;
+        const sprintTargetTime = values.sprintTargetTime;
+        const restDistance = values.restDistance;
+
+        const steps = [];
+
+        for (let i = 1; i <= sprintCount; i++) {
+          steps.push(
+            createStep({
+              text: `Sprint ${i}`,
+              target: `${sprintDistance} in ${sprintTargetTime}`,
+              actualLabel: "Actual Sprint Time / Notes",
+              actualPlaceholder: "Example: 0:34\nGood turnover",
+            })
+          );
+
+          steps.push(
+            createStep({
+              text: `Jog recovery ${i}`,
+              target: `${restDistance}`,
+              actualLabel: "Actual Recovery Distance / Notes",
+              actualPlaceholder: "Example: 100m\nJogged easy",
+            })
+          );
+        }
+
+        steps.push(
+          createStep({
+            text: "Extended jog recovery",
+            target: `${sprintCount * 4} × ${restDistance}`,
+            actualLabel: "Actual Recovery Distance / Notes",
+            actualPlaceholder: "Example: 400m\nNeeded extra time",
+          })
+        );
+
+        return {
+          type,
+          title: workoutTypes[type].label,
+          summary: `${sprintCount} sprints · ${sprintDistance} target ${sprintTargetTime} · ${restDistance} jog rest`,
+          steps,
+        };
+      }
+
+      if (type === "recovery" || type === "longrun") {
+        const pace = values.pace;
+        const distance = Number(values.distance);
+        const wholeMiles = Math.floor(distance);
+        const remainder = distance - wholeMiles;
+
+        const steps = [];
+
+        for (let i = 1; i <= wholeMiles; i++) {
+          steps.push(
+            createStep({
+              text: `Mile ${i}`,
+              target: pace,
+              actualLabel: "Actual Mile Split",
+              actualPlaceholder: "Example: 8:57\nBreathing controlled",
+            })
+          );
+        }
+
+        if (remainder > 0) {
+          steps.push(
+            createStep({
+              text: `Final ${remainder.toFixed(1)} mile segment`,
+              target: pace,
+              actualLabel: "Actual Split / Notes",
+              actualPlaceholder: "Example: 4:12\nFinished smooth",
+            })
+          );
+        }
+
+        steps.push(
+          createStep({
+            text: `Finish ${distance} mile ${type === "recovery" ? "recovery run" : "long run"}`,
+            target: `${distance} miles total`,
+            actualLabel: "Overall Time / Notes",
+            actualPlaceholder: "Example: 27:41\nLegs felt good overall",
+          })
+        );
+
+        return {
+          type,
+          title: workoutTypes[type].label,
+          summary: `${distance} miles at ${pace}`,
+          steps,
+        };
+      }
+
+      return {
+        type,
+        title: "",
+        summary: "",
+        steps: [],
+      };
+    }
+
+    function renderLiveWorkout(workout) {
+      activeWorkout = workout;
+      liveWorkoutCard.hidden = false;
+      liveWorkoutSummary.innerHTML = `
+        <p><strong>${workout.title}</strong> · ${workout.summary}</p>
+      `;
+
+      liveWorkoutSteps.innerHTML = "";
+
+      workout.steps.forEach((step, index) => {
+        const li = document.createElement("li");
+        li.className = "routine-item workout-step-card" + (step.done ? " is-done" : "");
+
+        const header = document.createElement("div");
+        header.className = "workout-step-header";
+
+        const checkbox = document.createElement("input");
+        checkbox.type = "checkbox";
+        checkbox.checked = !!step.done;
+        checkbox.className = "workout-step-checkbox";
+
+        checkbox.addEventListener("change", () => {
+          activeWorkout.steps[index].done = checkbox.checked;
+          renderLiveWorkout(activeWorkout);
+        });
+
+        const copy = document.createElement("div");
+        copy.className = "workout-step-copy";
+
+        const title = document.createElement("div");
+        title.className = "workout-step-title";
+        title.textContent = step.text;
+
+        const target = document.createElement("div");
+        target.className = "workout-step-target";
+        target.textContent = `Target: ${step.target || "-"}`;
+
+        copy.appendChild(title);
+        copy.appendChild(target);
+
+        header.appendChild(checkbox);
+        header.appendChild(copy);
+
+        const actualWrap = document.createElement("div");
+        actualWrap.className = "workout-actual-field";
+
+        const actualLabel = document.createElement("label");
+        actualLabel.className = "workout-actual-label";
+        actualLabel.textContent = step.actualLabel || "Actual Time / Result";
+
+        const actualInput = document.createElement("textarea");
+        actualInput.className = "workout-actual-textarea";
+        actualInput.rows = 3;
+        actualInput.placeholder = step.actualPlaceholder || "Enter actual result";
+        actualInput.value = step.actual || "";
+
+        actualInput.addEventListener("input", (event) => {
+          activeWorkout.steps[index].actual = event.target.value;
+        });
+
+        actualWrap.appendChild(actualLabel);
+        actualWrap.appendChild(actualInput);
+
+        li.appendChild(header);
+        li.appendChild(actualWrap);
+        liveWorkoutSteps.appendChild(li);
+      });
+    }
+
+    typeButtons.forEach((button) => {
+      button.addEventListener("click", () => {
+        selectedType = button.dataset.type;
+        renderTypeButtons();
+        renderFormFields();
+      });
+    });
+
+    form.addEventListener("submit", (event) => {
+      event.preventDefault();
+      const values = getFormValues();
+      const workout = buildWorkout(selectedType, values);
+      renderLiveWorkout(workout);
+    });
+
+    resetWorkoutButton.addEventListener("click", () => {
+      activeWorkout = null;
+      liveWorkoutCard.hidden = true;
+      liveWorkoutSteps.innerHTML = "";
+      liveWorkoutSummary.innerHTML = "";
+      renderFormFields();
+    });
+
+    renderTypeButtons();
+    renderFormFields();
+    typeButtons.forEach((button) => {
+      button.addEventListener("click", () => {
+        selectedType = button.dataset.type;
+        renderTypeButtons();
+        renderFormFields();
+      });
+    });
+
+    form.addEventListener("submit", (event) => {
+      event.preventDefault();
+      const values = getFormValues();
+      const workout = buildWorkout(selectedType, values);
+      renderLiveWorkout(workout);
+    });
+
+    resetWorkoutButton.addEventListener("click", () => {
+      activeWorkout = null;
+      liveWorkoutCard.hidden = true;
+      liveWorkoutSteps.innerHTML = "";
+      liveWorkoutSummary.innerHTML = "";
+      renderFormFields();
+    });
+
+    renderTypeButtons();
+    renderFormFields();
+  </script>
+</BaseLayout>

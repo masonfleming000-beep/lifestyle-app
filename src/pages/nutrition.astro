@@ -1,0 +1,899 @@
+---
+import BaseLayout from "../layouts/BaseLayout.astro";
+import { goodFoods, badFoods, optionalMicronutrientTargets } from "../data/nutrition";
+---
+
+<BaseLayout title="Nutrition | Lifestyle App" description="Nutrition dashboard">
+  <section class="section">
+    <details class="dropdown-card" open>
+      <summary>
+        <div>
+          <p class="kicker">Nutrition</p>
+          <h2 class="section-title">Target Macros + Water</h2>
+        </div>
+        <span class="dropdown-arrow">⌄</span>
+      </summary>
+
+      <div class="dropdown-content stack-gap">
+        <article class="card soft">
+          <div class="section-header">
+            <div>
+              <h2 class="section-title">Macro Targets</h2>
+              <p class="section-subtitle">Saved in your browser.</p>
+            </div>
+          </div>
+
+          <form id="macro-form" class="nutrition-grid">
+            <label class="nutrition-field">
+              <span>Calories</span>
+              <input id="target-calories" type="number" min="0" />
+            </label>
+
+            <label class="nutrition-field">
+              <span>Protein (g)</span>
+              <input id="target-protein" type="number" min="0" />
+            </label>
+
+            <label class="nutrition-field">
+              <span>Carbs (g)</span>
+              <input id="target-carbs" type="number" min="0" />
+            </label>
+
+            <label class="nutrition-field">
+              <span>Fat (g)</span>
+              <input id="target-fat" type="number" min="0" />
+            </label>
+
+            <label class="nutrition-field">
+              <span>Water Target (oz)</span>
+              <input id="target-water" type="number" min="0" />
+            </label>
+
+            <div class="nutrition-actions">
+              <button type="submit" class="todo-add-btn">Save Targets</button>
+            </div>
+          </form>
+        </article>
+
+      
+      </div>
+    </details>
+  </section>
+
+  <section class="section">
+    <details class="dropdown-card" open>
+      <summary>
+        <div>
+          <p class="kicker">Nutrition</p>
+          <h2 class="section-title">Progress</h2>
+        </div>
+        <span class="dropdown-arrow">⌄</span>
+      </summary>
+
+      <div class="dropdown-content stack-gap">
+        <div class="nutrition-progress-grid">
+          <article class="metric">
+            <p class="metric-label">Calories</p>
+            <p class="big-number" id="total-calories">0</p>
+            <p class="meta" id="remaining-calories">0 remaining</p>
+          </article>
+
+          <article class="metric">
+            <p class="metric-label">Protein</p>
+            <p class="big-number" id="total-protein">0g</p>
+            <p class="meta" id="remaining-protein">0g remaining</p>
+          </article>
+
+          <article class="metric">
+            <p class="metric-label">Carbs</p>
+            <p class="big-number" id="total-carbs">0g</p>
+            <p class="meta" id="remaining-carbs">0g remaining</p>
+          </article>
+
+          <article class="metric">
+            <p class="metric-label">Fat</p>
+            <p class="big-number" id="total-fat">0g</p>
+            <p class="meta" id="remaining-fat">0g remaining</p>
+          </article>
+
+          <article class="metric">
+            <p class="metric-label">Water</p>
+            <p class="big-number" id="total-water">0 oz</p>
+            <p class="meta" id="remaining-water">0 oz remaining</p>
+          </article>
+        </div>
+
+        <article class="card">
+          <div class="section-header">
+            <div>
+              <h2 class="section-title">Micronutrient Progress</h2>
+              <p class="section-subtitle">Optional vitamins and minerals to track.</p>
+            </div>
+          </div>
+
+          <div id="micro-progress-list" class="micro-progress-list"></div>
+        </article>
+      </div>
+    </details>
+  </section>
+
+  <section class="section">
+    <details class="dropdown-card" open>
+      <summary>
+        <div>
+          <p class="kicker">Nutrition</p>
+          <h2 class="section-title">Search & Add Food</h2>
+        </div>
+        <span class="dropdown-arrow">⌄</span>
+      </summary>
+
+      <div class="dropdown-content stack-gap">
+        <article class="card">
+          <div class="section-header">
+            <div>
+              <h2 class="section-title">Search Food</h2>
+              <p class="section-subtitle">Search NutritionValue directly.</p>
+            </div>
+          </div>
+
+          <form id="nutrition-search-form" class="todo-form">
+            <input
+              id="nutrition-search-input"
+              type="text"
+              class="todo-input"
+              placeholder="Search apple, chicken breast, greek yogurt..."
+              autocomplete="off"
+            />
+            <button type="submit" class="todo-add-btn">Search</button>
+          </form>
+
+          <ul id="nutrition-search-results" class="food-log"></ul>
+        </article>
+
+        <article class="card">
+          <div class="section-header">
+            <div>
+              <h2 class="section-title">Add Food</h2>
+              <p class="section-subtitle">Auto-fill from source, then edit if needed.</p>
+            </div>
+          </div>
+
+          <form id="food-form" class="nutrition-grid">
+            <label class="nutrition-field nutrition-field-wide">
+              <span>Food Name</span>
+              <input id="food-name" type="text" placeholder="Chicken breast, banana, yogurt..." />
+            </label>
+
+            <label class="nutrition-field">
+              <span>Calories</span>
+              <input id="food-calories" type="number" min="0" step="0.1" />
+            </label>
+
+            <label class="nutrition-field">
+              <span>Protein (g)</span>
+              <input id="food-protein" type="number" min="0" step="0.1" />
+            </label>
+
+            <label class="nutrition-field">
+              <span>Carbs (g)</span>
+              <input id="food-carbs" type="number" min="0" step="0.1" />
+            </label>
+
+            <label class="nutrition-field">
+              <span>Fat (g)</span>
+              <input id="food-fat" type="number" min="0" step="0.1" />
+            </label>
+
+            <label class="nutrition-field">
+              <span>Fiber (g)</span>
+              <input id="food-fiber" type="number" min="0" step="0.1" />
+            </label>
+
+            <label class="nutrition-field">
+              <span>Sugars (g)</span>
+              <input id="food-sugars" type="number" min="0" step="0.1" />
+            </label>
+
+            <label class="nutrition-field">
+              <span>Sodium (mg)</span>
+              <input id="food-sodium" type="number" min="0" step="0.1" />
+            </label>
+
+            <label class="nutrition-field">
+              <span>Potassium (mg)</span>
+              <input id="food-potassium" type="number" min="0" step="0.1" />
+            </label>
+
+            <label class="nutrition-field">
+              <span>Calcium (mg)</span>
+              <input id="food-calcium" type="number" min="0" step="0.1" />
+            </label>
+
+            <label class="nutrition-field">
+              <span>Iron (mg)</span>
+              <input id="food-iron" type="number" min="0" step="0.1" />
+            </label>
+
+            <label class="nutrition-field">
+              <span>Magnesium (mg)</span>
+              <input id="food-magnesium" type="number" min="0" step="0.1" />
+            </label>
+
+            <label class="nutrition-field">
+              <span>Zinc (mg)</span>
+              <input id="food-zinc" type="number" min="0" step="0.1" />
+            </label>
+
+            <label class="nutrition-field">
+              <span>Copper (mg)</span>
+              <input id="food-copper" type="number" min="0" step="0.1" />
+            </label>
+
+            <label class="nutrition-field">
+              <span>Niacin (mg)</span>
+              <input id="food-niacin" type="number" min="0" step="0.1" />
+            </label>
+
+            <div class="nutrition-actions">
+              <button type="submit" class="todo-add-btn">Add Food</button>
+            </div>
+          </form>
+        </article>
+
+        <article class="card soft">
+          <div class="section-header">
+            <div>
+              <h2 class="section-title">Water Log</h2>
+              <p class="section-subtitle">Track hydration separately from food.</p>
+            </div>
+          </div>
+
+          <form id="water-form" class="todo-form">
+            <input
+              id="water-amount"
+              type="number"
+              class="todo-input"
+              min="0"
+              step="1"
+              placeholder="Add water in ounces"
+            />
+            <button type="submit" class="todo-add-btn">Add Water</button>
+          </form>
+        </article>
+      </div>
+    </details>
+  </section>
+
+  <section class="section">
+    <details class="dropdown-card" open>
+      <summary>
+        <div>
+          <p class="kicker">Nutrition</p>
+          <h2 class="section-title">Today’s Intake</h2>
+        </div>
+        <span class="dropdown-arrow">⌄</span>
+      </summary>
+
+      <div class="dropdown-content">
+        <article class="card soft">
+          <div class="section-header">
+            <div>
+              <h2 class="section-title">Today’s Intake</h2>
+              <p class="section-subtitle" id="nutrition-date-label"></p>
+            </div>
+            <button id="clear-food-log" type="button" class="secondary-btn">Clear Today</button>
+          </div>
+
+          <ul id="food-log" class="food-log"></ul>
+        </article>
+      </div>
+    </details>
+  </section>
+
+  <section class="section">
+    <div class="grid two">
+      <article class="card">
+        <h2 class="section-title">Good Foods</h2>
+        <ul class="list-clean">
+          {goodFoods.map((item) => <li>{item}</li>)}
+        </ul>
+      </article>
+
+      <article class="card soft">
+        <h2 class="section-title">Foods to Limit</h2>
+        <ul class="list-clean">
+          {badFoods.map((item) => <li>{item}</li>)}
+        </ul>
+      </article>
+    </div>
+  </section>
+
+  <section class="section">
+    <details class="dropdown-card" open>
+      <summary>
+        <div>
+          <p class="kicker">Nutrition</p>
+          <h2 class="section-title">Macros Calculator</h2>
+        </div>
+        <span class="dropdown-arrow">⌄</span>
+      </summary>
+
+      <div class="dropdown-content stack-gap">
+        <article class="card">
+          <div class="section-header">
+            <div>
+              <h2 class="section-title">Inch Calculator</h2>
+              <p class="section-subtitle">Use the calculator, then copy the results into your saved targets below.</p>
+            </div>
+          </div>
+
+          <div class="macro-widget-wrap">
+            <div id="inch-calculator-icw" data-ct="macros" data-cw="100%" data-ch="950" data-cv="MTE3NzM4NTE1MzM=">
+              <div id="inch-calculator-icwh">Macros Calculator</div>
+              <div id="inch-calculator-icwf">
+                <a id="inch-calculator-icwi" href="https://www.inchcalculator.com/macros-calculator/" target="_blank" rel="noopener noreferrer">
+                  <img id="inch-calculator-icwl" src="https://cdn.inchcalculator.com/e/inch-calculator-logo-tiny.png" alt="Inch Calculator Logo" width="40" height="49" />
+                  <span id="inch-calculator-icwb">Inch Calculator</span>
+                </a>
+              </div>
+            </div>
+            <script src="https://cdn.inchcalculator.com/e/widgets.min.js" async defer></script>
+          </div>
+        </article>
+
+        <article class="card soft">
+          <div class="section-header">
+            <div>
+              <h2 class="section-title">Apply Calculator Results</h2>
+              <p class="section-subtitle">Paste the calculator results here and save them to your targets.</p>
+            </div>
+          </div>
+
+          <form id="calculator-apply-form" class="nutrition-grid">
+            <label class="nutrition-field">
+              <span>Calories</span>
+              <input id="calc-calories" type="number" min="0" />
+            </label>
+
+            <label class="nutrition-field">
+              <span>Protein (g)</span>
+              <input id="calc-protein" type="number" min="0" />
+            </label>
+
+            <label class="nutrition-field">
+              <span>Carbs (g)</span>
+              <input id="calc-carbs" type="number" min="0" />
+            </label>
+
+            <label class="nutrition-field">
+              <span>Fat (g)</span>
+              <input id="calc-fat" type="number" min="0" />
+            </label>
+
+            <label class="nutrition-field">
+              <span>Water Target (oz)</span>
+              <input id="calc-water" type="number" min="0" />
+            </label>
+
+            <div class="nutrition-actions">
+              <button type="submit" class="todo-add-btn">Apply To Targets</button>
+            </div>
+          </form>
+        </article>
+      </div>
+    </details>
+  </section>
+
+  <script is:inline>
+    const TARGETS_KEY = "nutrition-targets-v2";
+    const LOG_KEY = "nutrition-log-v2";
+    const DEFAULT_MICROS = {
+      fiber: 30,
+      sodium: 2300,
+      potassium: 3500,
+      calcium: 1000,
+      iron: 18,
+      magnesium: 400,
+      zinc: 11,
+      copper: 0.9,
+      niacin: 16,
+    };
+
+    const MICRO_CONFIG = [
+      { key: "fiber", label: "Fiber", unit: "g" },
+      { key: "sodium", label: "Sodium", unit: "mg" },
+      { key: "potassium", label: "Potassium", unit: "mg" },
+      { key: "calcium", label: "Calcium", unit: "mg" },
+      { key: "iron", label: "Iron", unit: "mg" },
+      { key: "magnesium", label: "Magnesium", unit: "mg" },
+      { key: "zinc", label: "Zinc", unit: "mg" },
+      { key: "copper", label: "Copper", unit: "mg" },
+      { key: "niacin", label: "Niacin", unit: "mg" },
+    ];
+
+    function getTodayKey() {
+      const now = new Date();
+      const year = now.getFullYear();
+      const month = String(now.getMonth() + 1).padStart(2, "0");
+      const day = String(now.getDate()).padStart(2, "0");
+      return `${year}-${month}-${day}`;
+    }
+
+    function getPrettyDate() {
+      return new Date().toLocaleDateString("en-US", {
+        month: "long",
+        day: "numeric",
+        year: "numeric",
+      });
+    }
+
+    function loadTargets() {
+      try {
+        const raw = localStorage.getItem(TARGETS_KEY);
+        return raw
+          ? JSON.parse(raw)
+          : {
+              calories: 2200,
+              protein: 180,
+              carbs: 220,
+              fat: 70,
+              waterOz: 125,
+              micros: DEFAULT_MICROS,
+            };
+      } catch {
+        return {
+          calories: 2200,
+          protein: 180,
+          carbs: 220,
+          fat: 70,
+          waterOz: 125,
+          micros: DEFAULT_MICROS,
+        };
+      }
+    }
+
+    function saveTargets(targets) {
+      localStorage.setItem(TARGETS_KEY, JSON.stringify(targets));
+    }
+
+    function loadFoodState() {
+      try {
+        const raw = localStorage.getItem(LOG_KEY);
+        const parsed = raw ? JSON.parse(raw) : null;
+        const today = getTodayKey();
+
+        if (!parsed || parsed.date !== today) {
+          const fresh = { date: today, items: [], waterOz: 0 };
+          localStorage.setItem(LOG_KEY, JSON.stringify(fresh));
+          return fresh;
+        }
+
+        return {
+          date: parsed.date,
+          items: Array.isArray(parsed.items) ? parsed.items : [],
+          waterOz: Number(parsed.waterOz || 0),
+        };
+      } catch {
+        const fresh = { date: getTodayKey(), items: [], waterOz: 0 };
+        localStorage.setItem(LOG_KEY, JSON.stringify(fresh));
+        return fresh;
+      }
+    }
+
+    function saveFoodState(state) {
+      localStorage.setItem(LOG_KEY, JSON.stringify(state));
+    }
+
+    function setTargetInputs() {
+      const targets = loadTargets();
+      document.getElementById("target-calories").value = targets.calories;
+      document.getElementById("target-protein").value = targets.protein;
+      document.getElementById("target-carbs").value = targets.carbs;
+      document.getElementById("target-fat").value = targets.fat;
+      document.getElementById("target-water").value = targets.waterOz;
+    }
+
+    function computeTotals(items) {
+      return items.reduce(
+        (acc, item) => {
+          acc.calories += Number(item.calories || 0);
+          acc.protein += Number(item.protein || 0);
+          acc.carbs += Number(item.carbs || 0);
+          acc.fat += Number(item.fat || 0);
+          acc.fiber += Number(item.fiber || 0);
+          acc.sodium += Number(item.sodium || 0);
+          acc.potassium += Number(item.potassium || 0);
+          acc.calcium += Number(item.calcium || 0);
+          acc.iron += Number(item.iron || 0);
+          acc.magnesium += Number(item.magnesium || 0);
+          acc.zinc += Number(item.zinc || 0);
+          acc.copper += Number(item.copper || 0);
+          acc.niacin += Number(item.niacin || 0);
+          return acc;
+        },
+        {
+          calories: 0,
+          protein: 0,
+          carbs: 0,
+          fat: 0,
+          fiber: 0,
+          sodium: 0,
+          potassium: 0,
+          calcium: 0,
+          iron: 0,
+          magnesium: 0,
+          zinc: 0,
+          copper: 0,
+          niacin: 0,
+        }
+      );
+    }
+
+    function renderMicroProgress(totals, targets) {
+      const container = document.getElementById("micro-progress-list");
+      container.innerHTML = "";
+
+      MICRO_CONFIG.forEach((micro) => {
+        const current = Number(totals[micro.key] || 0);
+        const target = Number((targets.micros && targets.micros[micro.key]) || DEFAULT_MICROS[micro.key] || 0);
+        const row = document.createElement("div");
+        row.className = "micro-progress-item";
+
+        row.innerHTML = `
+          <div>
+            <p class="food-log-title">${micro.label}</p>
+            <p class="food-log-meta">${current.toFixed(1)} ${micro.unit} / ${target} ${micro.unit}</p>
+          </div>
+          <div class="micro-progress-right">
+            <span class="pill">${Math.max(0, target - current).toFixed(1)} ${micro.unit} left</span>
+          </div>
+        `;
+
+        container.appendChild(row);
+      });
+    }
+
+    function renderTotals() {
+      const targets = loadTargets();
+      const state = loadFoodState();
+      const totals = computeTotals(state.items);
+
+      document.getElementById("total-calories").textContent = Math.round(totals.calories);
+      document.getElementById("total-protein").textContent = `${Math.round(totals.protein)}g`;
+      document.getElementById("total-carbs").textContent = `${Math.round(totals.carbs)}g`;
+      document.getElementById("total-fat").textContent = `${Math.round(totals.fat)}g`;
+      document.getElementById("total-water").textContent = `${Math.round(state.waterOz)} oz`;
+
+      document.getElementById("remaining-calories").textContent = `${Math.round(targets.calories - totals.calories)} remaining`;
+      document.getElementById("remaining-protein").textContent = `${Math.round(targets.protein - totals.protein)}g remaining`;
+      document.getElementById("remaining-carbs").textContent = `${Math.round(targets.carbs - totals.carbs)}g remaining`;
+      document.getElementById("remaining-fat").textContent = `${Math.round(targets.fat - totals.fat)}g remaining`;
+      document.getElementById("remaining-water").textContent = `${Math.round(targets.waterOz - state.waterOz)} oz remaining`;
+
+      document.getElementById("nutrition-date-label").textContent = getPrettyDate();
+
+      renderMicroProgress(totals, targets);
+    }
+
+    function renderFoodLog() {
+      const foodLog = document.getElementById("food-log");
+      const state = loadFoodState();
+      foodLog.innerHTML = "";
+
+      if (!state.items.length && !state.waterOz) {
+        const empty = document.createElement("li");
+        empty.className = "food-log-empty";
+        empty.textContent = "No nutrition logged yet today.";
+        foodLog.appendChild(empty);
+        renderTotals();
+        return;
+      }
+
+      if (state.waterOz > 0) {
+        const waterLi = document.createElement("li");
+        waterLi.className = "food-log-item";
+        waterLi.innerHTML = `
+          <div class="food-log-left">
+            <h3 class="food-log-title">Water</h3>
+            <p class="food-log-meta">${state.waterOz} oz logged</p>
+          </div>
+        `;
+        foodLog.appendChild(waterLi);
+      }
+
+      state.items.forEach((item, index) => {
+        const li = document.createElement("li");
+        li.className = "food-log-item";
+
+        const left = document.createElement("div");
+        left.className = "food-log-left";
+
+        const title = document.createElement("h3");
+        title.className = "food-log-title";
+        title.textContent = item.name;
+
+        const meta = document.createElement("p");
+        meta.className = "food-log-meta";
+        meta.textContent = `${item.calories} cal · ${item.protein}P · ${item.carbs}C · ${item.fat}F · ${item.fiber || 0} fiber`;
+
+        left.appendChild(title);
+        left.appendChild(meta);
+
+        const removeBtn = document.createElement("button");
+        removeBtn.type = "button";
+        removeBtn.className = "todo-remove";
+        removeBtn.textContent = "Remove";
+        removeBtn.addEventListener("click", () => {
+          const next = loadFoodState();
+          next.items.splice(index, 1);
+          saveFoodState(next);
+          renderFoodLog();
+        });
+
+        li.appendChild(left);
+        li.appendChild(removeBtn);
+        foodLog.appendChild(li);
+      });
+
+      renderTotals();
+    }
+
+    function parseSearchResultsFromHtml(html) {
+      const parser = new DOMParser();
+      const doc = parser.parseFromString(html, "text/html");
+      const anchors = Array.from(doc.querySelectorAll("a[href]"));
+
+      return anchors
+        .map((a) => {
+          const href = a.getAttribute("href") || "";
+          const text = (a.textContent || "").trim();
+
+          if (!href || !text) return null;
+          if (!href.includes("nutrition") && !href.includes("nutritional_value")) return null;
+          if (!href.includes(".html")) return null;
+
+          const absolute = href.startsWith("http")
+            ? href
+            : `https://www.nutritionvalue.org${href.startsWith("/") ? "" : "/"}${href}`;
+
+          return { title: text, url: absolute };
+        })
+        .filter(Boolean)
+        .filter((item, index, arr) => arr.findIndex((x) => x.url === item.url) === index)
+        .slice(0, 10);
+    }
+
+    async function searchNutrition(query) {
+      const res = await fetch(`/api/nutrition-search?q=${encodeURIComponent(query)}`);
+      if (!res.ok) throw new Error("Search failed");
+      return res.json();
+    }
+
+    async function fetchNutritionDetail(url) {
+      const res = await fetch(`/api/nutrition-detail?url=${encodeURIComponent(url)}`);
+      if (!res.ok) throw new Error("Detail fetch failed");
+      return res.json();
+    }
+
+    function setField(id, value) {
+      const el = document.getElementById(id);
+      if (el) el.value = value !== undefined && value !== null ? value : "";
+    }
+
+    function renderSearchResults(results) {
+      const list = document.getElementById("nutrition-search-results");
+      list.innerHTML = "";
+
+      if (!results.length) {
+        const li = document.createElement("li");
+        li.className = "food-log-empty";
+        li.textContent = "No search results found.";
+        list.appendChild(li);
+        return;
+      }
+
+      results.forEach((result) => {
+        const li = document.createElement("li");
+        li.className = "food-log-item";
+
+        const left = document.createElement("div");
+        left.className = "food-log-left";
+
+        const title = document.createElement("h3");
+        title.className = "food-log-title";
+        title.textContent = result.title;
+
+        const meta = document.createElement("p");
+        meta.className = "food-log-meta";
+        meta.textContent = result.url;
+
+        left.appendChild(title);
+        left.appendChild(meta);
+
+        const button = document.createElement("button");
+        button.type = "button";
+        button.className = "todo-add-btn";
+        button.textContent = "Use";
+
+        button.addEventListener("click", async () => {
+          button.disabled = true;
+          button.textContent = "Loading...";
+
+          try {
+            const item = await fetchNutritionDetail(result.url);
+
+            setField("food-name", item.name || result.title || "");
+            setField("food-calories", item.calories);
+            setField("food-protein", item.protein);
+            setField("food-carbs", item.carbs);
+            setField("food-fat", item.fat);
+            setField("food-fiber", item.fiber);
+            setField("food-sugars", item.sugars);
+            setField("food-sodium", item.sodium);
+            setField("food-potassium", item.potassium);
+            setField("food-calcium", item.calcium);
+            setField("food-iron", item.iron);
+            setField("food-magnesium", item.magnesium);
+            setField("food-zinc", item.zinc);
+            setField("food-copper", item.copper);
+            setField("food-niacin", item.niacin?.value ?? item.niacin ?? 0);
+          } catch (err) {
+            console.error(err);
+            alert("Could not load that food.");
+          } finally {
+            button.disabled = false;
+            button.textContent = "Use";
+          }
+        });
+
+        li.appendChild(left);
+        li.appendChild(button);
+        list.appendChild(li);
+      });
+    }
+
+    document.getElementById("nutrition-search-form")?.addEventListener("submit", async (e) => {
+      e.preventDefault();
+
+      const input = document.getElementById("nutrition-search-input");
+      const query = input.value.trim();
+      if (!query) return;
+
+      const resultsEl = document.getElementById("nutrition-search-results");
+      resultsEl.innerHTML = `<li class="food-log-empty">Searching...</li>`;
+
+      try {
+        const data = await searchNutrition(query);
+        const results = parseSearchResultsFromHtml(data.html || "");
+        renderSearchResults(results);
+      } catch (err) {
+        resultsEl.innerHTML = `<li class="food-log-empty">Search failed.</li>`;
+      }
+    });
+
+    document.getElementById("macro-form")?.addEventListener("submit", (e) => {
+      e.preventDefault();
+
+      const previous = loadTargets();
+      const targets = {
+        ...previous,
+        calories: Number(document.getElementById("target-calories").value || 0),
+        protein: Number(document.getElementById("target-protein").value || 0),
+        carbs: Number(document.getElementById("target-carbs").value || 0),
+        fat: Number(document.getElementById("target-fat").value || 0),
+        waterOz: Number(document.getElementById("target-water").value || 0),
+      };
+
+      saveTargets(targets);
+      renderTotals();
+    });
+
+    document.getElementById("macro-autofill-form")?.addEventListener("submit", (e) => {
+      e.preventDefault();
+
+      const weight = Number(document.getElementById("bodyweight-lb").value || 0);
+      const caloriesPerLb = Number(document.getElementById("calories-per-lb").value || 14);
+      const proteinPerLb = Number(document.getElementById("protein-per-lb").value || 1.0);
+      const carbsPerLb = Number(document.getElementById("carbs-per-lb").value || 1.2);
+      const fatPerLb = Number(document.getElementById("fat-per-lb").value || 0.35);
+      const waterPerLb = Number(document.getElementById("water-per-lb").value || 0.67);
+
+      if (!weight) return;
+
+      document.getElementById("target-calories").value = Math.round(weight * caloriesPerLb);
+      document.getElementById("target-protein").value = Math.round(weight * proteinPerLb);
+      document.getElementById("target-carbs").value = Math.round(weight * carbsPerLb);
+      document.getElementById("target-fat").value = Math.round(weight * fatPerLb);
+      document.getElementById("target-water").value = Math.round(weight * waterPerLb);
+
+      const targets = loadTargets();
+      saveTargets({
+        ...targets,
+        calories: Math.round(weight * caloriesPerLb),
+        protein: Math.round(weight * proteinPerLb),
+        carbs: Math.round(weight * carbsPerLb),
+        fat: Math.round(weight * fatPerLb),
+        waterOz: Math.round(weight * waterPerLb),
+      });
+
+      renderTotals();
+    });
+
+    document.getElementById("food-form")?.addEventListener("submit", (e) => {
+      e.preventDefault();
+
+      const item = {
+        name: document.getElementById("food-name").value.trim(),
+        calories: Number(document.getElementById("food-calories").value || 0),
+        protein: Number(document.getElementById("food-protein").value || 0),
+        carbs: Number(document.getElementById("food-carbs").value || 0),
+        fat: Number(document.getElementById("food-fat").value || 0),
+        fiber: Number(document.getElementById("food-fiber").value || 0),
+        sugars: Number(document.getElementById("food-sugars").value || 0),
+        sodium: Number(document.getElementById("food-sodium").value || 0),
+        potassium: Number(document.getElementById("food-potassium").value || 0),
+        calcium: Number(document.getElementById("food-calcium").value || 0),
+        iron: Number(document.getElementById("food-iron").value || 0),
+        magnesium: Number(document.getElementById("food-magnesium").value || 0),
+        zinc: Number(document.getElementById("food-zinc").value || 0),
+        copper: Number(document.getElementById("food-copper").value || 0),
+        niacin: Number(document.getElementById("food-niacin").value || 0),
+      };
+
+      if (!item.name) return;
+
+      const state = loadFoodState();
+      state.items.unshift(item);
+      saveFoodState(state);
+
+      document.getElementById("food-form").reset();
+      renderFoodLog();
+    });
+
+    document.getElementById("water-form")?.addEventListener("submit", (e) => {
+      e.preventDefault();
+      const amount = Number(document.getElementById("water-amount").value || 0);
+      if (!amount) return;
+
+      const state = loadFoodState();
+      state.waterOz = Number(state.waterOz || 0) + amount;
+      saveFoodState(state);
+
+      document.getElementById("water-form").reset();
+      renderFoodLog();
+    });
+
+    document.getElementById("clear-food-log")?.addEventListener("click", () => {
+      const fresh = { date: getTodayKey(), items: [], waterOz: 0 };
+      saveFoodState(fresh);
+      renderFoodLog();
+    });
+
+    document.getElementById("calculator-apply-form")?.addEventListener("submit", (e) => {
+      e.preventDefault();
+
+      const existing = loadTargets();
+
+      const nextTargets = {
+        ...existing,
+        calories: Number(document.getElementById("calc-calories").value || 0),
+        protein: Number(document.getElementById("calc-protein").value || 0),
+        carbs: Number(document.getElementById("calc-carbs").value || 0),
+        fat: Number(document.getElementById("calc-fat").value || 0),
+        waterOz: Number(document.getElementById("calc-water").value || 0),
+      };
+
+      saveTargets(nextTargets);
+
+      document.getElementById("target-calories").value = nextTargets.calories;
+      document.getElementById("target-protein").value = nextTargets.protein;
+      document.getElementById("target-carbs").value = nextTargets.carbs;
+      document.getElementById("target-fat").value = nextTargets.fat;
+      document.getElementById("target-water").value = nextTargets.waterOz;
+
+      renderTotals();
+    });
+    setTargetInputs();
+    renderFoodLog();
+  </script>
+</BaseLayout>

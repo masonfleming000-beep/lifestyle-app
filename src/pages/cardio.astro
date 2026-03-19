@@ -1,0 +1,201 @@
+---
+import BaseLayout from "../layouts/BaseLayout.astro";
+import { cardioRules, cardioGoals, warmup, cooldown, recentSessions } from "../data/cardio";
+
+const stravaEmbedUrl =
+  "https://www.strava.com/athletes/115475457/latest-rides/6aa243149a11d283a34873ef8f65f506d1cba24e";
+---
+
+<BaseLayout title="Cardio | Lifestyle App" description="Cardio dashboard">
+  <section class="hero">
+    <div class="hero-card">
+      <p class="kicker">Cardio</p>
+      <h1>Build endurance with structure.</h1>
+      <p>
+        A cleaner cardio page with your Strava feed, goals, rules, and saved
+        warm-up / cool-down checklists.
+      </p>
+    </div>
+  </section>
+
+  <section class="section">
+    <article class="card soft">
+      <div class="section-header">
+        <div>
+          <h2 class="section-title">Strava</h2>
+          <p class="section-subtitle">Latest activity snapshot.</p>
+        </div>
+      </div>
+
+      <div class="running-embed-shell">
+        <iframe
+          src={stravaEmbedUrl}
+          title="Strava latest cardio activities"
+          frameborder="0"
+          scrolling="no"
+          loading="lazy"
+          allowtransparency="true"
+        ></iframe>
+      </div>
+    </article>
+  </section>
+
+  <div class="section-actions">
+    <a href="/cardio/workouts" class="button-primary">Build Workout</a>
+  </div>
+
+  <section class="section">
+    <div class="grid two">
+      <details class="dropdown-card" open>
+        <summary>
+          <div>
+            <p class="kicker">Cardio</p>
+            <h2 class="section-title">Rules</h2>
+          </div>
+          <span class="dropdown-arrow">⌄</span>
+        </summary>
+
+        <div class="dropdown-content">
+          <ul class="list-clean">
+            {cardioRules.map((rule) => (
+              <li>{rule}</li>
+            ))}
+          </ul>
+        </div>
+      </details>
+
+      <details class="dropdown-card">
+        <summary>
+          <div>
+            <p class="kicker">Cardio</p>
+            <h2 class="section-title">Goals</h2>
+          </div>
+          <span class="dropdown-arrow">⌄</span>
+        </summary>
+
+        <div class="dropdown-content">
+          <ul class="list-clean">
+            {cardioGoals.map((goal) => (
+              <li>{goal}</li>
+            ))}
+          </ul>
+        </div>
+      </details>
+    </div>
+  </section>
+
+  <section class="section">
+    <article class="card">
+      <h2 class="section-title">Recent Sessions</h2>
+      <ul class="list-clean">
+        {recentSessions.map((session) => (
+          <li><strong>{session.title}</strong> — {session.detail}</li>
+        ))}
+      </ul>
+    </article>
+  </section>
+
+  <section class="section">
+    <div class="grid two">
+      <details class="dropdown-card" open>
+        <summary>
+          <div>
+            <p class="kicker">Checklist</p>
+            <h2 class="section-title">Warm Up</h2>
+          </div>
+          <span class="dropdown-arrow">⌄</span>
+        </summary>
+
+        <div class="dropdown-content">
+          <ul
+            id="cardio-warmup-list"
+            class="routine-list"
+            data-storage-key="cardio-warmup-v1"
+            data-default-items={JSON.stringify(warmup)}
+          ></ul>
+        </div>
+      </details>
+
+      <details class="dropdown-card">
+        <summary>
+          <div>
+            <p class="kicker">Checklist</p>
+            <h2 class="section-title">Cool Down</h2>
+          </div>
+          <span class="dropdown-arrow">⌄</span>
+        </summary>
+
+        <div class="dropdown-content">
+          <ul
+            id="cardio-cooldown-list"
+            class="routine-list"
+            data-storage-key="cardio-cooldown-v1"
+            data-default-items={JSON.stringify(cooldown)}
+          ></ul>
+        </div>
+      </details>
+    </div>
+  </section>
+
+  <script is:inline>
+    function setupSavedChecklist(id) {
+      const list = document.getElementById(id);
+      if (!list) return;
+
+      const storageKey = list.dataset.storageKey;
+      const defaultItems = JSON.parse(list.dataset.defaultItems || "[]");
+
+      function loadItems() {
+        try {
+          const raw = localStorage.getItem(storageKey);
+          return raw
+            ? JSON.parse(raw)
+            : defaultItems.map((text) => ({ text, done: false }));
+        } catch {
+          return defaultItems.map((text) => ({ text, done: false }));
+        }
+      }
+
+      function saveItems(items) {
+        localStorage.setItem(storageKey, JSON.stringify(items));
+      }
+
+      function render() {
+        const items = loadItems();
+        list.innerHTML = "";
+
+        items.forEach((item, itemIndex) => {
+          const li = document.createElement("li");
+          li.className = "routine-item" + (item.done ? " is-done" : "");
+
+          const label = document.createElement("label");
+          label.className = "routine-left";
+
+          const checkbox = document.createElement("input");
+          checkbox.type = "checkbox";
+          checkbox.checked = !!item.done;
+
+          checkbox.addEventListener("change", () => {
+            const next = loadItems();
+            next[itemIndex].done = checkbox.checked;
+            saveItems(next);
+            render();
+          });
+
+          const text = document.createElement("span");
+          text.textContent = item.text;
+
+          label.appendChild(checkbox);
+          label.appendChild(text);
+          li.appendChild(label);
+          list.appendChild(li);
+        });
+      }
+
+      render();
+    }
+
+    setupSavedChecklist("cardio-warmup-list");
+    setupSavedChecklist("cardio-cooldown-list");
+  </script>
+</BaseLayout>
