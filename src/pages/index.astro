@@ -92,22 +92,8 @@ const defaultMorals = JSON.stringify(morals);
       </div>
     </details>
   </section>
-
-  <script
-    type="application/json"
-    id="default-home-data"
-    set:html={JSON.stringify({ quotes, morals })}
-  ></script>
-
-  <script>
-    const storageKeys = {
-      quotes: "lifestyle-home-quotes",
-      morals: "lifestyle-home-morals",
-    };
-
-    const defaults = JSON.parse(
-      document.getElementById("default-home-data")?.textContent || '{"quotes":[],"morals":[]}'
-    );
+  <script define:vars={{ defaultQuotes, defaultMorals }}>
+    const pageKey = "home";
 
     const quotesList = document.getElementById("quotes-list");
     const remindersList = document.getElementById("reminders-list");
@@ -120,32 +106,72 @@ const defaultMorals = JSON.stringify(morals);
     const reminderTitleInput = document.getElementById("reminder-title");
     const reminderTextInput = document.getElementById("reminder-text");
 
-    function getSavedData(key, fallback) {
+    const defaultQuoteItems = JSON.parse(defaultQuotes);
+    const defaultMoralItems = JSON.parse(defaultMorals);
+
+    let state = {
+      quotes: [...defaultQuoteItems],
+      morals: [...defaultMoralItems],
+    };
+
+    function mergeDefaults(savedItems, defaultItems, keyFn) {
+      const merged = [...defaultItems];
+
+      (savedItems || []).forEach((savedItem) => {
+        const exists = merged.some((item) => keyFn(item) === keyFn(savedItem));
+        if (!exists) merged.push(savedItem);
+      });
+
+      return merged;
+    }
+
+    async function loadState() {
       try {
-        const raw = localStorage.getItem(key);
-        return raw ? JSON.parse(raw) : fallback;
-      } catch {
-        return fallback;
+        const res = await fetch(`/api/state?pageKey=${encodeURIComponent(pageKey)}`, {
+          credentials: "include",
+        });
+
+        if (!res.ok) return null;
+
+        const data = await res.json();
+        return data?.state ?? null;
+      } catch (error) {
+        console.error("Failed to load state:", error);
+        return null;
       }
     }
 
-    let currentQuotes = getSavedData(storageKeys.quotes, defaults.quotes);
-    let currentMorals = getSavedData(storageKeys.morals, defaults.morals);
-
-    function saveQuotes() {
-      localStorage.setItem(storageKeys.quotes, JSON.stringify(currentQuotes));
+    async function saveState() {
+      try {
+        await fetch("/api/state", {
+          method: "POST",
+          credentials: "include",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ pageKey, state }),
+        });
+      } catch (error) {
+        console.error("Failed to save state:", error);
+      }
     }
 
-    function saveMorals() {
-      localStorage.setItem(storageKeys.morals, JSON.stringify(currentMorals));
+    function saveStateOnLeave() {
+      try {
+        navigator.sendBeacon(
+          "/api/state",
+          new Blob([JSON.stringify({ pageKey, state })], {
+            type: "application/json",
+          })
+        );
+      } catch (error) {
+        console.error("Failed to save on leave:", error);
+      }
     }
 
     function renderQuotes() {
       if (!quotesList) return;
-
       quotesList.innerHTML = "";
 
-      currentQuotes.forEach((quote, index) => {
+      state.quotes.forEach((quote, index) => {
         const article = document.createElement("article");
         article.className = "card quote-card soft";
 
@@ -161,21 +187,20 @@ const defaultMorals = JSON.stringify(morals);
       });
 
       quotesList.querySelectorAll("[data-quote-index]").forEach((btn) => {
-        btn.addEventListener("click", (event) => {
+        btn.addEventListener("click", async (event) => {
           const index = Number(event.currentTarget.getAttribute("data-quote-index"));
-          currentQuotes.splice(index, 1);
-          saveQuotes();
+          state.quotes.splice(index, 1);
           renderQuotes();
+          await saveState();
         });
       });
     }
 
     function renderMorals() {
       if (!remindersList) return;
-
       remindersList.innerHTML = "";
 
-      currentMorals.forEach((item, index) => {
+      state.morals.forEach((item, index) => {
         const article = document.createElement("article");
         article.className = "card";
 
@@ -189,11 +214,11 @@ const defaultMorals = JSON.stringify(morals);
       });
 
       remindersList.querySelectorAll("[data-reminder-index]").forEach((btn) => {
-        btn.addEventListener("click", (event) => {
+        btn.addEventListener("click", async (event) => {
           const index = Number(event.currentTarget.getAttribute("data-reminder-index"));
-          currentMorals.splice(index, 1);
-          saveMorals();
+          state.morals.splice(index, 1);
           renderMorals();
+          await saveState();
         });
       });
     }
@@ -207,37 +232,58 @@ const defaultMorals = JSON.stringify(morals);
         .replaceAll("'", "&#039;");
     }
 
-    quoteForm?.addEventListener("submit", (event) => {
+    quoteForm?.addEventListener("submit", async (event) => {
       event.preventDefault();
 
       const text = quoteTextInput?.value.trim();
       const author = quoteAuthorInput?.value.trim() || "Personal reminder";
-
       if (!text) return;
 
-      currentQuotes.unshift({ text, author });
-      saveQuotes();
+      state.quotes.unshift({ text, author });
       renderQuotes();
-
       quoteForm.reset();
+      await saveState();
     });
 
-    reminderForm?.addEventListener("submit", (event) => {
+    reminderForm?.addEventListener("submit", async (event) => {
       event.preventDefault();
 
       const title = reminderTitleInput?.value.trim();
       const text = reminderTextInput?.value.trim();
-
       if (!title || !text) return;
 
-      currentMorals.unshift({ title, text });
-      saveMorals();
+      state.morals.unshift({ title, text });
       renderMorals();
-
       reminderForm.reset();
+      await saveState();
     });
 
-    renderQuotes();
-    renderMorals();
+    window.addEventListener("pagehide", saveStateOnLeave);
+    window.addEventListener("beforeunload", saveStateOnLeave);
+
+    async function init() {
+      renderQuotes();
+      renderMorals();
+
+      const saved = await loadState();
+
+      state = {
+        quotes: mergeDefaults(
+          saved?.quotes,
+          defaultQuoteItems,
+          (q) => `${q.text}::${q.author || ""}`
+        ),
+        morals: mergeDefaults(
+          saved?.morals,
+          defaultMoralItems,
+          (m) => `${m.title}::${m.text}`
+        ),
+      };
+
+      renderQuotes();
+      renderMorals();
+    }
+
+    init();
   </script>
 </BaseLayout>
