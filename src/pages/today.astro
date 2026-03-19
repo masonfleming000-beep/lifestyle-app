@@ -31,7 +31,7 @@ const starterTodos = [
 ];
 
 const defaultCalendarEmbed =
-  "https://calendar.google.com/calendar/embed?src=mason.fleming000%40gmail.com&ctz=America%2FIndiana%2FIndianapolis";
+  "";
 
 const defaultTodos = JSON.stringify(starterTodos);
 const defaultMorningItems = JSON.stringify(defaultMorning);
@@ -56,9 +56,7 @@ const defaultCalendar = JSON.stringify(defaultCalendarEmbed);
       </form>
 
       <div style="display:flex; gap:.75rem; flex-wrap:wrap; margin-bottom:1rem;">
-        <button id="calendar-reset-btn" type="button" class="todo-add-btn">
-          Use Default
-        </button>
+         
         <button id="calendar-delete-btn" type="button" class="todo-add-btn">
           Remove Calendar
         </button>
@@ -238,7 +236,7 @@ const defaultCalendar = JSON.stringify(defaultCalendarEmbed);
         const empty = document.createElement("div");
         empty.className = "card";
         empty.style.padding = "1rem";
-        empty.textContent = "No calendar added yet.";
+        empty.textContent = "No calendar added. Paste a Google Calendar embed URL above or leave hidden.";
         calendarContainer.appendChild(empty);
         return;
       }
@@ -393,11 +391,7 @@ const defaultCalendar = JSON.stringify(defaultCalendarEmbed);
       await saveState();
     });
 
-    calendarResetBtn?.addEventListener("click", async () => {
-      state.calendarEmbed = defaultCalendarEmbed;
-      renderCalendar();
-      await saveState();
-    });
+    
 
     calendarDeleteBtn?.addEventListener("click", async () => {
       state.calendarEmbed = "";
@@ -414,7 +408,7 @@ const defaultCalendar = JSON.stringify(defaultCalendarEmbed);
       const saved = await loadState();
 
       state = {
-        calendarEmbed: saved?.calendarEmbed ?? defaultCalendarEmbed,
+        calendarEmbed: saved?.calendarEmbed ?? "",
         todos: mergeDefaults(
           saved?.todos,
           defaultTodoItems,
