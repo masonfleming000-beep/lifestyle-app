@@ -5,8 +5,12 @@ const message = Astro.url.searchParams.get("message");
 ---
 
 <BaseLayout title="Login | Lifestyle App" description="Sign in to Lifestyle App">
+
+  <!-- ================= AUTH UI ================= -->
   <section class="auth-page">
     <div class="auth-shell">
+
+      <!-- Left Intro -->
       <div class="auth-intro">
         <p class="kicker">Lifestyle App</p>
         <h1>Build structure. Track progress.</h1>
@@ -16,10 +20,14 @@ const message = Astro.url.searchParams.get("message");
         </p>
       </div>
 
+      <!-- Login Card -->
       <div class="auth-card">
         <h2 class="auth-title">Welcome back</h2>
-        <p class="auth-subtitle">Use your email and password to sign in.</p>
+        <p class="auth-subtitle">
+          Use your email and password to sign in.
+        </p>
 
+        <!-- Status Messages -->
         {message === "check-email" && (
           <p class="auth-note">Check your email to confirm your account.</p>
         )}
@@ -30,6 +38,7 @@ const message = Astro.url.searchParams.get("message");
 
         <p id="login-message" class="auth-note" style="display:none;"></p>
 
+        <!-- Login Form -->
         <form id="login-form" class="auth-form">
           <label for="email">Email</label>
           <input id="email" name="email" type="email" required />
@@ -37,24 +46,65 @@ const message = Astro.url.searchParams.get("message");
           <label for="password">Password</label>
           <input id="password" name="password" type="password" required />
 
-          <button type="submit" class="auth-button">Sign in</button>
+          <button type="submit" class="auth-button">
+            Sign in
+          </button>
         </form>
 
         <p class="auth-footer">
           Don’t have an account?
           <a href="/signup">Create one</a>
         </p>
+
+        <!-- Google Sign-In -->
+        <div id="g_id_onload"
+          data-client_id={import.meta.env.PUBLIC_GOOGLE_CLIENT_ID}
+          data-callback="handleGoogleLogin">
+        </div>
+
+        <div class="g_id_signin"></div>
+
       </div>
     </div>
   </section>
 
+  <!-- ================= GOOGLE SCRIPT ================= -->
+  <script src="https://accounts.google.com/gsi/client" async defer></script>
+
   <script>
-    // CHANGED: frontend login now calls backend JSON API instead of plain form POST
+    async function handleGoogleLogin(response) {
+      try {
+        const res = await fetch("/api/auth/google", {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify({
+            credential: response.credential
+          }),
+        });
+
+        const data = await res.json();
+
+        if (data.user) {
+          window.location.href = "/dashboard";
+        } else {
+          console.error("Google login failed:", data);
+        }
+      } catch (err) {
+        console.error("Google login error:", err);
+      }
+    }
+  </script>
+
+  <!-- ================= EMAIL LOGIN SCRIPT ================= -->
+  <script>
     const loginForm = document.getElementById("login-form");
     const loginMessage = document.getElementById("login-message");
 
     function setMessage(text, isError = false) {
       if (!loginMessage) return;
+
       loginMessage.textContent = text;
       loginMessage.style.display = text ? "block" : "none";
       loginMessage.style.color = isError ? "#b42318" : "";
@@ -73,13 +123,16 @@ const message = Astro.url.searchParams.get("message");
         return;
       }
 
-      const submitButton = loginForm.querySelector('button[type="submit"]');
+      const submitButton = loginForm.querySelector(
+        'button[type="submit"]'
+      );
+
       if (submitButton) submitButton.disabled = true;
 
       try {
         const response = await fetch("/api/auth/login", {
           method: "POST",
-          credentials: "include", // CHANGED: required so browser keeps the session cookie
+          credentials: "include",
           headers: {
             "Content-Type": "application/json",
           },
@@ -94,7 +147,8 @@ const message = Astro.url.searchParams.get("message");
         }
 
         setMessage("Login successful. Redirecting...");
-        window.location.href = "/today"; // CHANGED: send user into app after login
+        window.location.href = "/today";
+
       } catch (error) {
         console.error("Login request failed:", error);
         setMessage("Unable to reach the server.", true);
@@ -103,4 +157,5 @@ const message = Astro.url.searchParams.get("message");
       }
     });
   </script>
+
 </BaseLayout>
