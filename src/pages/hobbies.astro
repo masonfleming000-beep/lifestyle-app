@@ -2,17 +2,18 @@
 import BaseLayout from "../layouts/BaseLayout.astro";
 import { hobbies as seedHobbies } from "../data/hobbies";
 
-const seed = JSON.stringify(seedHobbies);
+const seed = JSON.stringify(seedHobbies); 
+const defaultHobbiesData = JSON.stringify({
+  hobbies: seedHobbies,
+});
 ---
-
 <BaseLayout title="Hobbies | Lifestyle App" description="Interactive hobby tracking and progress">
   <section class="hero">
     <div class="hero-card">
       <p class="kicker">Hobbies</p>
       <h1>Track hobbies with real progress, stages, and updates.</h1>
       <p>
-        This version lets the user add, edit, and delete hobbies locally in the browser.
-        Data is stored in localStorage for now.
+        This version lets the user add, edit, and delete hobbies with saved progress across refreshes.
       </p>
     </div>
   </section>
@@ -185,13 +186,115 @@ const seed = JSON.stringify(seedHobbies);
     </div>
   </section>
 
-  <script is:inline>
+  <script define:vars={{ defaultHobbiesData }}>
     (() => {
       const app = document.getElementById("hobby-app");
       if (!app) return;
 
-      const STORAGE_KEY = "lifestyle-hobbies-v1";
-      const seed = JSON.parse(app.dataset.seed || "[]");
+      const pageKey = "hobbies";
+
+      function cloneDefaults() {
+        return JSON.parse(defaultHobbiesData);
+      }
+
+      function normalizeHobby(hobby) {
+        return {
+          id: hobby?.id || `hobby-${Date.now()}-${Math.random().toString(16).slice(2)}`,
+          name: hobby?.name || "Untitled Hobby",
+          category: hobby?.category || "Other",
+          status: hobby?.status || "Active",
+          hoursSpent: Number(hobby?.hoursSpent || 0),
+          startedOn: hobby?.startedOn || "",
+          updatedOn: hobby?.updatedOn || "",
+          motivation: hobby?.motivation || "",
+          notes: hobby?.notes || "",
+          favorite: !!hobby?.favorite,
+          stages: Array.isArray(hobby?.stages)
+            ? hobby.stages.map((stage) => ({
+                name: stage?.name || "New Stage",
+                description: stage?.description || "",
+                status: stage?.status || "Not Started",
+                progress: Number(stage?.progress || 0),
+                targetDate: stage?.targetDate || "",
+                update: stage?.update || "",
+                evidenceType: stage?.evidenceType || "Text",
+                evidenceValue: stage?.evidenceValue || "",
+                updatedOn: stage?.updatedOn || "",
+              }))
+            : [],
+          milestones: Array.isArray(hobby?.milestones) ? hobby.milestones : [],
+          activityLog: Array.isArray(hobby?.activityLog)
+            ? hobby.activityLog.map((log) => ({
+                text: log?.text || "",
+                date: log?.date || "",
+              }))
+            : [],
+        };
+      }
+
+      function normalizeData(raw) {
+        const defaults = cloneDefaults();
+        const parsed = raw && typeof raw === "object" ? raw : {};
+
+        return {
+          hobbies: Array.isArray(parsed.hobbies)
+            ? parsed.hobbies.map(normalizeHobby)
+            : defaults.hobbies.map(normalizeHobby),
+        };
+      }
+
+      async function loadState() {
+        try {
+          const res = await fetch(`/api/state?pageKey=${encodeURIComponent(pageKey)}`, {
+            credentials: "include",
+            cache: "no-store",
+          });
+
+          if (!res.ok) return null;
+
+          const data = await res.json();
+          return data?.state ?? null;
+        } catch (error) {
+          console.error("Failed to load hobbies state:", error);
+          return null;
+        }
+      }
+
+      let isSaving = false;
+      let pendingSave = false;
+      let hasLoadedInitialState = false;
+
+      async function saveState() {
+        if (!hasLoadedInitialState) return;
+
+        if (isSaving) {
+          pendingSave = true;
+          return;
+        }
+
+        isSaving = true;
+
+        try {
+          await fetch("/api/state", {
+            method: "POST",
+            credentials: "include",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({
+              pageKey,
+              state: { hobbies },
+            }),
+          });
+        } catch (error) {
+          console.error("Failed to save hobbies state:", error);
+        } finally {
+          isSaving = false;
+
+          if (pendingSave) {
+            pendingSave = false;
+            await saveState();
+          }
+        }
+      }
 
       const hobbySelect = document.getElementById("hobby-select");
       const filterSelect = document.getElementById("filter-select");
@@ -218,21 +321,8 @@ const seed = JSON.stringify(seedHobbies);
       const addStageBtn = document.getElementById("add-stage-btn");
       const addLogBtn = document.getElementById("add-log-btn");
 
-      function loadHobbies() {
-        try {
-          const saved = localStorage.getItem(STORAGE_KEY);
-          return saved ? JSON.parse(saved) : seed;
-        } catch {
-          return seed;
-        }
-      }
-
-      let hobbies = loadHobbies();
+      let hobbies = cloneDefaults().hobbies.map(normalizeHobby);
       let selectedId = hobbies[0]?.id ?? null;
-
-      function save() {
-        localStorage.setItem(STORAGE_KEY, JSON.stringify(hobbies));
-      }
 
       function todayString() {
         return new Date().toISOString().slice(0, 10);
@@ -488,7 +578,7 @@ const seed = JSON.stringify(seedHobbies);
             </div>
           `;
 
-          wrapper.querySelector(".save-stage-btn")?.addEventListener("click", () => {
+          wrapper.querySelector(".save-stage-btn")?.addEventListener("click", async () => {
             const selected = getSelectedHobby();
             if (!selected) return;
 
@@ -506,11 +596,11 @@ const seed = JSON.stringify(seedHobbies);
             };
 
             selected.updatedOn = todayString();
-            save();
             render();
+            await saveState();
           });
 
-          wrapper.querySelector(".delete-stage-btn")?.addEventListener("click", () => {
+          wrapper.querySelector(".delete-stage-btn")?.addEventListener("click", async () => {
             const selected = getSelectedHobby();
             if (!selected) return;
 
@@ -519,8 +609,8 @@ const seed = JSON.stringify(seedHobbies);
 
             selected.stages.splice(index, 1);
             selected.updatedOn = todayString();
-            save();
             render();
+            await saveState();
           });
 
           stageList.appendChild(wrapper);
@@ -556,25 +646,27 @@ const seed = JSON.stringify(seedHobbies);
             </div>
           `;
 
-          item.querySelector(".save-log-btn")?.addEventListener("click", () => {
+          item.querySelector(".save-log-btn")?.addEventListener("click", async () => {
             const selected = getSelectedHobby();
             if (!selected) return;
+
             selected.activityLog[index] = {
               text: item.querySelector(".log-text")?.value || "",
               date: item.querySelector(".log-date")?.value || todayString(),
             };
             selected.updatedOn = todayString();
-            save();
             render();
+            await saveState();
           });
 
-          item.querySelector(".delete-log-btn")?.addEventListener("click", () => {
+          item.querySelector(".delete-log-btn")?.addEventListener("click", async () => {
             const selected = getSelectedHobby();
             if (!selected) return;
+
             selected.activityLog.splice(index, 1);
             selected.updatedOn = todayString();
-            save();
             render();
+            await saveState();
           });
 
           logList.appendChild(item);
@@ -598,11 +690,11 @@ const seed = JSON.stringify(seedHobbies);
       filterSelect.addEventListener("change", render);
       searchInput.addEventListener("input", render);
 
-      addHobbyBtn.addEventListener("click", () => {
+      addHobbyBtn.addEventListener("click", async () => {
         const baseName = window.prompt("New hobby name?");
         if (!baseName) return;
 
-        const newHobby = {
+        const newHobby = normalizeHobby({
           id: `${slugify(baseName)}-${Date.now()}`,
           name: baseName,
           category: "Other",
@@ -616,15 +708,15 @@ const seed = JSON.stringify(seedHobbies);
           stages: [],
           milestones: [],
           activityLog: [],
-        };
+        });
 
         hobbies.unshift(newHobby);
         selectedId = newHobby.id;
-        save();
         render();
+        await saveState();
       });
 
-      deleteHobbyBtn.addEventListener("click", () => {
+      deleteHobbyBtn.addEventListener("click", async () => {
         const selected = getSelectedHobby();
         if (!selected) return;
 
@@ -633,11 +725,11 @@ const seed = JSON.stringify(seedHobbies);
 
         hobbies = hobbies.filter((h) => h.id !== selected.id);
         selectedId = hobbies[0]?.id ?? null;
-        save();
         render();
+        await saveState();
       });
 
-      saveHobbyBtn.addEventListener("click", () => {
+      saveHobbyBtn.addEventListener("click", async () => {
         const selected = getSelectedHobby();
         if (!selected) return;
 
@@ -651,11 +743,11 @@ const seed = JSON.stringify(seedHobbies);
         selected.notes = hobbyNotes.value.trim();
         selected.updatedOn = todayString();
 
-        save();
         render();
+        await saveState();
       });
 
-      addStageBtn.addEventListener("click", () => {
+      addStageBtn.addEventListener("click", async () => {
         const selected = getSelectedHobby();
         if (!selected) return;
 
@@ -672,11 +764,11 @@ const seed = JSON.stringify(seedHobbies);
         });
 
         selected.updatedOn = todayString();
-        save();
         render();
+        await saveState();
       });
 
-      addLogBtn.addEventListener("click", () => {
+      addLogBtn.addEventListener("click", async () => {
         const selected = getSelectedHobby();
         if (!selected) return;
 
@@ -686,11 +778,26 @@ const seed = JSON.stringify(seedHobbies);
         });
 
         selected.updatedOn = todayString();
-        save();
         render();
+        await saveState();
       });
 
-      render();
+      async function init() {
+        render();
+
+        const saved = normalizeData(await loadState());
+
+        hobbies =
+          Array.isArray(saved.hobbies) && saved.hobbies.length
+            ? saved.hobbies.map(normalizeHobby)
+            : cloneDefaults().hobbies.map(normalizeHobby);
+
+        selectedId = hobbies[0]?.id ?? null;
+        hasLoadedInitialState = true;
+        render();
+      }
+
+      init();
     })();
   </script>
 </BaseLayout>

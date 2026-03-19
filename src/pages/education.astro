@@ -1,5 +1,14 @@
 ---
 import BaseLayout from "../layouts/BaseLayout.astro";
+
+const defaultEducationData = JSON.stringify({
+  classes: [
+    { id: "ece-39595", name: "ECE 39595", color: "#2f5d62" },
+    { id: "ece-30200", name: "ECE 30200", color: "#7a4b2a" },
+    { id: "ece-36800", name: "ECE 36800", color: "#6a3fa0" },
+  ],
+  assignments: [],
+});
 ---
 
 <BaseLayout title="Education | Lifestyle App" description="Education dashboard">
@@ -153,11 +162,8 @@ import BaseLayout from "../layouts/BaseLayout.astro";
   </section>
 </BaseLayout>
 
-<script is:inline>
-  const STORAGE_KEYS = {
-    classes: "education-classes",
-    assignments: "education-assignments",
-  };
+<script define:vars={{ defaultEducationData }}>
+  const pageKey = "education";
 
   function makeId() {
     if (window.crypto && typeof window.crypto.randomUUID === "function") {
@@ -166,57 +172,89 @@ import BaseLayout from "../layouts/BaseLayout.astro";
     return "id-" + Date.now() + "-" + Math.random().toString(16).slice(2);
   }
 
-  const defaultClasses = [
-    { id: makeId(), name: "ECE 39595", color: "#2f5d62" },
-    { id: makeId(), name: "ECE 30200", color: "#7a4b2a" },
-    { id: makeId(), name: "ECE 36800", color: "#6a3fa0" },
-  ];
+  function cloneDefaults() {
+    return JSON.parse(defaultEducationData);
+  }
 
-  function loadClasses() {
+  function normalizeEducationData(raw) {
+    const defaults = cloneDefaults();
+    const parsed = raw && typeof raw === "object" ? raw : {};
+
+    return {
+      classes: Array.isArray(parsed.classes) ? parsed.classes : defaults.classes,
+      assignments: Array.isArray(parsed.assignments) ? parsed.assignments : defaults.assignments,
+    };
+  }
+
+  function mergeDefaults(savedItems, defaultItems, keyFn) {
+    const merged = [...(savedItems || [])];
+
+    defaultItems.forEach((defaultItem) => {
+      const exists = merged.some((item) => keyFn(item) === keyFn(defaultItem));
+      if (!exists) merged.push(defaultItem);
+    });
+
+    return merged;
+  }
+
+  async function loadState() {
     try {
-      const raw = localStorage.getItem(STORAGE_KEYS.classes);
-      if (!raw) {
-        localStorage.setItem(STORAGE_KEYS.classes, JSON.stringify(defaultClasses));
-        return [...defaultClasses];
+      const res = await fetch(`/api/state?pageKey=${encodeURIComponent(pageKey)}`, {
+        credentials: "include",
+        cache: "no-store",
+      });
+
+      if (!res.ok) return null;
+
+      const data = await res.json();
+      return data?.state ?? null;
+    } catch (error) {
+      console.error("Failed to load education state:", error);
+      return null;
+    }
+  }
+
+  let isSaving = false;
+  let pendingSave = false;
+  let hasLoadedInitialState = false;
+
+  async function saveState() {
+    if (!hasLoadedInitialState) return;
+
+    if (isSaving) {
+      pendingSave = true;
+      return;
+    }
+
+    isSaving = true;
+
+    try {
+      await fetch("/api/state", {
+        method: "POST",
+        credentials: "include",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          pageKey,
+          state: {
+            classes,
+            assignments,
+          },
+        }),
+      });
+    } catch (error) {
+      console.error("Failed to save education state:", error);
+    } finally {
+      isSaving = false;
+
+      if (pendingSave) {
+        pendingSave = false;
+        await saveState();
       }
-      const parsed = JSON.parse(raw);
-      return Array.isArray(parsed) ? parsed : [...defaultClasses];
-    } catch (error) {
-      console.error("Failed to load classes:", error);
-      return [...defaultClasses];
     }
   }
 
-  function saveClasses(classes) {
-    try {
-      localStorage.setItem(STORAGE_KEYS.classes, JSON.stringify(classes));
-    } catch (error) {
-      console.error("Failed to save classes:", error);
-    }
-  }
-
-  function loadAssignments() {
-    try {
-      const raw = localStorage.getItem(STORAGE_KEYS.assignments);
-      if (!raw) return [];
-      const parsed = JSON.parse(raw);
-      return Array.isArray(parsed) ? parsed : [];
-    } catch (error) {
-      console.error("Failed to load assignments:", error);
-      return [];
-    }
-  }
-
-  function saveAssignments(assignments) {
-    try {
-      localStorage.setItem(STORAGE_KEYS.assignments, JSON.stringify(assignments));
-    } catch (error) {
-      console.error("Failed to save assignments:", error);
-    }
-  }
-
-  let classes = loadClasses();
-  let assignments = loadAssignments();
+  let classes = cloneDefaults().classes;
+  let assignments = cloneDefaults().assignments;
 
   const assignmentForm = document.getElementById("assignment-form");
   const classForm = document.getElementById("class-form");
@@ -353,13 +391,12 @@ import BaseLayout from "../layouts/BaseLayout.astro";
     populateClassSelect();
 
     classList.querySelectorAll("[data-class-id]").forEach((button) => {
-      button.addEventListener("click", () => {
+      button.addEventListener("click", async () => {
         const classId = button.getAttribute("data-class-id");
         classes = classes.filter((c) => c.id !== classId);
         assignments = assignments.filter((a) => a.classId !== classId);
-        saveClasses(classes);
-        saveAssignments(assignments);
         renderAll();
+        await saveState();
       });
     });
   }
@@ -406,18 +443,18 @@ import BaseLayout from "../layouts/BaseLayout.astro";
     const checkbox = card.querySelector(".assignment-check");
     const deleteButton = card.querySelector(".assignment-delete");
 
-    checkbox.addEventListener("change", () => {
+    checkbox.addEventListener("change", async () => {
       assignments = assignments.map((a) =>
         a.id === item.id ? { ...a, completed: checkbox.checked } : a
       );
-      saveAssignments(assignments);
       renderAssignments();
+      await saveState();
     });
 
-    deleteButton.addEventListener("click", () => {
+    deleteButton.addEventListener("click", async () => {
       assignments = assignments.filter((a) => a.id !== item.id);
-      saveAssignments(assignments);
       renderAssignments();
+      await saveState();
     });
 
     return card;
@@ -464,10 +501,43 @@ import BaseLayout from "../layouts/BaseLayout.astro";
     renderAssignments();
   }
 
-  bindColorPicker();
-  setSelectedColor(classColorInput.value || "#2f5d62");
+  async function init() {
+    bindColorPicker();
+    setSelectedColor(classColorInput.value || "#2f5d62");
 
-  assignmentForm.addEventListener("submit", (event) => {
+    renderAll();
+
+    const saved = normalizeEducationData(await loadState());
+    const defaults = cloneDefaults();
+
+    classes =
+      Array.isArray(saved.classes) && saved.classes.length
+        ? saved.classes.map((item) => ({
+            id: item.id,
+            name: item.name,
+            color: item.color || "#2f5d62",
+          }))
+        : defaults.classes.map((item) => ({
+            id: item.id,
+            name: item.name,
+            color: item.color || "#2f5d62",
+          }));
+
+    assignments = (saved.assignments || []).map((item) => ({
+      id: item.id,
+      name: item.name,
+      dueDate: item.dueDate,
+      classId: item.classId,
+      weight: item.weight ?? null,
+      completed: !!item.completed,
+      createdAt: item.createdAt || new Date().toISOString(),
+    }));
+
+    hasLoadedInitialState = true;
+    renderAll();
+  }
+
+  assignmentForm.addEventListener("submit", async (event) => {
     event.preventDefault();
 
     const name = assignmentNameInput.value.trim();
@@ -487,12 +557,12 @@ import BaseLayout from "../layouts/BaseLayout.astro";
       createdAt: new Date().toISOString(),
     });
 
-    saveAssignments(assignments);
     assignmentForm.reset();
     renderAssignments();
+    await saveState();
   });
 
-  classForm.addEventListener("submit", (event) => {
+  classForm.addEventListener("submit", async (event) => {
     event.preventDefault();
 
     const name = classNameInput.value.trim();
@@ -506,12 +576,11 @@ import BaseLayout from "../layouts/BaseLayout.astro";
       color,
     });
 
-    saveClasses(classes);
-    renderClasses();
-
     classForm.reset();
     setSelectedColor("#2f5d62");
+    renderClasses();
+    await saveState();
   });
 
-  renderAll();
+  init();
 </script>

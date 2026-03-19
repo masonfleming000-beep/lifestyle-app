@@ -114,13 +114,13 @@ const defaultMorals = JSON.stringify(morals);
       quotes: [...defaultQuoteItems],
       morals: [...defaultMoralItems],
     };
-
+    
     function mergeDefaults(savedItems, defaultItems, keyFn) {
-      const merged = [...defaultItems];
+      const merged = [...(savedItems || [])];
 
-      (savedItems || []).forEach((savedItem) => {
-        const exists = merged.some((item) => keyFn(item) === keyFn(savedItem));
-        if (!exists) merged.push(savedItem);
+      defaultItems.forEach((defaultItem) => {
+        const exists = merged.some((item) => keyFn(item) === keyFn(defaultItem));
+        if (!exists) merged.push(defaultItem);
       });
 
       return merged;

@@ -149,11 +149,11 @@ const defaultCooldownItems = JSON.stringify(cooldown);
     let pendingSave = false;
 
     function mergeDefaults(savedItems, defaultItems, keyFn) {
-      const merged = [...defaultItems];
+      const merged = [...(savedItems || [])];
 
-      (savedItems || []).forEach((savedItem) => {
-        const exists = merged.some((item) => keyFn(item) === keyFn(savedItem));
-        if (!exists) merged.push(savedItem);
+      defaultItems.forEach((defaultItem) => {
+        const exists = merged.some((item) => keyFn(item) === keyFn(defaultItem));
+        if (!exists) merged.push(defaultItem);
       });
 
       return merged;
@@ -225,6 +225,7 @@ const defaultCooldownItems = JSON.stringify(cooldown);
         checkbox.checked = !!item.done;
 
         checkbox.addEventListener("change", async () => {
+          console.log("[cardio] rendering", key, state[key]);
           state[key][itemIndex].done = checkbox.checked;
           renderChecklist(listEl, key);
           await saveState();
@@ -245,6 +246,7 @@ const defaultCooldownItems = JSON.stringify(cooldown);
       renderChecklist(cooldownListEl, "cooldown");
 
       const saved = await loadState();
+      console.log("[cardio] saved from api", saved);
 
       state = {
         warmup: mergeDefaults(
@@ -265,10 +267,13 @@ const defaultCooldownItems = JSON.stringify(cooldown);
         })),
       };
 
+      console.log("[cardio] normalized state", state);
+
       hasLoadedInitialState = true;
 
       renderChecklist(warmupListEl, "warmup");
       renderChecklist(cooldownListEl, "cooldown");
+
     }
 
     init();

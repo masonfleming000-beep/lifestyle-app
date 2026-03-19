@@ -123,10 +123,18 @@ export async function createUser(email: string, password: string) {
     await sql.end();
   }
 }
-
 export async function getUserFromSessionId(sessionId: string) {
+  console.log("[auth] getUserFromSessionId start", {
+    hasSessionId: !!sessionId,
+    sessionIdPreview: sessionId ? sessionId.slice(0, 8) + "..." : null,
+  });
+
   const sql = getSql();
+  console.log("[auth] sql client created");
+
   try {
+    console.log("[auth] running session lookup query");
+
     const rows = await sql<
       {
         id: string;
@@ -149,9 +157,18 @@ export async function getUserFromSessionId(sessionId: string) {
       limit 1
     `;
 
+    console.log("[auth] session lookup query finished", {
+      rowCount: rows.length,
+    });
+
     return rows[0] ?? null;
+  } catch (error) {
+    console.error("[auth] getUserFromSessionId query error:", error);
+    throw error;
   } finally {
+    console.log("[auth] closing sql client");
     await sql.end();
+    console.log("[auth] sql client closed");
   }
 }
 
@@ -161,15 +178,26 @@ export async function getCurrentUser(cookies: {
   const sessionId = cookies.get(SESSION_COOKIE_NAME)?.value;
   if (!sessionId) return null;
 
-  const user = await getUserFromSessionId(sessionId);
-  if (!user) return null;
+  try {
+    const user = await Promise.race([
+      getUserFromSessionId(sessionId),
+      new Promise<null>((_, reject) =>
+        setTimeout(() => reject(new Error("getCurrentUser timed out after 3000ms")), 3000)
+      ),
+    ]);
 
-  return {
-    id: user.id,
-    email: user.email,
-    created_at: user.created_at,
-    session_id: user.session_id,
-  };
+    if (!user) return null;
+
+    return {
+      id: user.id,
+      email: user.email,
+      created_at: user.created_at,
+      session_id: user.session_id,
+    };
+  } catch (error) {
+    console.error("[auth] getCurrentUser failed:", error);
+    return null;
+  }
 }
 
 export function buildSessionCookieOptions(expires: Date) {

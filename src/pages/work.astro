@@ -1,5 +1,15 @@
 ---
 import BaseLayout from "../layouts/BaseLayout.astro";
+
+const defaultWorkData = JSON.stringify({
+  projects: [
+    { id: "work-internal", name: "Internal", color: "#2f5d62" },
+    { id: "work-client", name: "Client Work", color: "#2563eb" },
+    { id: "work-meetings", name: "Meetings", color: "#6a3fa0" },
+  ],
+  tasks: [],
+  meetings: [],
+});
 ---
 
 <BaseLayout title="Work | Lifestyle App" description="Work dashboard">
@@ -229,12 +239,8 @@ import BaseLayout from "../layouts/BaseLayout.astro";
   </section>
 </BaseLayout>
 
-<script is:inline>
-  const STORAGE_KEYS = {
-    projects: "work-projects",
-    tasks: "work-tasks",
-    meetings: "work-meetings",
-  };
+<script define:vars={{ defaultWorkData }}>
+  const pageKey = "work";
 
   function makeId() {
     if (window.crypto && typeof window.crypto.randomUUID === "function") {
@@ -243,78 +249,81 @@ import BaseLayout from "../layouts/BaseLayout.astro";
     return "id-" + Date.now() + "-" + Math.random().toString(16).slice(2);
   }
 
-  const defaultProjects = [
-    { id: makeId(), name: "Internal", color: "#2f5d62" },
-    { id: makeId(), name: "Client Work", color: "#2563eb" },
-    { id: makeId(), name: "Meetings", color: "#6a3fa0" },
-  ];
+  function cloneDefaults() {
+    return JSON.parse(defaultWorkData);
+  }
 
-  function loadProjects() {
+  function normalizeWorkData(raw) {
+    const defaults = cloneDefaults();
+    const parsed = raw && typeof raw === "object" ? raw : {};
+
+    return {
+      projects: Array.isArray(parsed.projects) ? parsed.projects : defaults.projects,
+      tasks: Array.isArray(parsed.tasks) ? parsed.tasks : defaults.tasks,
+      meetings: Array.isArray(parsed.meetings) ? parsed.meetings : defaults.meetings,
+    };
+  }
+
+  async function loadState() {
     try {
-      const raw = localStorage.getItem(STORAGE_KEYS.projects);
-      if (!raw) {
-        localStorage.setItem(STORAGE_KEYS.projects, JSON.stringify(defaultProjects));
-        return [...defaultProjects];
+      const res = await fetch(`/api/state?pageKey=${encodeURIComponent(pageKey)}`, {
+        credentials: "include",
+        cache: "no-store",
+      });
+
+      if (!res.ok) return null;
+
+      const data = await res.json();
+      return data?.state ?? null;
+    } catch (error) {
+      console.error("Failed to load work state:", error);
+      return null;
+    }
+  }
+
+  let hasLoadedInitialState = false;
+  let isSaving = false;
+  let pendingSave = false;
+
+  async function saveState() {
+    if (!hasLoadedInitialState) return;
+
+    if (isSaving) {
+      pendingSave = true;
+      return;
+    }
+
+    isSaving = true;
+
+    try {
+      await fetch("/api/state", {
+        method: "POST",
+        credentials: "include",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          pageKey,
+          state: {
+            projects,
+            tasks,
+            meetings,
+          },
+        }),
+      });
+    } catch (error) {
+      console.error("Failed to save work state:", error);
+    } finally {
+      isSaving = false;
+
+      if (pendingSave) {
+        pendingSave = false;
+        await saveState();
       }
-      const parsed = JSON.parse(raw);
-      return Array.isArray(parsed) ? parsed : [...defaultProjects];
-    } catch (error) {
-      console.error("Failed to load projects:", error);
-      return [...defaultProjects];
     }
   }
 
-  function saveProjects(projects) {
-    try {
-      localStorage.setItem(STORAGE_KEYS.projects, JSON.stringify(projects));
-    } catch (error) {
-      console.error("Failed to save projects:", error);
-    }
-  }
-
-  function loadTasks() {
-    try {
-      const raw = localStorage.getItem(STORAGE_KEYS.tasks);
-      if (!raw) return [];
-      const parsed = JSON.parse(raw);
-      return Array.isArray(parsed) ? parsed : [];
-    } catch (error) {
-      console.error("Failed to load tasks:", error);
-      return [];
-    }
-  }
-
-  function saveTasks(tasks) {
-    try {
-      localStorage.setItem(STORAGE_KEYS.tasks, JSON.stringify(tasks));
-    } catch (error) {
-      console.error("Failed to save tasks:", error);
-    }
-  }
-
-  function loadMeetings() {
-    try {
-      const raw = localStorage.getItem(STORAGE_KEYS.meetings);
-      if (!raw) return [];
-      const parsed = JSON.parse(raw);
-      return Array.isArray(parsed) ? parsed : [];
-    } catch (error) {
-      console.error("Failed to load meetings:", error);
-      return [];
-    }
-  }
-
-  function saveMeetings(meetings) {
-    try {
-      localStorage.setItem(STORAGE_KEYS.meetings, JSON.stringify(meetings));
-    } catch (error) {
-      console.error("Failed to save meetings:", error);
-    }
-  }
-
-  let projects = loadProjects();
-  let tasks = loadTasks();
-  let meetings = loadMeetings();
+  let projects = cloneDefaults().projects;
+  let tasks = cloneDefaults().tasks;
+  let meetings = cloneDefaults().meetings;
 
   const taskForm = document.getElementById("task-form");
   const meetingForm = document.getElementById("meeting-form");
@@ -362,13 +371,13 @@ import BaseLayout from "../layouts/BaseLayout.astro";
   function parseDate(dateStr) {
     if (!dateStr) return null;
     const date = new Date(dateStr + "T00:00:00");
-    return isNaN(date.getTime()) ? null : date;
+    return Number.isNaN(date.getTime()) ? null : date;
   }
 
   function parseDateTime(dateStr, timeStr) {
     if (!dateStr) return null;
     const date = new Date(`${dateStr}T${timeStr || "23:59"}:00`);
-    return isNaN(date.getTime()) ? null : date;
+    return Number.isNaN(date.getTime()) ? null : date;
   }
 
   function daysUntil(dateStr) {
@@ -535,17 +544,15 @@ import BaseLayout from "../layouts/BaseLayout.astro";
     populateProjectSelects();
 
     projectList.querySelectorAll("[data-project-id]").forEach((button) => {
-      button.addEventListener("click", () => {
+      button.addEventListener("click", async () => {
         const projectId = button.getAttribute("data-project-id");
         projects = projects.filter((project) => project.id !== projectId);
         tasks = tasks.filter((task) => task.projectId !== projectId);
         meetings = meetings.map((meeting) =>
           meeting.projectId === projectId ? { ...meeting, projectId: "" } : meeting
         );
-        saveProjects(projects);
-        saveTasks(tasks);
-        saveMeetings(meetings);
         renderAll();
+        await saveState();
       });
     });
   }
@@ -606,11 +613,7 @@ import BaseLayout from "../layouts/BaseLayout.astro";
           ${task.estimatedHours ? `<span>${task.estimatedHours} hr est.</span>` : ""}
         </div>
 
-        ${
-          task.notes
-            ? `<p class="work-notes">${escapeHtml(task.notes)}</p>`
-            : ""
-        }
+        ${task.notes ? `<p class="work-notes">${escapeHtml(task.notes)}</p>` : ""}
       </div>
 
       <button type="button" class="delete-mini-button task-delete">Delete</button>
@@ -619,7 +622,7 @@ import BaseLayout from "../layouts/BaseLayout.astro";
     const checkbox = card.querySelector(".assignment-check");
     const deleteButton = card.querySelector(".task-delete");
 
-    checkbox.addEventListener("change", () => {
+    checkbox.addEventListener("change", async () => {
       tasks = tasks.map((item) =>
         item.id === task.id
           ? {
@@ -629,14 +632,14 @@ import BaseLayout from "../layouts/BaseLayout.astro";
             }
           : item
       );
-      saveTasks(tasks);
       renderTasks();
+      await saveState();
     });
 
-    deleteButton.addEventListener("click", () => {
+    deleteButton.addEventListener("click", async () => {
       tasks = tasks.filter((item) => item.id !== task.id);
-      saveTasks(tasks);
       renderTasks();
+      await saveState();
     });
 
     return card;
@@ -665,11 +668,7 @@ import BaseLayout from "../layouts/BaseLayout.astro";
           ${meeting.location ? `<span>${escapeHtml(meeting.location)}</span>` : ""}
         </div>
 
-        ${
-          meeting.notes
-            ? `<p class="work-notes">${escapeHtml(meeting.notes)}</p>`
-            : ""
-        }
+        ${meeting.notes ? `<p class="work-notes">${escapeHtml(meeting.notes)}</p>` : ""}
       </div>
 
       <button type="button" class="delete-mini-button meeting-delete">Delete</button>
@@ -677,10 +676,10 @@ import BaseLayout from "../layouts/BaseLayout.astro";
 
     const deleteButton = card.querySelector(".meeting-delete");
 
-    deleteButton.addEventListener("click", () => {
+    deleteButton.addEventListener("click", async () => {
       meetings = meetings.filter((item) => item.id !== meeting.id);
-      saveMeetings(meetings);
       renderMeetings();
+      await saveState();
     });
 
     return card;
@@ -692,15 +691,17 @@ import BaseLayout from "../layouts/BaseLayout.astro";
     const upcoming = getUpcomingTasks();
     const completed = getCompletedTasks();
 
-    dueTodayEl.innerHTML = "";
+    if (dueTodayEl) dueTodayEl.innerHTML = "";
     dueThisWeekEl.innerHTML = "";
     allUpcomingEl.innerHTML = "";
     completedListEl.innerHTML = "";
 
-    if (!dueToday.length) {
-      dueTodayEl.innerHTML = '<p class="empty-state">Nothing due today.</p>';
-    } else {
-      dueToday.forEach((task) => dueTodayEl.appendChild(createTaskCard(task)));
+    if (dueTodayEl) {
+      if (!dueToday.length) {
+        dueTodayEl.innerHTML = '<p class="empty-state">Nothing due today.</p>';
+      } else {
+        dueToday.forEach((task) => dueTodayEl.appendChild(createTaskCard(task)));
+      }
     }
 
     if (!dueThisWeek.length) {
@@ -744,10 +745,59 @@ import BaseLayout from "../layouts/BaseLayout.astro";
     renderMeetings();
   }
 
-  bindColorPicker();
-  setSelectedColor(projectColorInput.value || "#2f5d62");
+  async function init() {
+    bindColorPicker();
+    setSelectedColor(projectColorInput.value || "#2f5d62");
 
-  taskForm?.addEventListener("submit", (event) => {
+    renderAll();
+
+    const saved = normalizeWorkData(await loadState());
+    const defaults = cloneDefaults();
+
+    projects =
+      Array.isArray(saved.projects) && saved.projects.length
+        ? saved.projects.map((item) => ({
+            id: item.id,
+            name: item.name,
+            color: item.color || "#2f5d62",
+          }))
+        : defaults.projects.map((item) => ({
+            id: item.id,
+            name: item.name,
+            color: item.color || "#2f5d62",
+          }));
+
+    tasks = (saved.tasks || []).map((item) => ({
+      id: item.id,
+      title: item.title,
+      dueDate: item.dueDate,
+      dueTime: item.dueTime || null,
+      projectId: item.projectId || "",
+      priority: item.priority || "medium",
+      status: item.status || (item.completed ? "done" : "todo"),
+      estimatedHours: item.estimatedHours ?? null,
+      notes: item.notes || "",
+      completed: !!item.completed,
+      createdAt: item.createdAt || new Date().toISOString(),
+    }));
+
+    meetings = (saved.meetings || []).map((item) => ({
+      id: item.id,
+      title: item.title,
+      date: item.date,
+      startTime: item.startTime,
+      endTime: item.endTime,
+      projectId: item.projectId || "",
+      location: item.location || "",
+      notes: item.notes || "",
+      createdAt: item.createdAt || new Date().toISOString(),
+    }));
+
+    hasLoadedInitialState = true;
+    renderAll();
+  }
+
+  taskForm?.addEventListener("submit", async (event) => {
     event.preventDefault();
 
     const title = taskTitleInput.value.trim();
@@ -777,12 +827,12 @@ import BaseLayout from "../layouts/BaseLayout.astro";
       createdAt: new Date().toISOString(),
     });
 
-    saveTasks(tasks);
     taskForm.reset();
     renderTasks();
+    await saveState();
   });
 
-  meetingForm?.addEventListener("submit", (event) => {
+  meetingForm?.addEventListener("submit", async (event) => {
     event.preventDefault();
 
     const title = meetingTitleInput.value.trim();
@@ -807,12 +857,12 @@ import BaseLayout from "../layouts/BaseLayout.astro";
       createdAt: new Date().toISOString(),
     });
 
-    saveMeetings(meetings);
     meetingForm.reset();
     renderMeetings();
+    await saveState();
   });
 
-  projectForm?.addEventListener("submit", (event) => {
+  projectForm?.addEventListener("submit", async (event) => {
     event.preventDefault();
 
     const name = projectNameInput.value.trim();
@@ -827,12 +877,11 @@ import BaseLayout from "../layouts/BaseLayout.astro";
       createdAt: new Date().toISOString(),
     });
 
-    saveProjects(projects);
-    renderProjects();
-
     projectForm.reset();
     setSelectedColor("#2f5d62");
+    renderProjects();
+    await saveState();
   });
 
-  renderAll();
+  init();
 </script>
