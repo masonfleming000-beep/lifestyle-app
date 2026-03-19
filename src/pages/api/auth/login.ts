@@ -13,7 +13,6 @@ export const prerender = false;
 export const POST: APIRoute = async ({ request, cookies }) => {
   try {
     const body = await request.json().catch(() => null);
-    console.log("login body:", body);
 
     const email = body?.email?.trim();
     const password = body?.password;
@@ -21,12 +20,14 @@ export const POST: APIRoute = async ({ request, cookies }) => {
     if (!email || !password) {
       return new Response(
         JSON.stringify({ error: "Email and password are required." }),
-        { status: 400, headers: { "Content-Type": "application/json" } }
+        {
+          status: 400,
+          headers: { "Content-Type": "application/json" },
+        }
       );
     }
 
     const user = await getUserByEmail(email);
-    console.log("login user found:", !!user);
 
     if (!user) {
       return new Response(JSON.stringify({ error: "Invalid credentials." }), {
@@ -35,11 +36,19 @@ export const POST: APIRoute = async ({ request, cookies }) => {
       });
     }
 
-    console.log("user password hash exists:", !!user.password_hash);
-    console.log("user password hash preview:", user.password_hash?.slice(0, 30));
+    if (!user.password_hash) {
+      return new Response(
+        JSON.stringify({
+          error: "This account uses Google sign-in. Please continue with Google.",
+        }),
+        {
+          status: 401,
+          headers: { "Content-Type": "application/json" },
+        }
+      );
+    }
 
     const valid = await verifyPassword(password, user.password_hash);
-    console.log("password valid:", valid);
 
     if (!valid) {
       return new Response(JSON.stringify({ error: "Invalid credentials." }), {
@@ -72,7 +81,7 @@ export const POST: APIRoute = async ({ request, cookies }) => {
       }
     );
   } catch (error) {
-    console.error("login error full:", error);
+    console.error("login error:", error);
     return new Response(JSON.stringify({ error: "Failed to log in." }), {
       status: 500,
       headers: { "Content-Type": "application/json" },
