@@ -1,5 +1,19 @@
 ---
 import BaseLayout from "../../layouts/BaseLayout.astro";
+
+const defaultCareerData = JSON.stringify({
+  projects: [],
+  school: [],
+  experience: [],
+  about: [],
+  looking: [],
+  pitch: [],
+  stats: [],
+  contact: [],
+  timelineItems: [],
+  recommendations: [],
+  star: [],
+});
 ---
 
 <BaseLayout title="Career Information | Lifestyle App" description="Private information builder">
@@ -137,25 +151,30 @@ import BaseLayout from "../../layouts/BaseLayout.astro";
     </div>
   </section>
 
-  <script is:inline>
-    const storageKey = "careerBuilderDataV2";
-
-    const defaultData = {
-      projects: [],
-      school: [],
-      experience: [],
-      about: [],
-      looking: [],
-      pitch: [],
-      stats: [],
-      contact: [],
-      timelineItems: [],
-      recommendations: [],
-      star: [],
-    };
+  <script define:vars={{ defaultCareerData }}>
+    const pageKey = "career-information";
 
     function cloneDefaults() {
-      return JSON.parse(JSON.stringify(defaultData));
+      return JSON.parse(defaultCareerData);
+    }
+
+    function normalizeData(raw) {
+      const parsed = raw && typeof raw === "object" ? raw : {};
+      return {
+        ...cloneDefaults(),
+        ...parsed,
+        projects: Array.isArray(parsed.projects) ? parsed.projects : [],
+        school: Array.isArray(parsed.school) ? parsed.school : [],
+        experience: Array.isArray(parsed.experience) ? parsed.experience : [],
+        about: Array.isArray(parsed.about) ? parsed.about : [],
+        looking: Array.isArray(parsed.looking) ? parsed.looking : [],
+        pitch: Array.isArray(parsed.pitch) ? parsed.pitch : [],
+        stats: Array.isArray(parsed.stats) ? parsed.stats : [],
+        contact: Array.isArray(parsed.contact) ? parsed.contact : [],
+        timelineItems: Array.isArray(parsed.timelineItems) ? parsed.timelineItems : [],
+        recommendations: Array.isArray(parsed.recommendations) ? parsed.recommendations : [],
+        star: Array.isArray(parsed.star) ? parsed.star : [],
+      };
     }
 
     function makeId() {
@@ -165,36 +184,56 @@ import BaseLayout from "../../layouts/BaseLayout.astro";
       return "id-" + Date.now() + "-" + Math.random().toString(16).slice(2);
     }
 
-    function loadData() {
+    let data = cloneDefaults();
+    let hasLoadedInitialState = false;
+    let isSaving = false;
+    let pendingSave = false;
+
+    async function loadState() {
       try {
-        const raw = localStorage.getItem(storageKey);
-        if (!raw) return cloneDefaults();
-        const parsed = JSON.parse(raw);
-        return {
-          ...cloneDefaults(),
-          ...parsed,
-          projects: Array.isArray(parsed.projects) ? parsed.projects : [],
-          school: Array.isArray(parsed.school) ? parsed.school : [],
-          experience: Array.isArray(parsed.experience) ? parsed.experience : [],
-          about: Array.isArray(parsed.about) ? parsed.about : [],
-          looking: Array.isArray(parsed.looking) ? parsed.looking : [],
-          pitch: Array.isArray(parsed.pitch) ? parsed.pitch : [],
-          stats: Array.isArray(parsed.stats) ? parsed.stats : [],
-          contact: Array.isArray(parsed.contact) ? parsed.contact : [],
-          timelineItems: Array.isArray(parsed.timelineItems) ? parsed.timelineItems : [],
-          recommendations: Array.isArray(parsed.recommendations) ? parsed.recommendations : [],
-          star: Array.isArray(parsed.star) ? parsed.star : [],
-        };
-      } catch {
-        return cloneDefaults();
+        const res = await fetch(`/api/state?pageKey=${encodeURIComponent(pageKey)}`, {
+          credentials: "include",
+          cache: "no-store",
+        });
+
+        if (!res.ok) return null;
+
+        const payload = await res.json();
+        return payload?.state ?? null;
+      } catch (error) {
+        console.error("Failed to load state:", error);
+        return null;
       }
     }
 
-    function saveData(nextData) {
-      localStorage.setItem(storageKey, JSON.stringify(nextData));
-    }
+    async function saveState() {
+      if (!hasLoadedInitialState) return;
 
-    let data = loadData();
+      if (isSaving) {
+        pendingSave = true;
+        return;
+      }
+
+      isSaving = true;
+
+      try {
+        await fetch("/api/state", {
+          method: "POST",
+          credentials: "include",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ pageKey, state: data }),
+        });
+      } catch (error) {
+        console.error("Failed to save state:", error);
+      } finally {
+        isSaving = false;
+
+        if (pendingSave) {
+          pendingSave = false;
+          await saveState();
+        }
+      }
+    }
 
     function escapeHtml(value) {
       return String(value || "")
@@ -231,21 +270,21 @@ import BaseLayout from "../../layouts/BaseLayout.astro";
       if (el) el.textContent = String(count);
     }
 
-    function persistAndRefresh() {
-      saveData(data);
+    async function persistAndRefresh() {
       renderSavedEntries();
+      await saveState();
     }
 
-    function deleteItem(group, id) {
+    async function deleteItem(group, id) {
       data[group] = data[group].filter((item) => item.id !== id);
-      persistAndRefresh();
+      await persistAndRefresh();
     }
 
-    function toggleVisible(group, id) {
+    async function toggleVisible(group, id) {
       data[group] = data[group].map((item) =>
         item.id === id ? { ...item, visible: !item.visible } : item
       );
-      persistAndRefresh();
+      await persistAndRefresh();
     }
 
     function buildProjectsForm() {
@@ -699,7 +738,7 @@ import BaseLayout from "../../layouts/BaseLayout.astro";
     }
 
     function bindDynamicFormActions() {
-      document.getElementById("dynamic-save-project-btn")?.addEventListener("click", () => {
+      document.getElementById("dynamic-save-project-btn")?.addEventListener("click", async () => {
         const title = getValue("dynamic-project-title");
         if (!title) return;
 
@@ -722,11 +761,11 @@ import BaseLayout from "../../layouts/BaseLayout.astro";
           visible: getChecked("dynamic-project-visible"),
         });
 
-        persistAndRefresh();
+        await persistAndRefresh();
         renderDynamicForm();
       });
 
-      document.getElementById("dynamic-save-school-btn")?.addEventListener("click", () => {
+      document.getElementById("dynamic-save-school-btn")?.addEventListener("click", async () => {
         const title = getValue("dynamic-school-title");
         if (!title) return;
 
@@ -741,11 +780,11 @@ import BaseLayout from "../../layouts/BaseLayout.astro";
           visible: getChecked("dynamic-school-visible"),
         });
 
-        persistAndRefresh();
+        await persistAndRefresh();
         renderDynamicForm();
       });
 
-      document.getElementById("dynamic-save-exp-btn")?.addEventListener("click", () => {
+      document.getElementById("dynamic-save-exp-btn")?.addEventListener("click", async () => {
         const title = getValue("dynamic-exp-title");
         if (!title) return;
 
@@ -763,11 +802,11 @@ import BaseLayout from "../../layouts/BaseLayout.astro";
           visible: getChecked("dynamic-exp-visible"),
         });
 
-        persistAndRefresh();
+        await persistAndRefresh();
         renderDynamicForm();
       });
 
-      document.getElementById("dynamic-save-about-btn")?.addEventListener("click", () => {
+      document.getElementById("dynamic-save-about-btn")?.addEventListener("click", async () => {
         const body = getValue("dynamic-about-body");
         if (!body) return;
 
@@ -778,11 +817,11 @@ import BaseLayout from "../../layouts/BaseLayout.astro";
           visible: getChecked("dynamic-about-visible"),
         });
 
-        persistAndRefresh();
+        await persistAndRefresh();
         renderDynamicForm();
       });
 
-      document.getElementById("dynamic-save-looking-btn")?.addEventListener("click", () => {
+      document.getElementById("dynamic-save-looking-btn")?.addEventListener("click", async () => {
         const body = getValue("dynamic-looking-body");
         if (!body) return;
 
@@ -793,11 +832,11 @@ import BaseLayout from "../../layouts/BaseLayout.astro";
           visible: getChecked("dynamic-looking-visible"),
         });
 
-        persistAndRefresh();
+        await persistAndRefresh();
         renderDynamicForm();
       });
 
-      document.getElementById("dynamic-save-pitch-btn")?.addEventListener("click", () => {
+      document.getElementById("dynamic-save-pitch-btn")?.addEventListener("click", async () => {
         const title = getValue("dynamic-pitch-title");
         const body = getValue("dynamic-pitch-body");
         if (!title && !body) return;
@@ -809,11 +848,11 @@ import BaseLayout from "../../layouts/BaseLayout.astro";
           visible: getChecked("dynamic-pitch-visible"),
         });
 
-        persistAndRefresh();
+        await persistAndRefresh();
         renderDynamicForm();
       });
 
-      document.getElementById("dynamic-save-stat-btn")?.addEventListener("click", () => {
+      document.getElementById("dynamic-save-stat-btn")?.addEventListener("click", async () => {
         const title = getValue("dynamic-stat-title");
         if (!title) return;
 
@@ -825,11 +864,11 @@ import BaseLayout from "../../layouts/BaseLayout.astro";
           visible: getChecked("dynamic-stat-visible"),
         });
 
-        persistAndRefresh();
+        await persistAndRefresh();
         renderDynamicForm();
       });
 
-      document.getElementById("dynamic-save-contact-btn")?.addEventListener("click", () => {
+      document.getElementById("dynamic-save-contact-btn")?.addEventListener("click", async () => {
         const github = getValue("dynamic-contact-github");
         const email = getValue("dynamic-contact-email");
         const phone = getValue("dynamic-contact-phone");
@@ -846,11 +885,11 @@ import BaseLayout from "../../layouts/BaseLayout.astro";
           visible: getChecked("dynamic-contact-visible"),
         }];
 
-        persistAndRefresh();
+        await persistAndRefresh();
         renderDynamicForm();
       });
 
-      document.getElementById("dynamic-save-timeline-btn")?.addEventListener("click", () => {
+      document.getElementById("dynamic-save-timeline-btn")?.addEventListener("click", async () => {
         const title = getValue("dynamic-timeline-title");
         if (!title) return;
 
@@ -862,11 +901,11 @@ import BaseLayout from "../../layouts/BaseLayout.astro";
           visible: getChecked("dynamic-timeline-visible"),
         });
 
-        persistAndRefresh();
+        await persistAndRefresh();
         renderDynamicForm();
       });
 
-      document.getElementById("dynamic-save-rec-btn")?.addEventListener("click", () => {
+      document.getElementById("dynamic-save-rec-btn")?.addEventListener("click", async () => {
         const title = getValue("dynamic-rec-title");
         if (!title) return;
 
@@ -878,11 +917,11 @@ import BaseLayout from "../../layouts/BaseLayout.astro";
           visible: getChecked("dynamic-rec-visible"),
         });
 
-        persistAndRefresh();
+        await persistAndRefresh();
         renderDynamicForm();
       });
 
-      document.getElementById("dynamic-save-star-btn")?.addEventListener("click", () => {
+      document.getElementById("dynamic-save-star-btn")?.addEventListener("click", async () => {
         const title = getValue("dynamic-star-title");
         if (!title) return;
 
@@ -896,7 +935,7 @@ import BaseLayout from "../../layouts/BaseLayout.astro";
           visible: getChecked("dynamic-star-visible"),
         });
 
-        persistAndRefresh();
+        await persistAndRefresh();
         renderDynamicForm();
       });
     }
@@ -906,11 +945,11 @@ import BaseLayout from "../../layouts/BaseLayout.astro";
     }
 
     function buildSavedCard(group, item) {
-      const state = item.visible ? "Visible in Portfolio" : "Hidden from Portfolio";
+      const visibilityState = item.visible ? "Visible in Portfolio" : "Hidden from Portfolio";
       const stateClass = item.visible ? "selected" : "";
 
       const baseTop = `
-        <div class="selector-state ${stateClass}">${state}</div>
+        <div class="selector-state ${stateClass}">${visibilityState}</div>
       `;
 
       if (group === "projects") {
@@ -1055,12 +1094,12 @@ import BaseLayout from "../../layouts/BaseLayout.astro";
           </div>
         `;
 
-        card.querySelector(".toggle-visibility-btn")?.addEventListener("click", () => {
-          toggleVisible(group, item.id);
+        card.querySelector(".toggle-visibility-btn")?.addEventListener("click", async () => {
+          await toggleVisible(group, item.id);
         });
 
-        card.querySelector(".delete-mini-button")?.addEventListener("click", () => {
-          deleteItem(group, item.id);
+        card.querySelector(".delete-mini-button")?.addEventListener("click", async () => {
+          await deleteItem(group, item.id);
         });
 
         wrap.appendChild(card);
@@ -1099,15 +1138,27 @@ import BaseLayout from "../../layouts/BaseLayout.astro";
       renderDynamicForm();
     });
 
-    document.getElementById("clear-all-btn")?.addEventListener("click", () => {
-      localStorage.removeItem(storageKey);
+    document.getElementById("clear-all-btn")?.addEventListener("click", async () => {
       data = cloneDefaults();
       renderDynamicForm();
       renderSavedEntries();
+      await saveState();
     });
 
-    renderDynamicForm();
-    renderSavedEntries();
+    async function init() {
+      renderDynamicForm();
+      renderSavedEntries();
+
+      const saved = await loadState();
+      data = normalizeData(saved);
+
+      hasLoadedInitialState = true;
+
+      renderDynamicForm();
+      renderSavedEntries();
+    }
+
+    init();
   </script>
 
   <style>

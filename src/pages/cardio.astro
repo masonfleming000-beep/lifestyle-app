@@ -4,6 +4,9 @@ import { cardioRules, cardioGoals, warmup, cooldown, recentSessions } from "../d
 
 const stravaEmbedUrl =
   "https://www.strava.com/athletes/115475457/latest-rides/6aa243149a11d283a34873ef8f65f506d1cba24e";
+
+const defaultWarmupItems = JSON.stringify(warmup);
+const defaultCooldownItems = JSON.stringify(cooldown);
 ---
 
 <BaseLayout title="Cardio | Lifestyle App" description="Cardio dashboard">
@@ -107,12 +110,7 @@ const stravaEmbedUrl =
         </summary>
 
         <div class="dropdown-content">
-          <ul
-            id="cardio-warmup-list"
-            class="routine-list"
-            data-storage-key="cardio-warmup-v1"
-            data-default-items={JSON.stringify(warmup)}
-          ></ul>
+          <ul id="cardio-warmup-list" class="routine-list"></ul>
         </div>
       </details>
 
@@ -126,76 +124,153 @@ const stravaEmbedUrl =
         </summary>
 
         <div class="dropdown-content">
-          <ul
-            id="cardio-cooldown-list"
-            class="routine-list"
-            data-storage-key="cardio-cooldown-v1"
-            data-default-items={JSON.stringify(cooldown)}
-          ></ul>
+          <ul id="cardio-cooldown-list" class="routine-list"></ul>
         </div>
       </details>
     </div>
   </section>
 
-  <script is:inline>
-    function setupSavedChecklist(id) {
-      const list = document.getElementById(id);
-      if (!list) return;
+  <script define:vars={{ defaultWarmupItems, defaultCooldownItems }}>
+    const pageKey = "cardio";
 
-      const storageKey = list.dataset.storageKey;
-      const defaultItems = JSON.parse(list.dataset.defaultItems || "[]");
+    const warmupListEl = document.getElementById("cardio-warmup-list");
+    const cooldownListEl = document.getElementById("cardio-cooldown-list");
 
-      function loadItems() {
-        try {
-          const raw = localStorage.getItem(storageKey);
-          return raw
-            ? JSON.parse(raw)
-            : defaultItems.map((text) => ({ text, done: false }));
-        } catch {
-          return defaultItems.map((text) => ({ text, done: false }));
-        }
-      }
+    const defaultWarmupChecklist = JSON.parse(defaultWarmupItems);
+    const defaultCooldownChecklist = JSON.parse(defaultCooldownItems);
 
-      function saveItems(items) {
-        localStorage.setItem(storageKey, JSON.stringify(items));
-      }
+    let state = {
+      warmup: defaultWarmupChecklist.map((text) => ({ text, done: false })),
+      cooldown: defaultCooldownChecklist.map((text) => ({ text, done: false })),
+    };
 
-      function render() {
-        const items = loadItems();
-        list.innerHTML = "";
+    let hasLoadedInitialState = false;
+    let isSaving = false;
+    let pendingSave = false;
 
-        items.forEach((item, itemIndex) => {
-          const li = document.createElement("li");
-          li.className = "routine-item" + (item.done ? " is-done" : "");
+    function mergeDefaults(savedItems, defaultItems, keyFn) {
+      const merged = [...defaultItems];
 
-          const label = document.createElement("label");
-          label.className = "routine-left";
+      (savedItems || []).forEach((savedItem) => {
+        const exists = merged.some((item) => keyFn(item) === keyFn(savedItem));
+        if (!exists) merged.push(savedItem);
+      });
 
-          const checkbox = document.createElement("input");
-          checkbox.type = "checkbox";
-          checkbox.checked = !!item.done;
-
-          checkbox.addEventListener("change", () => {
-            const next = loadItems();
-            next[itemIndex].done = checkbox.checked;
-            saveItems(next);
-            render();
-          });
-
-          const text = document.createElement("span");
-          text.textContent = item.text;
-
-          label.appendChild(checkbox);
-          label.appendChild(text);
-          li.appendChild(label);
-          list.appendChild(li);
-        });
-      }
-
-      render();
+      return merged;
     }
 
-    setupSavedChecklist("cardio-warmup-list");
-    setupSavedChecklist("cardio-cooldown-list");
+    async function loadState() {
+      try {
+        const res = await fetch(`/api/state?pageKey=${encodeURIComponent(pageKey)}`, {
+          credentials: "include",
+          cache: "no-store",
+        });
+
+        if (!res.ok) return null;
+
+        const data = await res.json();
+        console.log("[cardio] loaded state", data?.state);
+        return data?.state ?? null;
+      } catch (error) {
+        console.error("Failed to load state:", error);
+        return null;
+      }
+    }
+
+    async function saveState() {
+      if (!hasLoadedInitialState) return;
+
+      if (isSaving) {
+        pendingSave = true;
+        return;
+      }
+
+      isSaving = true;
+
+      try {
+        console.log("[cardio] saving state", state);
+
+        await fetch("/api/state", {
+          method: "POST",
+          credentials: "include",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ pageKey, state }),
+        });
+      } catch (error) {
+        console.error("Failed to save state:", error);
+      } finally {
+        isSaving = false;
+
+        if (pendingSave) {
+          pendingSave = false;
+          await saveState();
+        }
+      }
+    }
+
+    function renderChecklist(listEl, key) {
+      if (!listEl) return;
+
+      listEl.innerHTML = "";
+
+      state[key].forEach((item, itemIndex) => {
+        const li = document.createElement("li");
+        li.className = "routine-item" + (item.done ? " is-done" : "");
+
+        const label = document.createElement("label");
+        label.className = "routine-left";
+
+        const checkbox = document.createElement("input");
+        checkbox.type = "checkbox";
+        checkbox.checked = !!item.done;
+
+        checkbox.addEventListener("change", async () => {
+          state[key][itemIndex].done = checkbox.checked;
+          renderChecklist(listEl, key);
+          await saveState();
+        });
+
+        const text = document.createElement("span");
+        text.textContent = item.text;
+
+        label.appendChild(checkbox);
+        label.appendChild(text);
+        li.appendChild(label);
+        listEl.appendChild(li);
+      });
+    }
+
+    async function init() {
+      renderChecklist(warmupListEl, "warmup");
+      renderChecklist(cooldownListEl, "cooldown");
+
+      const saved = await loadState();
+
+      state = {
+        warmup: mergeDefaults(
+          saved?.warmup,
+          defaultWarmupChecklist.map((text) => ({ text, done: false })),
+          (item) => item.text
+        ).map((item) => ({
+          text: item.text,
+          done: !!item.done,
+        })),
+        cooldown: mergeDefaults(
+          saved?.cooldown,
+          defaultCooldownChecklist.map((text) => ({ text, done: false })),
+          (item) => item.text
+        ).map((item) => ({
+          text: item.text,
+          done: !!item.done,
+        })),
+      };
+
+      hasLoadedInitialState = true;
+
+      renderChecklist(warmupListEl, "warmup");
+      renderChecklist(cooldownListEl, "cooldown");
+    }
+
+    init();
   </script>
 </BaseLayout>

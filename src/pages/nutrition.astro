@@ -54,8 +54,6 @@ import { goodFoods, badFoods, optionalMicronutrientTargets } from "../data/nutri
             </div>
           </form>
         </article>
-
-      
       </div>
     </details>
   </section>
@@ -427,28 +425,35 @@ import { goodFoods, badFoods, optionalMicronutrientTargets } from "../data/nutri
       });
     }
 
+    function getDefaultTargets() {
+      return {
+        calories: 2200,
+        protein: 180,
+        carbs: 220,
+        fat: 70,
+        waterOz: 125,
+        micros: DEFAULT_MICROS,
+      };
+    }
+
     function loadTargets() {
       try {
         const raw = localStorage.getItem(TARGETS_KEY);
-        return raw
-          ? JSON.parse(raw)
-          : {
-              calories: 2200,
-              protein: 180,
-              carbs: 220,
-              fat: 70,
-              waterOz: 125,
-              micros: DEFAULT_MICROS,
-            };
-      } catch {
+        const defaults = getDefaultTargets();
+
+        if (!raw) return defaults;
+
+        const parsed = JSON.parse(raw);
         return {
-          calories: 2200,
-          protein: 180,
-          carbs: 220,
-          fat: 70,
-          waterOz: 125,
-          micros: DEFAULT_MICROS,
+          ...defaults,
+          ...parsed,
+          micros: {
+            ...DEFAULT_MICROS,
+            ...(parsed?.micros || {}),
+          },
         };
+      } catch {
+        return getDefaultTargets();
       }
     }
 
@@ -638,35 +643,11 @@ import { goodFoods, badFoods, optionalMicronutrientTargets } from "../data/nutri
       renderTotals();
     }
 
-    function parseSearchResultsFromHtml(html) {
-      const parser = new DOMParser();
-      const doc = parser.parseFromString(html, "text/html");
-      const anchors = Array.from(doc.querySelectorAll("a[href]"));
-
-      return anchors
-        .map((a) => {
-          const href = a.getAttribute("href") || "";
-          const text = (a.textContent || "").trim();
-
-          if (!href || !text) return null;
-          if (!href.includes("nutrition") && !href.includes("nutritional_value")) return null;
-          if (!href.includes(".html")) return null;
-
-          const absolute = href.startsWith("http")
-            ? href
-            : `https://www.nutritionvalue.org${href.startsWith("/") ? "" : "/"}${href}`;
-
-          return { title: text, url: absolute };
-        })
-        .filter(Boolean)
-        .filter((item, index, arr) => arr.findIndex((x) => x.url === item.url) === index)
-        .slice(0, 10);
-    }
-
     async function searchNutrition(query) {
       const res = await fetch(`/api/nutrition-search?q=${encodeURIComponent(query)}`);
       if (!res.ok) throw new Error("Search failed");
-      return res.json();
+      const data = await res.json();
+      return Array.isArray(data.results) ? data.results : [];
     }
 
     async function fetchNutritionDetail(url) {
@@ -763,10 +744,10 @@ import { goodFoods, badFoods, optionalMicronutrientTargets } from "../data/nutri
       resultsEl.innerHTML = `<li class="food-log-empty">Searching...</li>`;
 
       try {
-        const data = await searchNutrition(query);
-        const results = parseSearchResultsFromHtml(data.html || "");
+        const results = await searchNutrition(query);
         renderSearchResults(results);
       } catch (err) {
+        console.error(err);
         resultsEl.innerHTML = `<li class="food-log-empty">Search failed.</li>`;
       }
     });
@@ -791,12 +772,12 @@ import { goodFoods, badFoods, optionalMicronutrientTargets } from "../data/nutri
     document.getElementById("macro-autofill-form")?.addEventListener("submit", (e) => {
       e.preventDefault();
 
-      const weight = Number(document.getElementById("bodyweight-lb").value || 0);
-      const caloriesPerLb = Number(document.getElementById("calories-per-lb").value || 14);
-      const proteinPerLb = Number(document.getElementById("protein-per-lb").value || 1.0);
-      const carbsPerLb = Number(document.getElementById("carbs-per-lb").value || 1.2);
-      const fatPerLb = Number(document.getElementById("fat-per-lb").value || 0.35);
-      const waterPerLb = Number(document.getElementById("water-per-lb").value || 0.67);
+      const weight = Number(document.getElementById("bodyweight-lb")?.value || 0);
+      const caloriesPerLb = Number(document.getElementById("calories-per-lb")?.value || 14);
+      const proteinPerLb = Number(document.getElementById("protein-per-lb")?.value || 1.0);
+      const carbsPerLb = Number(document.getElementById("carbs-per-lb")?.value || 1.2);
+      const fatPerLb = Number(document.getElementById("fat-per-lb")?.value || 0.35);
+      const waterPerLb = Number(document.getElementById("water-per-lb")?.value || 0.67);
 
       if (!weight) return;
 
@@ -893,6 +874,7 @@ import { goodFoods, badFoods, optionalMicronutrientTargets } from "../data/nutri
 
       renderTotals();
     });
+
     setTargetInputs();
     renderFoodLog();
   </script>

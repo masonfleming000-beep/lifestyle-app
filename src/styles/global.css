@@ -2769,3 +2769,74 @@ img {
   background: var(--text);
   color: white;
 }
+
+.edu-label textarea {
+  width: 100%;
+  border: 1px solid var(--line);
+  background: #fff;
+  border-radius: 14px;
+  padding: 0.9rem 0.95rem;
+  font: inherit;
+  color: var(--text);
+  resize: vertical;
+}
+
+.edu-label textarea:focus {
+  outline: 2px solid rgba(47, 93, 98, 0.18);
+  border-color: var(--accent);
+}
+
+.edu-label-full {
+  grid-column: 1 / -1;
+}
+
+.work-badge {
+  display: inline-flex;
+  align-items: center;
+  padding: 0.28rem 0.6rem;
+  border-radius: 999px;
+  border: 1px solid var(--line);
+  font-size: 0.8rem;
+  font-weight: 600;
+  background: #f5efe6;
+  color: var(--text);
+}
+
+.work-badge-default {
+  background: #f5efe6;
+  color: var(--text);
+}
+
+.work-badge-progress {
+  background: rgba(37, 99, 235, 0.12);
+  color: #2563eb;
+  border-color: rgba(37, 99, 235, 0.25);
+}
+
+.work-badge-blocked {
+  background: rgba(220, 38, 38, 0.12);
+  color: #b91c1c;
+  border-color: rgba(220, 38, 38, 0.24);
+}
+
+.work-badge-done {
+  background: rgba(22, 163, 74, 0.12);
+  color: #15803d;
+  border-color: rgba(22, 163, 74, 0.24);
+}
+
+.work-badge-low {
+  background: rgba(107, 114, 128, 0.12);
+  color: #4b5563;
+  border-color: rgba(107, 114, 128, 0.24);
+}
+
+.work-notes {
+  margin: 0.7rem 0 0;
+  color: var(--muted);
+  line-height: 1.55;
+}
+
+.work-meeting-card {
+  grid-template-columns: 1fr auto;
+}

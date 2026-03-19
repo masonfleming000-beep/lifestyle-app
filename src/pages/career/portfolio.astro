@@ -15,45 +15,83 @@ import BaseLayout from "../../layouts/BaseLayout.astro";
 
   <div id="portfolio-root" class="grid one"></div>
 
-  <script>
-    const STORAGE_KEY = "career-content-v1";
+  <script is:inline>
+    const sourcePageKey = "career-information";
 
     const defaultData = {
       projects: [],
       school: [],
-      work: [],
+      experience: [],
       about: [],
       looking: [],
       pitch: [],
       stats: [],
       contact: [],
-      timeline: [],
+      timelineItems: [],
       recommendations: [],
       star: [],
     };
 
-    function getData() {
-      const saved = localStorage.getItem(STORAGE_KEY);
-      if (!saved) return structuredClone(defaultData);
+    function cloneDefaults() {
+      return JSON.parse(JSON.stringify(defaultData));
+    }
+
+    function normalizeData(raw) {
+      const parsed = raw && typeof raw === "object" ? raw : {};
+      return {
+        ...cloneDefaults(),
+        ...parsed,
+        projects: Array.isArray(parsed.projects) ? parsed.projects : [],
+        school: Array.isArray(parsed.school) ? parsed.school : [],
+        experience: Array.isArray(parsed.experience) ? parsed.experience : [],
+        about: Array.isArray(parsed.about) ? parsed.about : [],
+        looking: Array.isArray(parsed.looking) ? parsed.looking : [],
+        pitch: Array.isArray(parsed.pitch) ? parsed.pitch : [],
+        stats: Array.isArray(parsed.stats) ? parsed.stats : [],
+        contact: Array.isArray(parsed.contact) ? parsed.contact : [],
+        timelineItems: Array.isArray(parsed.timelineItems) ? parsed.timelineItems : [],
+        recommendations: Array.isArray(parsed.recommendations) ? parsed.recommendations : [],
+        star: Array.isArray(parsed.star) ? parsed.star : [],
+      };
+    }
+
+    async function loadState() {
       try {
-        const parsed = JSON.parse(saved);
-        return { ...structuredClone(defaultData), ...parsed };
-      } catch {
-        return structuredClone(defaultData);
+        const res = await fetch(`/api/state?pageKey=${encodeURIComponent(sourcePageKey)}`, {
+          credentials: "include",
+          cache: "no-store",
+        });
+
+        if (!res.ok) return null;
+
+        const payload = await res.json();
+        return payload?.state ?? null;
+      } catch (error) {
+        console.error("Failed to load portfolio source state:", error);
+        return null;
       }
+    }
+
+    function escapeHtml(value) {
+      return String(value || "")
+        .replaceAll("&", "&amp;")
+        .replaceAll("<", "&lt;")
+        .replaceAll(">", "&gt;")
+        .replaceAll('"', "&quot;")
+        .replaceAll("'", "&#039;");
     }
 
     function titleMap(section) {
       const map = {
         projects: "Projects",
         school: "School Development",
-        work: "Work Experience",
+        experience: "Work Experience",
         about: "About / Story",
         looking: "What I'm Looking For",
         pitch: "Pitch",
         stats: "Stats",
         contact: "Contact Info",
-        timeline: "Timeline",
+        timelineItems: "Timeline",
         recommendations: "Recommendations",
         star: "STAR Moments",
       };
@@ -64,13 +102,24 @@ import BaseLayout from "../../layouts/BaseLayout.astro";
       return (data[section] || []).filter((item) => item.visible);
     }
 
+    function formatDate(dateStr) {
+      if (!dateStr) return "";
+      const date = new Date(dateStr + "T00:00:00");
+      if (Number.isNaN(date.getTime())) return dateStr;
+      return date.toLocaleDateString("en-US", {
+        month: "short",
+        day: "numeric",
+        year: "numeric",
+      });
+    }
+
     function renderTextSection(title, items) {
       return `
         <section class="section">
           <details class="card dropdown-card" open>
             <summary class="dropdown-summary">
               <div>
-                <h2 class="section-title">${title}</h2>
+                <h2 class="section-title">${escapeHtml(title)}</h2>
                 <p class="section-subtitle">${items.length} selected item(s)</p>
               </div>
             </summary>
@@ -80,9 +129,9 @@ import BaseLayout from "../../layouts/BaseLayout.astro";
                   .map(
                     (item) => `
                     <article class="card soft">
-                      <h3 class="card-title">${item.title || ""}</h3>
-                      ${item.subtitle ? `<p class="meta">${item.subtitle}</p>` : ""}
-                      ${item.body ? `<p>${item.body}</p>` : ""}
+                      <h3 class="card-title">${escapeHtml(item.title || "")}</h3>
+                      ${item.subtitle ? `<p class="meta">${escapeHtml(item.subtitle)}</p>` : ""}
+                      ${item.body ? `<p>${escapeHtml(item.body)}</p>` : ""}
                     </article>
                   `
                   )
@@ -94,63 +143,89 @@ import BaseLayout from "../../layouts/BaseLayout.astro";
       `;
     }
 
-    function renderProjectLikeSection(title, items) {
+    function renderProjectLikeSection(title, items, type) {
       return `
         <section class="section">
           <details class="card dropdown-card" open>
             <summary class="dropdown-summary">
               <div>
-                <h2 class="section-title">${title}</h2>
+                <h2 class="section-title">${escapeHtml(title)}</h2>
                 <p class="section-subtitle">${items.length} selected item(s)</p>
               </div>
             </summary>
             <div class="dropdown-body">
               <div class="grid two">
                 ${items
-                  .map(
-                    (item) => `
-                    <article class="card">
-                      <h3 class="card-title">${item.title || "Untitled"}</h3>
-                      <p class="meta">
-                        ${item.subtitle || ""}
-                        ${item.date ? ` · ${item.date}` : ""}
-                        ${item.subtype ? ` · ${item.subtype}` : ""}
-                      </p>
+                  .map((item) => {
+                    if (type === "projects") {
+                      return `
+                        <article class="card">
+                          <h3 class="card-title">${escapeHtml(item.title || "Untitled")}</h3>
+                          <p class="meta">
+                            ${escapeHtml(item.stage || "")}
+                            ${item.timeline ? ` · ${escapeHtml(item.timeline)}` : ""}
+                            ${item.completed ? ` · ${escapeHtml(item.completed)}` : ""}
+                          </p>
 
-                      ${item.image ? `<img src="${item.image}" alt="${item.title || "Visual"}" class="portfolio-image" />` : ""}
-                      ${item.body ? `<p>${item.body}</p>` : ""}
+                          ${item.description ? `<p>${escapeHtml(item.description)}</p>` : ""}
 
-                      <div class="entry-meta-grid">
-                        ${item.stage ? `<div><strong>Stage:</strong> ${item.stage}</div>` : ""}
-                        ${item.impact ? `<div><strong>Impact:</strong> ${item.impact}</div>` : ""}
-                        ${item.members ? `<div><strong>Members:</strong> ${item.members}</div>` : ""}
-                        ${item.owner ? `<div><strong>Lead:</strong> ${item.owner}</div>` : ""}
-                      </div>
+                          <div class="entry-meta-grid">
+                            ${item.impact ? `<div><strong>Impact:</strong> ${escapeHtml(item.impact)}</div>` : ""}
+                            ${item.members ? `<div><strong>Members:</strong> ${escapeHtml(item.members)}</div>` : ""}
+                            ${item.parts ? `<div><strong>Parts / Tools:</strong> ${escapeHtml(item.parts)}</div>` : ""}
+                            ${item.specifications ? `<div><strong>Specs:</strong> ${escapeHtml(item.specifications)}</div>` : ""}
+                          </div>
 
-                      ${
-                        item.tags?.length
-                          ? `<div class="pill-row">${item.tags
-                              .map((tag) => `<span class="pill">${tag}</span>`)
-                              .join("")}</div>`
-                          : ""
-                      }
+                          ${item.depth ? `<p><strong>Technical depth:</strong> ${escapeHtml(item.depth)}</p>` : ""}
+                          ${item.issues ? `<p><strong>Issues:</strong> ${escapeHtml(item.issues)}</p>` : ""}
+                          ${item.visuals ? `<p><strong>Visuals:</strong> ${escapeHtml(item.visuals)}</p>` : ""}
+                          ${item.diagrams ? `<p><strong>Diagrams:</strong> ${escapeHtml(item.diagrams)}</p>` : ""}
 
-                      ${
-                        item.bullets?.length
-                          ? `<ul class="list-clean">${item.bullets
-                              .map((bullet) => `<li>${bullet}</li>`)
-                              .join("")}</ul>`
-                          : ""
-                      }
+                          ${
+                            item.link
+                              ? `<p><a href="${escapeHtml(item.link)}" target="_blank" rel="noreferrer">Open link</a></p>`
+                              : ""
+                          }
+                        </article>
+                      `;
+                    }
 
-                      ${
-                        item.link
-                          ? `<p><a href="${item.link}" target="_blank" rel="noreferrer">Open link</a></p>`
-                          : ""
-                      }
-                    </article>
-                  `
-                  )
+                    if (type === "school") {
+                      return `
+                        <article class="card">
+                          <h3 class="card-title">${escapeHtml(item.title || "School Item")}</h3>
+                          <p class="meta">
+                            ${escapeHtml(item.prof || "")}
+                            ${item.stage ? ` · ${escapeHtml(item.stage)}` : ""}
+                          </p>
+                          ${item.helped ? `<p><strong>Helped with:</strong> ${escapeHtml(item.helped)}</p>` : ""}
+                          ${item.relevance ? `<p><strong>Relevance:</strong> ${escapeHtml(item.relevance)}</p>` : ""}
+                          ${item.notes ? `<p><strong>Notes:</strong> ${escapeHtml(item.notes)}</p>` : ""}
+                        </article>
+                      `;
+                    }
+
+                    return `
+                      <article class="card">
+                        <h3 class="card-title">${escapeHtml(item.title || "Experience")}</h3>
+                        <p class="meta">
+                          ${escapeHtml(item.boss || "")}
+                          ${item.date ? ` · ${escapeHtml(item.date)}` : ""}
+                        </p>
+
+                        ${item.impact ? `<p><strong>Impact:</strong> ${escapeHtml(item.impact)}</p>` : ""}
+                        ${item.pictures ? `<p><strong>Pictures / visuals:</strong> ${escapeHtml(item.pictures)}</p>` : ""}
+
+                        ${
+                          Array.isArray(item.responsibilities) && item.responsibilities.length
+                            ? `<ul class="list-clean">${item.responsibilities
+                                .map((bullet) => `<li>${escapeHtml(bullet)}</li>`)
+                                .join("")}</ul>`
+                            : ""
+                        }
+                      </article>
+                    `;
+                  })
                   .join("")}
               </div>
             </div>
@@ -165,7 +240,7 @@ import BaseLayout from "../../layouts/BaseLayout.astro";
           <details class="card dropdown-card" open>
             <summary class="dropdown-summary">
               <div>
-                <h2 class="section-title">${title}</h2>
+                <h2 class="section-title">${escapeHtml(title)}</h2>
                 <p class="section-subtitle">${items.length} selected item(s)</p>
               </div>
             </summary>
@@ -175,15 +250,9 @@ import BaseLayout from "../../layouts/BaseLayout.astro";
                   .map(
                     (item) => `
                     <article class="metric">
-                      <p class="metric-label">${item.title || item.subtitle || "Stat"}</p>
-                      <p class="big-number">${item.impact || item.body || "--"}</p>
-                      ${
-                        item.bullets?.length
-                          ? `<ul class="list-clean">${item.bullets
-                              .map((bullet) => `<li>${bullet}</li>`)
-                              .join("")}</ul>`
-                          : ""
-                      }
+                      <p class="metric-label">${escapeHtml(item.title || "Stat")}</p>
+                      <p class="big-number">${escapeHtml(item.impact || "--")}</p>
+                      ${item.description ? `<p>${escapeHtml(item.description)}</p>` : ""}
                     </article>
                   `
                   )
@@ -201,7 +270,7 @@ import BaseLayout from "../../layouts/BaseLayout.astro";
           <details class="card dropdown-card" open>
             <summary class="dropdown-summary">
               <div>
-                <h2 class="section-title">${title}</h2>
+                <h2 class="section-title">${escapeHtml(title)}</h2>
               </div>
             </summary>
             <div class="dropdown-body">
@@ -210,9 +279,15 @@ import BaseLayout from "../../layouts/BaseLayout.astro";
                   .map(
                     (item) => `
                     <article class="card soft">
-                      <h3 class="card-title">${item.title}</h3>
-                      ${item.body ? `<p>${item.body}</p>` : ""}
-                      ${item.link ? `<p><a href="${item.link}" target="_blank" rel="noreferrer">${item.link}</a></p>` : ""}
+                      <h3 class="card-title">${escapeHtml(item.title || "Contact Info")}</h3>
+                      ${item.github ? `<p><strong>GitHub:</strong> ${escapeHtml(item.github)}</p>` : ""}
+                      ${item.email ? `<p><strong>Email:</strong> ${escapeHtml(item.email)}</p>` : ""}
+                      ${item.phone ? `<p><strong>Phone:</strong> ${escapeHtml(item.phone)}</p>` : ""}
+                      ${
+                        item.link
+                          ? `<p><strong>Link:</strong> <a href="${escapeHtml(item.link)}" target="_blank" rel="noreferrer">${escapeHtml(item.link)}</a></p>`
+                          : ""
+                      }
                     </article>
                   `
                   )
@@ -225,26 +300,31 @@ import BaseLayout from "../../layouts/BaseLayout.astro";
     }
 
     function renderTimelineSection(title, items) {
+      const sorted = [...items].sort((a, b) => {
+        const aDate = a.date || "9999-12-31";
+        const bDate = b.date || "9999-12-31";
+        return aDate.localeCompare(bDate);
+      });
+
       return `
         <section class="section">
           <details class="card dropdown-card" open>
             <summary class="dropdown-summary">
               <div>
-                <h2 class="section-title">${title}</h2>
+                <h2 class="section-title">${escapeHtml(title)}</h2>
               </div>
             </summary>
             <div class="dropdown-body">
               <div class="timeline-list">
-                ${items
+                ${sorted
                   .map(
                     (item) => `
                     <article class="timeline-item">
                       <div class="timeline-dot"></div>
                       <div class="timeline-content">
-                        <p class="timeline-date">${item.date || ""}</p>
-                        <h3 class="card-title">${item.title || ""}</h3>
-                        ${item.subtitle ? `<p class="meta">${item.subtitle}</p>` : ""}
-                        ${item.body ? `<p>${item.body}</p>` : ""}
+                        <p class="timeline-date">${escapeHtml(formatDate(item.date))}</p>
+                        <h3 class="card-title">${escapeHtml(item.title || "")}</h3>
+                        ${item.description ? `<p>${escapeHtml(item.description)}</p>` : ""}
                       </div>
                     </article>
                   `
@@ -263,7 +343,7 @@ import BaseLayout from "../../layouts/BaseLayout.astro";
           <details class="card dropdown-card" open>
             <summary class="dropdown-summary">
               <div>
-                <h2 class="section-title">${title}</h2>
+                <h2 class="section-title">${escapeHtml(title)}</h2>
               </div>
             </summary>
             <div class="dropdown-body">
@@ -272,8 +352,8 @@ import BaseLayout from "../../layouts/BaseLayout.astro";
                   .map(
                     (item) => `
                     <article class="card quote-card soft">
-                      <p class="quote-text">“${item.body || item.title || ""}”</p>
-                      <span class="quote-author">${item.owner || item.subtitle || "Recommendation"}</span>
+                      <p class="quote-text">“${escapeHtml(item.body || item.title || "")}”</p>
+                      <span class="quote-author">${escapeHtml(item.owner || "Recommendation")}</span>
                     </article>
                   `
                   )
@@ -291,7 +371,7 @@ import BaseLayout from "../../layouts/BaseLayout.astro";
           <details class="card dropdown-card" open>
             <summary class="dropdown-summary">
               <div>
-                <h2 class="section-title">${title}</h2>
+                <h2 class="section-title">${escapeHtml(title)}</h2>
               </div>
             </summary>
             <div class="dropdown-body">
@@ -300,13 +380,12 @@ import BaseLayout from "../../layouts/BaseLayout.astro";
                   .map(
                     (item) => `
                     <article class="card">
-                      <h3 class="card-title">${item.title || "STAR Entry"}</h3>
-                      ${item.date ? `<p class="meta">${item.date}</p>` : ""}
+                      <h3 class="card-title">${escapeHtml(item.title || "STAR Entry")}</h3>
                       <div class="star-grid">
-                        <div><strong>Situation</strong><p>${item.subtitle || "-"}</p></div>
-                        <div><strong>Task</strong><p>${item.stage || "-"}</p></div>
-                        <div><strong>Action</strong><p>${item.body || "-"}</p></div>
-                        <div><strong>Result</strong><p>${item.impact || "-"}</p></div>
+                        <div><strong>Situation</strong><p>${escapeHtml(item.situation || "-")}</p></div>
+                        <div><strong>Task</strong><p>${escapeHtml(item.task || "-")}</p></div>
+                        <div><strong>Action</strong><p>${escapeHtml(item.action || "-")}</p></div>
+                        <div><strong>Result</strong><p>${escapeHtml(item.result || "-")}</p></div>
                       </div>
                     </article>
                   `
@@ -319,11 +398,16 @@ import BaseLayout from "../../layouts/BaseLayout.astro";
       `;
     }
 
-    function renderPortfolio() {
+    function hasVisibleItems(data) {
+      return Object.values(data).some(
+        (arr) => Array.isArray(arr) && arr.some((item) => item.visible)
+      );
+    }
+
+    function renderPortfolio(data) {
       const root = document.getElementById("portfolio-root");
       if (!root) return;
 
-      const data = getData();
       let html = "";
 
       const about = visibleItems(data, "about");
@@ -331,14 +415,14 @@ import BaseLayout from "../../layouts/BaseLayout.astro";
       const pitch = visibleItems(data, "pitch");
       const projects = visibleItems(data, "projects");
       const school = visibleItems(data, "school");
-      const work = visibleItems(data, "work");
+      const experience = visibleItems(data, "experience");
       const stats = visibleItems(data, "stats");
       const contact = visibleItems(data, "contact");
-      const timeline = visibleItems(data, "timeline");
+      const timelineItems = visibleItems(data, "timelineItems");
       const recommendations = visibleItems(data, "recommendations");
       const star = visibleItems(data, "star");
 
-      if (!Object.values(data).some((arr) => arr.some((item) => item.visible))) {
+      if (!hasVisibleItems(data)) {
         html = `
           <section class="section">
             <article class="card">
@@ -358,12 +442,12 @@ import BaseLayout from "../../layouts/BaseLayout.astro";
       if (looking.length) html += renderTextSection(titleMap("looking"), looking);
       if (pitch.length) html += renderTextSection(titleMap("pitch"), pitch);
 
-      if (projects.length) html += renderProjectLikeSection(titleMap("projects"), projects);
-      if (school.length) html += renderProjectLikeSection(titleMap("school"), school);
-      if (work.length) html += renderProjectLikeSection(titleMap("work"), work);
+      if (projects.length) html += renderProjectLikeSection(titleMap("projects"), projects, "projects");
+      if (school.length) html += renderProjectLikeSection(titleMap("school"), school, "school");
+      if (experience.length) html += renderProjectLikeSection(titleMap("experience"), experience, "experience");
 
       if (stats.length) html += renderStatsSection(titleMap("stats"), stats);
-      if (timeline.length) html += renderTimelineSection(titleMap("timeline"), timeline);
+      if (timelineItems.length) html += renderTimelineSection(titleMap("timelineItems"), timelineItems);
       if (recommendations.length) html += renderRecommendationsSection(titleMap("recommendations"), recommendations);
       if (star.length) html += renderStarSection(titleMap("star"), star);
       if (contact.length) html += renderContactSection(titleMap("contact"), contact);
@@ -371,6 +455,12 @@ import BaseLayout from "../../layouts/BaseLayout.astro";
       root.innerHTML = html;
     }
 
-    renderPortfolio();
+    async function init() {
+      const saved = await loadState();
+      const data = normalizeData(saved);
+      renderPortfolio(data);
+    }
+
+    init();
   </script>
 </BaseLayout>

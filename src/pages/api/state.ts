@@ -52,6 +52,7 @@ export const GET: APIRoute = async ({ cookies, url }) => {
         from page_state
         where user_id = ${user.id}
           and page_key = ${pageKey}
+        order by updated_at desc
         limit 1
       `;
 
