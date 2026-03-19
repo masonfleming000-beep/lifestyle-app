@@ -7,9 +7,11 @@ if (!connectionString) {
 }
 
 export function getSql() {
+  const isProd = import.meta.env.PROD;
+
   return postgres(connectionString, {
-    ssl: false,
-    max: 1,
+    ssl: isProd ? "require" : false,
+    max: 5,
     idle_timeout: 5,
     connect_timeout: 10,
   });
