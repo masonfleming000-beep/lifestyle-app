@@ -12,6 +12,15 @@ export type SafeUser = {
   created_at: string;
 };
 
+export type DbUser = {
+  id: string;
+  email: string;
+  password_hash: string | null;
+  google_sub: string | null;
+  verified: boolean;
+  created_at: string;
+};
+
 export function getSessionCookieName() {
   return SESSION_COOKIE_NAME;
 }
@@ -97,19 +106,10 @@ export async function cleanupExpiredSessions() {
   }
 }
 
-export async function getUserByEmail(email: string) {
+export async function getUserByEmail(email: string): Promise<DbUser | null> {
   const sql = getSql();
   try {
-    const rows = await sql<
-      {
-        id: string;
-        email: string;
-        password_hash: string | null;
-        google_sub: string | null;
-        verified: boolean;
-        created_at: string;
-      }[]
-    >`
+    const rows = await sql<DbUser[]>`
       select id, email, password_hash, google_sub, verified, created_at
       from users
       where email = ${normalizeEmail(email)}
@@ -146,15 +146,16 @@ export async function createUser(
   }
 }
 
-export async function createGoogleUser(email: string, googleSub: string) {
+export async function createGoogleUser(
+  email: string,
+  googleSub: string
+): Promise<DbUser> {
   const sql = getSql();
   try {
-    const rows = await sql<
-      { id: string; email: string; created_at: string; verified: boolean; google_sub: string }[]
-    >`
-      insert into users (email, google_sub, verified)
-      values (${normalizeEmail(email)}, ${googleSub}, true)
-      returning id, email, created_at, verified, google_sub
+    const rows = await sql<DbUser[]>`
+      insert into users (email, password_hash, google_sub, verified)
+      values (${normalizeEmail(email)}, null, ${googleSub}, true)
+      returning id, email, password_hash, google_sub, verified, created_at
     `;
 
     return rows[0];
@@ -163,16 +164,19 @@ export async function createGoogleUser(email: string, googleSub: string) {
   }
 }
 
-export async function linkGoogleToExistingUser(userId: string, googleSub: string) {
+export async function linkGoogleToExistingUser(
+  userId: string,
+  googleSub: string
+): Promise<DbUser | null> {
   const sql = getSql();
   try {
-    const rows = await sql<
-      { id: string; email: string; created_at: string; verified: boolean; google_sub: string }[]
-    >`
+    const rows = await sql<DbUser[]>`
       update users
-      set google_sub = ${googleSub}, verified = true, verified_at = coalesce(verified_at, now())
+      set google_sub = ${googleSub},
+          verified = true,
+          verified_at = coalesce(verified_at, now())
       where id = ${userId}
-      returning id, email, created_at, verified, google_sub
+      returning id, email, password_hash, google_sub, verified, created_at
     `;
 
     return rows[0] ?? null;
