@@ -2999,3 +2999,30 @@ img {
   white-space: nowrap;
   flex-shrink: 0;
 }
+
+.resume-preview-wrap {
+  margin-top: 1rem;
+  border: 1px solid rgba(0, 0, 0, 0.08);
+  border-radius: 1rem;
+  overflow: hidden;
+  background: #fff;
+}
+
+.resume-preview-frame {
+  width: 100%;
+  min-height: 900px;
+  border: 0;
+  display: block;
+}
+
+.resume-actions {
+  display: flex;
+  gap: 0.75rem;
+  flex-wrap: wrap;
+  margin-top: 1rem;
+}
+
+.secondary-button {
+  background: rgba(47, 93, 98, 0.12);
+  color: #2f5d62;
+}

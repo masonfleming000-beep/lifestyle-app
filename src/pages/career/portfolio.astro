@@ -27,6 +27,7 @@ import BaseLayout from "../../layouts/BaseLayout.astro";
       pitch: [],
       stats: [],
       contact: [],
+      resume: [],
       timelineItems: [],
       recommendations: [],
       star: [],
@@ -49,6 +50,7 @@ import BaseLayout from "../../layouts/BaseLayout.astro";
         pitch: Array.isArray(parsed.pitch) ? parsed.pitch : [],
         stats: Array.isArray(parsed.stats) ? parsed.stats : [],
         contact: Array.isArray(parsed.contact) ? parsed.contact : [],
+        resume: Array.isArray(parsed.resume) ? parsed.resume : [],
         timelineItems: Array.isArray(parsed.timelineItems) ? parsed.timelineItems : [],
         recommendations: Array.isArray(parsed.recommendations) ? parsed.recommendations : [],
         star: Array.isArray(parsed.star) ? parsed.star : [],
@@ -91,6 +93,7 @@ import BaseLayout from "../../layouts/BaseLayout.astro";
         pitch: "Pitch",
         stats: "Stats",
         contact: "Contact Info",
+        resume: "Resume",
         timelineItems: "Timeline",
         recommendations: "Recommendations",
         star: "STAR Moments",
@@ -299,6 +302,79 @@ import BaseLayout from "../../layouts/BaseLayout.astro";
       `;
     }
 
+    function renderResumeSection(title, items) {
+      return `
+        <section class="section">
+          <details class="card dropdown-card" open>
+            <summary class="dropdown-summary">
+              <div>
+                <h2 class="section-title">${escapeHtml(title)}</h2>
+              </div>
+            </summary>
+            <div class="dropdown-body">
+              <div class="grid one">
+                ${items
+                  .map((item) => {
+                    const isPdf =
+                      item.fileType === "application/pdf" ||
+                      (item.fileName || "").toLowerCase().endsWith(".pdf");
+
+                    return `
+                      <article class="card soft">
+                        <h3 class="card-title">${escapeHtml(item.title || "Resume")}</h3>
+                        ${item.fileName ? `<p><strong>File:</strong> ${escapeHtml(item.fileName)}</p>` : ""}
+
+                        ${
+                          isPdf && item.fileDataUrl
+                            ? `
+                              <div class="resume-preview-wrap">
+                                <iframe
+                                  src="${item.fileDataUrl}"
+                                  title="${escapeHtml(item.title || "Resume Preview")}"
+                                  class="resume-preview-frame"
+                                ></iframe>
+                              </div>
+                            `
+                            : `
+                              <p class="section-subtitle">
+                                Preview is available for PDF resumes. For this file type, use the button below to open or download it.
+                              </p>
+                            `
+                        }
+
+                        ${
+                          item.fileDataUrl
+                            ? `
+                              <div class="resume-actions">
+                                <a
+                                  href="${item.fileDataUrl}"
+                                  target="_blank"
+                                  rel="noreferrer"
+                                  class="edu-button"
+                                >
+                                  Open Resume
+                                </a>
+                                <a
+                                  href="${item.fileDataUrl}"
+                                  download="${escapeHtml(item.fileName || "resume")}"
+                                  class="edu-button secondary-button"
+                                >
+                                  Download Resume
+                                </a>
+                              </div>
+                            `
+                            : ""
+                        }
+                      </article>
+                    `;
+                  })
+                  .join("")}
+              </div>
+            </div>
+          </details>
+        </section>
+      `;
+    }
     function renderTimelineSection(title, items) {
       const sorted = [...items].sort((a, b) => {
         const aDate = a.date || "9999-12-31";
@@ -418,6 +494,7 @@ import BaseLayout from "../../layouts/BaseLayout.astro";
       const experience = visibleItems(data, "experience");
       const stats = visibleItems(data, "stats");
       const contact = visibleItems(data, "contact");
+      const resume = visibleItems(data, "resume");
       const timelineItems = visibleItems(data, "timelineItems");
       const recommendations = visibleItems(data, "recommendations");
       const star = visibleItems(data, "star");
@@ -451,6 +528,7 @@ import BaseLayout from "../../layouts/BaseLayout.astro";
       if (recommendations.length) html += renderRecommendationsSection(titleMap("recommendations"), recommendations);
       if (star.length) html += renderStarSection(titleMap("star"), star);
       if (contact.length) html += renderContactSection(titleMap("contact"), contact);
+      if (resume.length) html += renderResumeSection(titleMap("resume"), resume);
 
       root.innerHTML = html;
     }

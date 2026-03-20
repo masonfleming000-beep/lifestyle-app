@@ -13,6 +13,7 @@ const defaultCareerData = JSON.stringify({
   timelineItems: [],
   recommendations: [],
   star: [],
+  resume: [],
 });
 ---
 
@@ -59,6 +60,7 @@ const defaultCareerData = JSON.stringify({
               <option value="pitch">Pitch</option>
               <option value="stats">Stats</option>
               <option value="contact">Contact Info</option>
+              <option value="resume">Resume Upload</option>
               <option value="timeline">Timeline</option>
               <option value="recommendations">Recommendations</option>
               <option value="star">STAR Moments</option>
@@ -121,6 +123,11 @@ const defaultCareerData = JSON.stringify({
           </details>
 
           <details class="saved-dropdown">
+            <summary>Resume Upload <span id="count-resume">0</span></summary>
+            <div id="info-resume" class="grid one"></div>
+          </details>
+
+          <details class="saved-dropdown">
             <summary>Timeline <span id="count-timeline">0</span></summary>
             <div id="info-timeline" class="grid one"></div>
           </details>
@@ -171,6 +178,7 @@ const defaultCareerData = JSON.stringify({
         pitch: Array.isArray(parsed.pitch) ? parsed.pitch : [],
         stats: Array.isArray(parsed.stats) ? parsed.stats : [],
         contact: Array.isArray(parsed.contact) ? parsed.contact : [],
+        resume: Array.isArray(parsed.resume) ? parsed.resume : [],
         timelineItems: Array.isArray(parsed.timelineItems) ? parsed.timelineItems : [],
         recommendations: Array.isArray(parsed.recommendations) ? parsed.recommendations : [],
         star: Array.isArray(parsed.star) ? parsed.star : [],
@@ -285,6 +293,15 @@ const defaultCareerData = JSON.stringify({
         item.id === id ? { ...item, visible: !item.visible } : item
       );
       await persistAndRefresh();
+    }
+
+    async function fileToDataUrl(file) {
+      return await new Promise((resolve, reject) => {
+        const reader = new FileReader();
+        reader.onload = () => resolve(reader.result);
+        reader.onerror = reject;
+        reader.readAsDataURL(file);
+      });
     }
 
     function buildProjectsForm() {
@@ -612,6 +629,38 @@ const defaultCareerData = JSON.stringify({
       `;
     }
 
+    function buildResumeForm() {
+      return `
+        <div class="dynamic-form-card">
+          <p class="section-helper">Upload your resume as a file. Supported formats: PDF, DOC, DOCX, RTF, TXT, ODT.</p>
+
+          <div class="dynamic-form-grid one">
+            <label class="edu-label">
+              <span>Resume title</span>
+              <input id="dynamic-resume-title" class="form-input" placeholder="Current Resume" />
+            </label>
+
+            <label class="edu-label">
+              <span>Resume file</span>
+              <input
+                id="dynamic-resume-file"
+                class="form-input"
+                type="file"
+                accept=".pdf,.doc,.docx,.rtf,.txt,.odt,application/pdf,application/msword,application/vnd.openxmlformats-officedocument.wordprocessingml.document,text/plain,application/rtf,application/vnd.oasis.opendocument.text"
+              />
+            </label>
+
+            <label class="check-row">
+              <input id="dynamic-resume-visible" type="checkbox" checked />
+              <span>Show in portfolio</span>
+            </label>
+          </div>
+
+          <button class="edu-button" id="dynamic-save-resume-btn" type="button">Save Resume</button>
+        </div>
+      `;
+    }
+
     function buildTimelineForm() {
       return `
         <div class="dynamic-form-card">
@@ -728,6 +777,7 @@ const defaultCareerData = JSON.stringify({
         pitch: buildPitchForm,
         stats: buildStatsForm,
         contact: buildContactForm,
+        resume: buildResumeForm,
         timeline: buildTimelineForm,
         recommendations: buildRecommendationsForm,
         star: buildStarForm,
@@ -889,6 +939,27 @@ const defaultCareerData = JSON.stringify({
         renderDynamicForm();
       });
 
+      document.getElementById("dynamic-save-resume-btn")?.addEventListener("click", async () => {
+        const fileInput = document.getElementById("dynamic-resume-file");
+        const file = fileInput?.files?.[0];
+        if (!file) return;
+
+        const fileDataUrl = await fileToDataUrl(file);
+
+        data.resume = [{
+          id: makeId(),
+          title: getValue("dynamic-resume-title") || "Resume",
+          fileName: file.name,
+          fileType: file.type || "application/octet-stream",
+          fileSize: file.size || 0,
+          fileDataUrl,
+          visible: getChecked("dynamic-resume-visible"),
+        }];
+
+        await persistAndRefresh();
+        renderDynamicForm();
+      });
+
       document.getElementById("dynamic-save-timeline-btn")?.addEventListener("click", async () => {
         const title = getValue("dynamic-timeline-title");
         if (!title) return;
@@ -1032,6 +1103,16 @@ const defaultCareerData = JSON.stringify({
         `;
       }
 
+      if (group === "resume") {
+        return `
+          ${baseTop}
+          <h3 class="card-title">${escapeHtml(item.title || "Resume")}</h3>
+          <p><strong>File name:</strong> ${escapeHtml(item.fileName || "—")}</p>
+          <p><strong>File type:</strong> ${escapeHtml(item.fileType || "—")}</p>
+          <p><strong>File size:</strong> ${item.fileSize ? `${Math.round(item.fileSize / 1024)} KB` : "—"}</p>
+        `;
+      }
+
       if (group === "timelineItems") {
         return `
           ${baseTop}
@@ -1115,6 +1196,7 @@ const defaultCareerData = JSON.stringify({
       renderGroup("info-pitch", "count-pitch", "pitch", data.pitch, "No saved pitch entries yet.");
       renderGroup("info-stats", "count-stats", "stats", data.stats, "No saved stats yet.");
       renderGroup("info-contact", "count-contact", "contact", data.contact, "No saved contact info yet.");
+      renderGroup("info-resume", "count-resume", "resume", data.resume, "No saved resume yet.");
 
       const timelineSorted = [...data.timelineItems].sort((a, b) => {
         const aDate = a.date || "9999-12-31";

@@ -42,9 +42,18 @@ const defaultCalendar = JSON.stringify(defaultCalendarEmbed);
   <!-- CALENDAR -->
   <section class="section">
     <article class="card soft">
-      <h2 class="section-title">Calendar</h2>
+      <div
+        style="display:flex; justify-content:space-between; align-items:center; gap:1rem; flex-wrap:wrap;"
+      >
+        <h2 class="section-title">Calendar</h2>
+        <button id="calendar-edit-btn" type="button" class="todo-add-btn">Edit</button>
+      </div>
 
-      <form id="calendar-form" class="todo-form" style="margin-bottom: 1rem;">
+      <form
+        id="calendar-form"
+        class="todo-form"
+        style="margin-bottom: 1rem; display: none;"
+      >
         <input
           id="calendar-input"
           type="text"
@@ -54,7 +63,10 @@ const defaultCalendar = JSON.stringify(defaultCalendarEmbed);
         <button type="submit" class="todo-add-btn">Save</button>
       </form>
 
-      <div style="display:flex; gap:.75rem; flex-wrap:wrap; margin-bottom:1rem;">
+      <div
+        id="calendar-delete-wrap"
+        style="display:none; gap:.75rem; flex-wrap:wrap; margin-bottom:1rem;"
+      >
         <button id="calendar-delete-btn" type="button" class="todo-add-btn">
           Remove Calendar
         </button>
@@ -76,9 +88,14 @@ const defaultCalendar = JSON.stringify(defaultCalendarEmbed);
   <!-- TODO -->
   <section class="section">
     <article class="card">
-      <h2 class="section-title">Today</h2>
+      <div
+        style="display:flex; justify-content:space-between; align-items:center; gap:1rem; flex-wrap:wrap;"
+      >
+        <h2 class="section-title">Today</h2>
+        <button id="todo-edit-btn" type="button" class="todo-add-btn">Edit</button>
+      </div>
 
-      <form id="todo-form" class="todo-form">
+      <form id="todo-form" class="todo-form" style="display:none;">
         <input
           id="todo-input"
           type="text"
@@ -96,9 +113,18 @@ const defaultCalendar = JSON.stringify(defaultCalendarEmbed);
   <section class="section">
     <div class="grid two">
       <article class="card today-checklist-card today-morning">
-        <h2 class="section-title">Morning</h2>
+        <div
+          style="display:flex; justify-content:space-between; align-items:center; gap:1rem; flex-wrap:wrap;"
+        >
+          <h2 class="section-title">Morning</h2>
+          <button id="morning-edit-btn" type="button" class="todo-add-btn">Edit</button>
+        </div>
 
-        <form id="morning-form" class="todo-form" style="margin-bottom: 1rem;">
+        <form
+          id="morning-form"
+          class="todo-form"
+          style="margin-bottom: 1rem; display:none;"
+        >
           <input
             id="morning-input"
             type="text"
@@ -112,9 +138,18 @@ const defaultCalendar = JSON.stringify(defaultCalendarEmbed);
       </article>
 
       <article class="card today-checklist-card today-night">
-        <h2 class="section-title">Night</h2>
+        <div
+          style="display:flex; justify-content:space-between; align-items:center; gap:1rem; flex-wrap:wrap;"
+        >
+          <h2 class="section-title">Night</h2>
+          <button id="night-edit-btn" type="button" class="todo-add-btn">Edit</button>
+        </div>
 
-        <form id="night-form" class="todo-form" style="margin-bottom: 1rem;">
+        <form
+          id="night-form"
+          class="todo-form"
+          style="margin-bottom: 1rem; display:none;"
+        >
           <input
             id="night-input"
             type="text"
@@ -142,6 +177,7 @@ const defaultCalendar = JSON.stringify(defaultCalendarEmbed);
     const todoListEl = document.getElementById("todo-list");
     const todoForm = document.getElementById("todo-form");
     const todoInput = document.getElementById("todo-input");
+    const todoEditBtn = document.getElementById("todo-edit-btn");
 
     const morningListEl = document.getElementById("morning-list");
     const nightListEl = document.getElementById("night-list");
@@ -150,17 +186,28 @@ const defaultCalendar = JSON.stringify(defaultCalendarEmbed);
     const nightForm = document.getElementById("night-form");
     const morningInput = document.getElementById("morning-input");
     const nightInput = document.getElementById("night-input");
+    const morningEditBtn = document.getElementById("morning-edit-btn");
+    const nightEditBtn = document.getElementById("night-edit-btn");
 
     const calendarForm = document.getElementById("calendar-form");
     const calendarInput = document.getElementById("calendar-input");
     const calendarContainer = document.getElementById("calendar-container");
     const calendarInstructions = document.getElementById("calendar-instructions");
     const calendarDeleteBtn = document.getElementById("calendar-delete-btn");
+    const calendarDeleteWrap = document.getElementById("calendar-delete-wrap");
+    const calendarEditBtn = document.getElementById("calendar-edit-btn");
 
     const defaultTodoItems = JSON.parse(defaultTodos);
     const defaultMorningRoutineItems = JSON.parse(defaultMorningItems);
     const defaultNightRoutineItems = JSON.parse(defaultNightItems);
     const defaultCalendarEmbed = JSON.parse(defaultCalendar);
+
+    let editModes = {
+      calendar: false,
+      todo: false,
+      morning: false,
+      night: false,
+    };
 
     let state = {
       calendarEmbed: defaultCalendarEmbed,
@@ -219,12 +266,44 @@ const defaultCalendar = JSON.stringify(defaultCalendarEmbed);
       }
     }
 
-    function createDeleteButton(onClick) {
+    function updateEditUI() {
+      if (calendarEditBtn) {
+        calendarEditBtn.textContent = editModes.calendar ? "Done" : "Edit";
+      }
+      if (todoEditBtn) {
+        todoEditBtn.textContent = editModes.todo ? "Done" : "Edit";
+      }
+      if (morningEditBtn) {
+        morningEditBtn.textContent = editModes.morning ? "Done" : "Edit";
+      }
+      if (nightEditBtn) {
+        nightEditBtn.textContent = editModes.night ? "Done" : "Edit";
+      }
+
+      if (calendarForm) {
+        calendarForm.style.display = editModes.calendar ? "flex" : "none";
+      }
+      if (calendarDeleteWrap) {
+        calendarDeleteWrap.style.display = editModes.calendar ? "flex" : "none";
+      }
+      if (todoForm) {
+        todoForm.style.display = editModes.todo ? "flex" : "none";
+      }
+      if (morningForm) {
+        morningForm.style.display = editModes.morning ? "flex" : "none";
+      }
+      if (nightForm) {
+        nightForm.style.display = editModes.night ? "flex" : "none";
+      }
+    }
+
+    function createDeleteButton(onClick, isVisible) {
       const btn = document.createElement("button");
       btn.type = "button";
       btn.textContent = "Delete";
       btn.className = "todo-add-btn";
       btn.style.marginLeft = "0.75rem";
+      btn.style.display = isVisible ? "inline-block" : "none";
       btn.addEventListener("click", onClick);
       return btn;
     }
@@ -237,7 +316,8 @@ const defaultCalendar = JSON.stringify(defaultCalendarEmbed);
       const hasEmbed = !!state.calendarEmbed?.trim();
 
       if (calendarInstructions) {
-        calendarInstructions.style.display = hasEmbed ? "none" : "block";
+        calendarInstructions.style.display =
+          !hasEmbed && editModes.calendar ? "block" : "none";
       }
 
       if (!hasEmbed) {
@@ -299,7 +379,7 @@ const defaultCalendar = JSON.stringify(defaultCalendarEmbed);
           state.todos.splice(index, 1);
           renderTodos();
           await saveState();
-        });
+        }, editModes.todo);
 
         row.appendChild(label);
         row.appendChild(deleteBtn);
@@ -311,6 +391,8 @@ const defaultCalendar = JSON.stringify(defaultCalendarEmbed);
     function renderRoutine(listEl, key) {
       if (!listEl) return;
       listEl.innerHTML = "";
+
+      const sectionIsEditing = editModes[key];
 
       state[key].forEach((item, index) => {
         const li = document.createElement("li");
@@ -347,7 +429,7 @@ const defaultCalendar = JSON.stringify(defaultCalendarEmbed);
           state[key].splice(index, 1);
           renderRoutine(listEl, key);
           await saveState();
-        });
+        }, sectionIsEditing);
 
         row.appendChild(label);
         row.appendChild(deleteBtn);
@@ -355,6 +437,30 @@ const defaultCalendar = JSON.stringify(defaultCalendarEmbed);
         listEl.appendChild(li);
       });
     }
+
+    calendarEditBtn?.addEventListener("click", () => {
+      editModes.calendar = !editModes.calendar;
+      updateEditUI();
+      renderCalendar();
+    });
+
+    todoEditBtn?.addEventListener("click", () => {
+      editModes.todo = !editModes.todo;
+      updateEditUI();
+      renderTodos();
+    });
+
+    morningEditBtn?.addEventListener("click", () => {
+      editModes.morning = !editModes.morning;
+      updateEditUI();
+      renderRoutine(morningListEl, "morning");
+    });
+
+    nightEditBtn?.addEventListener("click", () => {
+      editModes.night = !editModes.night;
+      updateEditUI();
+      renderRoutine(nightListEl, "night");
+    });
 
     todoForm?.addEventListener("submit", async (e) => {
       e.preventDefault();
@@ -407,6 +513,7 @@ const defaultCalendar = JSON.stringify(defaultCalendarEmbed);
     });
 
     async function init() {
+      updateEditUI();
       renderCalendar();
       renderTodos();
       renderRoutine(morningListEl, "morning");
@@ -444,6 +551,7 @@ const defaultCalendar = JSON.stringify(defaultCalendarEmbed);
 
       hasLoadedInitialState = true;
 
+      updateEditUI();
       renderCalendar();
       renderTodos();
       renderRoutine(morningListEl, "morning");

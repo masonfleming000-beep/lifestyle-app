@@ -1,6 +1,8 @@
 ---
 import BaseLayout from "../layouts/BaseLayout.astro";
 import { fitnessLinks, weeklySplit } from "../data/fitness";
+
+const defaultWeeklySplit = JSON.stringify(weeklySplit);
 ---
 
 <BaseLayout title="Fitness | Lifestyle App" description="Fitness landing page">
@@ -28,10 +30,326 @@ import { fitnessLinks, weeklySplit } from "../data/fitness";
 
   <section class="section">
     <article class="card">
-      <h2 class="section-title">Weekly Training Notes</h2>
-      <ul class="list-clean">
-        {weeklySplit.map((item) => <li>{item}</li>)}
-      </ul>
+      <div class="section-header">
+        <div>
+          <h2 class="section-title">Weekly Training Notes</h2>
+          <p class="section-subtitle">Edit, add, delete, or restore your default weekly notes.</p>
+        </div>
+      </div>
+
+      <div class="editor-toolbar">
+        <button id="weekly-notes-edit-btn" type="button" class="button-secondary">
+          Edit
+        </button>
+      </div>
+
+      <ul id="weekly-notes-list" class="list-clean editable-list"></ul>
     </article>
   </section>
+
+  <script define:vars={{ defaultWeeklySplit }}>
+    const pageKey = "fitness";
+
+    const weeklyNotesListEl = document.getElementById("weekly-notes-list");
+    const weeklyNotesEditBtn = document.getElementById("weekly-notes-edit-btn");
+
+    const defaultWeeklyNotesList = JSON.parse(defaultWeeklySplit);
+    const defaultWeeklyNotesState = [...defaultWeeklyNotesList];
+
+    let editMode = {
+      weeklyNotes: false,
+    };
+
+    let state = {
+      weeklyNotes: [...defaultWeeklyNotesList],
+    };
+
+    let hasLoadedInitialState = false;
+    let isSaving = false;
+    let pendingSave = false;
+
+    async function loadState() {
+      try {
+        const res = await fetch(`/api/state?pageKey=${encodeURIComponent(pageKey)}`, {
+          credentials: "include",
+          cache: "no-store",
+        });
+
+        if (!res.ok) {
+          console.log("[fitness] loadState res not ok:", res.status);
+          return null;
+        }
+
+        const data = await res.json();
+        console.log("[fitness] loaded raw api data:", data);
+        return data?.state ?? null;
+      } catch (error) {
+        console.error("[fitness] Failed to load state:", error);
+        return null;
+      }
+    }
+
+    async function saveState() {
+      if (!hasLoadedInitialState) {
+        console.log("[fitness] save skipped: initial state not loaded yet");
+        return;
+      }
+
+      if (isSaving) {
+        pendingSave = true;
+        console.log("[fitness] save queued while already saving");
+        return;
+      }
+
+      isSaving = true;
+
+      try {
+        console.log("[fitness] saving state:", JSON.stringify(state, null, 2));
+
+        const res = await fetch("/api/state", {
+          method: "POST",
+          credentials: "include",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ pageKey, state }),
+        });
+
+        console.log("[fitness] save response status:", res.status);
+      } catch (error) {
+        console.error("[fitness] Failed to save state:", error);
+      } finally {
+        isSaving = false;
+
+        if (pendingSave) {
+          pendingSave = false;
+          await saveState();
+        }
+      }
+    }
+
+    function createDeleteButton(onClick) {
+      const button = document.createElement("button");
+      button.type = "button";
+      button.className = "routine-action-button";
+      button.textContent = "Delete";
+      button.addEventListener("click", onClick);
+      return button;
+    }
+
+    function createAddButton(label, onClick) {
+      const button = document.createElement("button");
+      button.type = "button";
+      button.className = "routine-action-button";
+      button.textContent = label;
+      button.addEventListener("click", onClick);
+      return button;
+    }
+
+    function createRestoreButton(onClick) {
+      const button = document.createElement("button");
+      button.type = "button";
+      button.className = "routine-action-button";
+      button.textContent = "Restore Defaults";
+      button.addEventListener("click", onClick);
+      return button;
+    }
+
+    function renderWeeklyNotes() {
+      if (!weeklyNotesListEl) return;
+
+      weeklyNotesListEl.innerHTML = "";
+      const isEditing = editMode.weeklyNotes;
+
+      state.weeklyNotes.forEach((itemText, itemIndex) => {
+        const li = document.createElement("li");
+        li.className = "routine-item";
+
+        const row = document.createElement("div");
+        row.className = "routine-row";
+
+        const left = document.createElement("div");
+        left.className = "routine-left";
+
+        if (isEditing) {
+          const input = document.createElement("input");
+          input.type = "text";
+          input.className = "routine-inline-input";
+          input.value = itemText;
+
+          input.addEventListener("change", async () => {
+            state.weeklyNotes[itemIndex] = input.value.trim();
+            console.log("[fitness] edited note:", itemIndex, state.weeklyNotes[itemIndex]);
+            await saveState();
+          });
+
+          left.appendChild(input);
+        } else {
+          const text = document.createElement("span");
+          text.textContent = itemText;
+          left.appendChild(text);
+        }
+
+        row.appendChild(left);
+
+        if (isEditing) {
+          row.appendChild(
+            createDeleteButton(async () => {
+              console.log("[fitness] deleting note before:", [...state.weeklyNotes]);
+              state.weeklyNotes.splice(itemIndex, 1);
+              console.log("[fitness] deleting note after:", [...state.weeklyNotes]);
+              renderWeeklyNotes();
+              await saveState();
+            })
+          );
+        }
+
+        li.appendChild(row);
+        weeklyNotesListEl.appendChild(li);
+      });
+
+      if (isEditing) {
+        const actionsLi = document.createElement("li");
+        actionsLi.className = "routine-item";
+
+        const row = document.createElement("div");
+        row.className = "routine-row routine-row-actions";
+
+        const left = document.createElement("div");
+        left.className = "routine-left";
+        row.appendChild(left);
+
+        const actions = document.createElement("div");
+        actions.className = "routine-actions-group";
+
+        actions.appendChild(
+          createAddButton("Add", async () => {
+            state.weeklyNotes.push("");
+            console.log("[fitness] added blank note:", [...state.weeklyNotes]);
+            renderWeeklyNotes();
+
+            const inputs = weeklyNotesListEl.querySelectorAll("input");
+            const lastInput = inputs[inputs.length - 1];
+            if (lastInput) lastInput.focus();
+
+            await saveState();
+          })
+        );
+
+        actions.appendChild(
+          createRestoreButton(async () => {
+            state.weeklyNotes = [...defaultWeeklyNotesState];
+            console.log("[fitness] restored defaults:", [...state.weeklyNotes]);
+            renderWeeklyNotes();
+            await saveState();
+          })
+        );
+
+        row.appendChild(actions);
+        actionsLi.appendChild(row);
+        weeklyNotesListEl.appendChild(actionsLi);
+      }
+    }
+
+    function renderAll() {
+      renderWeeklyNotes();
+
+      if (weeklyNotesEditBtn) {
+        weeklyNotesEditBtn.textContent = editMode.weeklyNotes ? "Done" : "Edit";
+      }
+
+      console.log("[fitness] renderAll state:", JSON.stringify(state, null, 2));
+    }
+
+    function bindEditButtons() {
+      if (weeklyNotesEditBtn) {
+        weeklyNotesEditBtn.addEventListener("click", () => {
+          editMode.weeklyNotes = !editMode.weeklyNotes;
+          console.log("[fitness] toggled edit mode:", editMode.weeklyNotes);
+          renderAll();
+        });
+      }
+    }
+
+    async function init() {
+      renderAll();
+
+      const saved = await loadState();
+      console.log("[fitness] saved state from api:", saved);
+      console.log("[fitness] defaults from file:", defaultWeeklyNotesList);
+
+      // IMPORTANT: do not merge while debugging
+      state = {
+        weeklyNotes: Array.isArray(saved?.weeklyNotes)
+          ? saved.weeklyNotes.filter(Boolean)
+          : [...defaultWeeklyNotesList],
+      };
+
+      console.log("[fitness] initialized final state:", state);
+
+      hasLoadedInitialState = true;
+      renderAll();
+      bindEditButtons();
+    }
+
+    init();
+  </script>
+
+  <style>
+    .editor-toolbar {
+      display: flex;
+      justify-content: flex-end;
+      margin-bottom: 0.85rem;
+    }
+
+    .routine-item {
+      margin-bottom: 0.75rem;
+    }
+
+    .routine-row {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 0.75rem;
+      width: 100%;
+    }
+
+    .routine-row-actions {
+      margin-top: 0.5rem;
+    }
+
+    .routine-left {
+      flex: 1;
+      display: flex;
+      align-items: center;
+      gap: 0.75rem;
+      min-width: 0;
+    }
+
+    .routine-inline-input {
+      width: 100%;
+      border: 1px solid var(--border-color, #d9d9d9);
+      border-radius: 12px;
+      padding: 0.8rem 0.95rem;
+      background: var(--card-background, #fff);
+      color: inherit;
+      font: inherit;
+    }
+
+    .routine-actions-group {
+      display: flex;
+      align-items: center;
+      gap: 0.75rem;
+      flex-wrap: wrap;
+    }
+
+    .routine-action-button {
+      border: 1px solid var(--border-color, #d9d9d9);
+      background: transparent;
+      border-radius: 10px;
+      padding: 0.65rem 0.85rem;
+      cursor: pointer;
+      white-space: nowrap;
+      font: inherit;
+      color: inherit;
+    }
+  </style>
 </BaseLayout>
