@@ -14,7 +14,6 @@ const defaultCooldownItems = JSON.stringify(cooldown);
 const defaultRulesItems = JSON.stringify(cardioRules);
 const defaultGoalsItems = JSON.stringify(cardioGoals);
 const defaultStravaValue = JSON.stringify(defaultStravaEmbed);
-
 ---
 
 <BaseLayout title="Cardio | Lifestyle App" description="Cardio dashboard">
@@ -174,6 +173,11 @@ const defaultStravaValue = JSON.stringify(defaultStravaEmbed);
     const defaultRulesState = [...defaultRulesList];
     const defaultGoalsState = [...defaultGoalsList];
 
+    const defaultWarmupTexts = new Set(defaultWarmupChecklist);
+    const defaultCooldownTexts = new Set(defaultCooldownChecklist);
+    const defaultRulesTexts = new Set(defaultRulesList);
+    const defaultGoalsTexts = new Set(defaultGoalsList);
+
     let editMode = {
       rules: false,
       goals: false,
@@ -187,31 +191,61 @@ const defaultStravaValue = JSON.stringify(defaultStravaEmbed);
       rules: [...defaultRulesList],
       goals: [...defaultGoalsList],
       stravaEmbed: defaultStravaEmbedUrl || "",
+      removedDefaults: {
+        warmup: [],
+        cooldown: [],
+        rules: [],
+        goals: [],
+      },
     };
 
     let hasLoadedInitialState = false;
     let isSaving = false;
     let pendingSave = false;
 
-    function mergeDefaults(savedItems, defaultItems, keyFn) {
+    function uniqueStrings(items = []) {
+      return [...new Set(items.filter(Boolean))];
+    }
+
+    function mergeDefaults(savedItems, defaultItems, keyFn, removedKeys = []) {
+      const removedSet = new Set(removedKeys || []);
       const merged = [...(savedItems || [])];
 
       defaultItems.forEach((defaultItem) => {
-        const exists = merged.some((item) => keyFn(item) === keyFn(defaultItem));
-        if (!exists) merged.push(defaultItem);
+        const key = keyFn(defaultItem);
+        const exists = merged.some((item) => keyFn(item) === key);
+
+        if (!exists && !removedSet.has(key)) {
+          merged.push(defaultItem);
+        }
       });
 
       return merged;
     }
 
-    function mergeStringDefaults(savedItems, defaultItems) {
+    function mergeStringDefaults(savedItems, defaultItems, removedItems = []) {
+      const removedSet = new Set(removedItems || []);
       const merged = [...(savedItems || [])];
 
       defaultItems.forEach((defaultItem) => {
-        if (!merged.includes(defaultItem)) merged.push(defaultItem);
+        if (!merged.includes(defaultItem) && !removedSet.has(defaultItem)) {
+          merged.push(defaultItem);
+        }
       });
 
       return merged;
+    }
+
+    function markDefaultDeleted(section, text) {
+      const arr = state.removedDefaults?.[section] || [];
+      if (!arr.includes(text)) {
+        state.removedDefaults[section] = [...arr, text];
+      }
+    }
+
+    function unmarkDefaultDeleted(section, text) {
+      const arr = state.removedDefaults?.[section] || [];
+      state.removedDefaults[section] = arr.filter((item) => item !== text);
     }
 
     async function loadState() {
@@ -310,7 +344,27 @@ const defaultStravaValue = JSON.stringify(defaultStravaEmbed);
           input.value = itemText;
 
           input.addEventListener("change", async () => {
-            state[key][itemIndex] = input.value.trim();
+            const nextValue = input.value.trim();
+            const previousValue = state[key][itemIndex];
+
+            state[key][itemIndex] = nextValue;
+
+            if (key === "rules" && defaultRulesTexts.has(nextValue)) {
+              unmarkDefaultDeleted("rules", nextValue);
+            }
+
+            if (key === "goals" && defaultGoalsTexts.has(nextValue)) {
+              unmarkDefaultDeleted("goals", nextValue);
+            }
+
+            if (key === "rules" && defaultRulesTexts.has(previousValue) && previousValue !== nextValue) {
+              markDefaultDeleted("rules", previousValue);
+            }
+
+            if (key === "goals" && defaultGoalsTexts.has(previousValue) && previousValue !== nextValue) {
+              markDefaultDeleted("goals", previousValue);
+            }
+
             await saveState();
           });
 
@@ -326,6 +380,16 @@ const defaultStravaValue = JSON.stringify(defaultStravaEmbed);
         if (isEditing) {
           row.appendChild(
             createDeleteButton(async () => {
+              const removed = state[key][itemIndex];
+
+              if (key === "rules" && defaultRulesTexts.has(removed)) {
+                markDefaultDeleted("rules", removed);
+              }
+
+              if (key === "goals" && defaultGoalsTexts.has(removed)) {
+                markDefaultDeleted("goals", removed);
+              }
+
               state[key].splice(itemIndex, 1);
               renderSimpleEditableList(listEl, key);
               await saveState();
@@ -366,7 +430,14 @@ const defaultStravaValue = JSON.stringify(defaultStravaEmbed);
 
         actions.appendChild(
           createRestoreButton(async () => {
-            state[key] = key === "rules" ? [...defaultRulesState] : [...defaultGoalsState];
+            if (key === "rules") {
+              state.removedDefaults.rules = [];
+              state.rules = [...defaultRulesState];
+            } else {
+              state.removedDefaults.goals = [];
+              state.goals = [...defaultGoalsState];
+            }
+
             renderSimpleEditableList(listEl, key);
             await saveState();
           })
@@ -401,7 +472,27 @@ const defaultStravaValue = JSON.stringify(defaultStravaEmbed);
           input.value = item.text;
 
           input.addEventListener("change", async () => {
-            state[key][itemIndex].text = input.value.trim();
+            const nextValue = input.value.trim();
+            const previousValue = state[key][itemIndex].text;
+
+            state[key][itemIndex].text = nextValue;
+
+            if (key === "warmup" && defaultWarmupTexts.has(nextValue)) {
+              unmarkDefaultDeleted("warmup", nextValue);
+            }
+
+            if (key === "cooldown" && defaultCooldownTexts.has(nextValue)) {
+              unmarkDefaultDeleted("cooldown", nextValue);
+            }
+
+            if (key === "warmup" && defaultWarmupTexts.has(previousValue) && previousValue !== nextValue) {
+              markDefaultDeleted("warmup", previousValue);
+            }
+
+            if (key === "cooldown" && defaultCooldownTexts.has(previousValue) && previousValue !== nextValue) {
+              markDefaultDeleted("cooldown", previousValue);
+            }
+
             await saveState();
           });
 
@@ -410,6 +501,16 @@ const defaultStravaValue = JSON.stringify(defaultStravaEmbed);
 
           row.appendChild(
             createDeleteButton(async () => {
+              const removed = state[key][itemIndex];
+
+              if (key === "warmup" && defaultWarmupTexts.has(removed.text)) {
+                markDefaultDeleted("warmup", removed.text);
+              }
+
+              if (key === "cooldown" && defaultCooldownTexts.has(removed.text)) {
+                markDefaultDeleted("cooldown", removed.text);
+              }
+
               state[key].splice(itemIndex, 1);
               renderChecklist(listEl, key);
               await saveState();
@@ -470,10 +571,13 @@ const defaultStravaValue = JSON.stringify(defaultStravaEmbed);
 
         actions.appendChild(
           createRestoreButton(async () => {
-            state[key] =
-              key === "warmup"
-                ? defaultWarmupState.map((item) => ({ ...item }))
-                : defaultCooldownState.map((item) => ({ ...item }));
+            if (key === "warmup") {
+              state.removedDefaults.warmup = [];
+              state.warmup = defaultWarmupState.map((item) => ({ ...item }));
+            } else {
+              state.removedDefaults.cooldown = [];
+              state.cooldown = defaultCooldownState.map((item) => ({ ...item }));
+            }
 
             renderChecklist(listEl, key);
             await saveState();
@@ -660,11 +764,20 @@ const defaultStravaValue = JSON.stringify(defaultStravaEmbed);
 
       const saved = await loadState();
 
+      const removedDefaults = {
+        warmup: uniqueStrings(saved?.removedDefaults?.warmup),
+        cooldown: uniqueStrings(saved?.removedDefaults?.cooldown),
+        rules: uniqueStrings(saved?.removedDefaults?.rules),
+        goals: uniqueStrings(saved?.removedDefaults?.goals),
+      };
+
       state = {
+        removedDefaults,
         warmup: mergeDefaults(
           saved?.warmup,
           defaultWarmupChecklist.map((text) => ({ text, done: false })),
-          (item) => item.text
+          (item) => item.text,
+          removedDefaults.warmup
         ).map((item) => ({
           text: item.text,
           done: !!item.done,
@@ -672,13 +785,22 @@ const defaultStravaValue = JSON.stringify(defaultStravaEmbed);
         cooldown: mergeDefaults(
           saved?.cooldown,
           defaultCooldownChecklist.map((text) => ({ text, done: false })),
-          (item) => item.text
+          (item) => item.text,
+          removedDefaults.cooldown
         ).map((item) => ({
           text: item.text,
           done: !!item.done,
         })),
-        rules: mergeStringDefaults(saved?.rules, defaultRulesList).filter(Boolean),
-        goals: mergeStringDefaults(saved?.goals, defaultGoalsList).filter(Boolean),
+        rules: mergeStringDefaults(
+          saved?.rules,
+          defaultRulesList,
+          removedDefaults.rules
+        ).filter(Boolean),
+        goals: mergeStringDefaults(
+          saved?.goals,
+          defaultGoalsList,
+          removedDefaults.goals
+        ).filter(Boolean),
         stravaEmbed: typeof saved?.stravaEmbed === "string"
           ? saved.stravaEmbed
           : defaultStravaEmbedUrl || "",

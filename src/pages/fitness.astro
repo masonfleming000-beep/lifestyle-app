@@ -33,7 +33,9 @@ const defaultWeeklySplit = JSON.stringify(weeklySplit);
       <div class="section-header">
         <div>
           <h2 class="section-title">Weekly Training Notes</h2>
-          <p class="section-subtitle">Edit, add, delete, or restore your default weekly notes.</p>
+          <p class="section-subtitle">
+            Edit, add, delete, or restore your default weekly notes.
+          </p>
         </div>
       </div>
 
@@ -54,19 +56,65 @@ const defaultWeeklySplit = JSON.stringify(weeklySplit);
     const weeklyNotesEditBtn = document.getElementById("weekly-notes-edit-btn");
 
     const defaultWeeklyNotesList = JSON.parse(defaultWeeklySplit);
-    const defaultWeeklyNotesState = [...defaultWeeklyNotesList];
 
     let editMode = {
       weeklyNotes: false,
     };
 
     let state = {
-      weeklyNotes: [...defaultWeeklyNotesList],
+      weeklyNotes: [],
+      removedDefaultWeeklyNotes: [],
+      hasCustomizedWeeklyNotes: false,
     };
 
     let hasLoadedInitialState = false;
     let isSaving = false;
     let pendingSave = false;
+
+    function normalizeNotesList(list) {
+      if (!Array.isArray(list)) return [];
+      return list
+        .map((item) => (typeof item === "string" ? item.trim() : ""))
+        .filter(Boolean);
+    }
+
+    function uniqueList(list) {
+      return [...new Set(list)];
+    }
+
+    function buildWeeklyNotes(customNotes = [], removedDefaults = [], hasCustomized = false) {
+      const normalizedDefaults = normalizeNotesList(defaultWeeklyNotesList);
+      const normalizedCustom = normalizeNotesList(customNotes);
+      const normalizedRemovedDefaults = uniqueList(normalizeNotesList(removedDefaults));
+
+      if (!hasCustomized) {
+        return [...normalizedDefaults];
+      }
+
+      const keptDefaults = normalizedDefaults.filter(
+        (item) => !normalizedRemovedDefaults.includes(item)
+      );
+
+      return uniqueList([...keptDefaults, ...normalizedCustom]);
+    }
+
+    function splitWeeklyNotesAgainstDefaults(notes) {
+      const normalizedDefaults = normalizeNotesList(defaultWeeklyNotesList);
+      const normalizedNotes = normalizeNotesList(notes);
+
+      const removedDefaults = normalizedDefaults.filter(
+        (defaultItem) => !normalizedNotes.includes(defaultItem)
+      );
+
+      const customNotes = normalizedNotes.filter(
+        (item) => !normalizedDefaults.includes(item)
+      );
+
+      return {
+        customNotes,
+        removedDefaults,
+      };
+    }
 
     async function loadState() {
       try {
@@ -104,13 +152,21 @@ const defaultWeeklySplit = JSON.stringify(weeklySplit);
       isSaving = true;
 
       try {
-        console.log("[fitness] saving state:", JSON.stringify(state, null, 2));
+        const payload = {
+          weeklyNotes: normalizeNotesList(state.weeklyNotes),
+          removedDefaultWeeklyNotes: uniqueList(
+            normalizeNotesList(state.removedDefaultWeeklyNotes)
+          ),
+          hasCustomizedWeeklyNotes: Boolean(state.hasCustomizedWeeklyNotes),
+        };
+
+        console.log("[fitness] saving state:", JSON.stringify(payload, null, 2));
 
         const res = await fetch("/api/state", {
           method: "POST",
           credentials: "include",
           headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ pageKey, state }),
+          body: JSON.stringify({ pageKey, state: payload }),
         });
 
         console.log("[fitness] save response status:", res.status);
@@ -124,6 +180,14 @@ const defaultWeeklySplit = JSON.stringify(weeklySplit);
           await saveState();
         }
       }
+    }
+
+    function syncDerivedWeeklyNotesState() {
+      const { customNotes, removedDefaults } = splitWeeklyNotesAgainstDefaults(state.weeklyNotes);
+
+      state.weeklyNotes = buildWeeklyNotes(customNotes, removedDefaults, true);
+      state.removedDefaultWeeklyNotes = removedDefaults;
+      state.hasCustomizedWeeklyNotes = true;
     }
 
     function createDeleteButton(onClick) {
@@ -177,7 +241,9 @@ const defaultWeeklySplit = JSON.stringify(weeklySplit);
 
           input.addEventListener("change", async () => {
             state.weeklyNotes[itemIndex] = input.value.trim();
+            syncDerivedWeeklyNotesState();
             console.log("[fitness] edited note:", itemIndex, state.weeklyNotes[itemIndex]);
+            renderWeeklyNotes();
             await saveState();
           });
 
@@ -195,6 +261,7 @@ const defaultWeeklySplit = JSON.stringify(weeklySplit);
             createDeleteButton(async () => {
               console.log("[fitness] deleting note before:", [...state.weeklyNotes]);
               state.weeklyNotes.splice(itemIndex, 1);
+              syncDerivedWeeklyNotesState();
               console.log("[fitness] deleting note after:", [...state.weeklyNotes]);
               renderWeeklyNotes();
               await saveState();
@@ -223,6 +290,7 @@ const defaultWeeklySplit = JSON.stringify(weeklySplit);
         actions.appendChild(
           createAddButton("Add", async () => {
             state.weeklyNotes.push("");
+            state.hasCustomizedWeeklyNotes = true;
             console.log("[fitness] added blank note:", [...state.weeklyNotes]);
             renderWeeklyNotes();
 
@@ -236,7 +304,9 @@ const defaultWeeklySplit = JSON.stringify(weeklySplit);
 
         actions.appendChild(
           createRestoreButton(async () => {
-            state.weeklyNotes = [...defaultWeeklyNotesState];
+            state.weeklyNotes = [...normalizeNotesList(defaultWeeklyNotesList)];
+            state.removedDefaultWeeklyNotes = [];
+            state.hasCustomizedWeeklyNotes = false;
             console.log("[fitness] restored defaults:", [...state.weeklyNotes]);
             renderWeeklyNotes();
             await saveState();
@@ -276,12 +346,49 @@ const defaultWeeklySplit = JSON.stringify(weeklySplit);
       console.log("[fitness] saved state from api:", saved);
       console.log("[fitness] defaults from file:", defaultWeeklyNotesList);
 
-      // IMPORTANT: do not merge while debugging
-      state = {
-        weeklyNotes: Array.isArray(saved?.weeklyNotes)
-          ? saved.weeklyNotes.filter(Boolean)
-          : [...defaultWeeklyNotesList],
-      };
+      const savedWeeklyNotes = Array.isArray(saved?.weeklyNotes) ? saved.weeklyNotes : null;
+      const savedRemovedDefaults = Array.isArray(saved?.removedDefaultWeeklyNotes)
+        ? saved.removedDefaultWeeklyNotes
+        : [];
+      const savedHasCustomized = Boolean(saved?.hasCustomizedWeeklyNotes);
+
+      if (savedWeeklyNotes) {
+        const migrated =
+          saved?.hasCustomizedWeeklyNotes !== undefined ||
+          Array.isArray(saved?.removedDefaultWeeklyNotes)
+            ? {
+                weeklyNotes: buildWeeklyNotes(
+                  savedWeeklyNotes.filter(
+                    (item) => !normalizeNotesList(defaultWeeklyNotesList).includes(item)
+                  ),
+                  savedRemovedDefaults,
+                  savedHasCustomized
+                ),
+                removedDefaultWeeklyNotes: uniqueList(
+                  normalizeNotesList(savedRemovedDefaults)
+                ),
+                hasCustomizedWeeklyNotes: savedHasCustomized,
+              }
+            : (() => {
+                const normalizedSaved = normalizeNotesList(savedWeeklyNotes);
+                const { customNotes, removedDefaults } =
+                  splitWeeklyNotesAgainstDefaults(normalizedSaved);
+
+                return {
+                  weeklyNotes: buildWeeklyNotes(customNotes, removedDefaults, true),
+                  removedDefaultWeeklyNotes: removedDefaults,
+                  hasCustomizedWeeklyNotes: true,
+                };
+              })();
+
+        state = migrated;
+      } else {
+        state = {
+          weeklyNotes: [...normalizeNotesList(defaultWeeklyNotesList)],
+          removedDefaultWeeklyNotes: [],
+          hasCustomizedWeeklyNotes: false,
+        };
+      }
 
       console.log("[fitness] initialized final state:", state);
 

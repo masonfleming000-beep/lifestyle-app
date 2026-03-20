@@ -25,8 +25,6 @@ const defaultWorkData = JSON.stringify({
 
   <section class="section">
     <div class="education-shell">
-  
-
       <article class="card education-panel">
         <div class="education-panel-header">
           <div>
@@ -188,6 +186,7 @@ const defaultWorkData = JSON.stringify({
             <h2 class="section-title">Sections</h2>
             <p class="section-subtitle">Group your tasks and meetings by team, client, or workstream.</p>
           </div>
+          <button type="button" id="restore-projects-btn" class="edu-button">Restore Defaults</button>
         </div>
 
         <form id="project-form" class="edu-form">
@@ -253,6 +252,24 @@ const defaultWorkData = JSON.stringify({
     return JSON.parse(defaultWorkData);
   }
 
+  function uniqueStrings(items = []) {
+    return [...new Set(items.filter(Boolean))];
+  }
+
+  function mergeDefaultProjects(savedProjects, defaultProjects, removedProjectIds = []) {
+    const removedSet = new Set(removedProjectIds || []);
+    const merged = [...(savedProjects || [])];
+
+    defaultProjects.forEach((defaultProject) => {
+      const exists = merged.some((project) => project.id === defaultProject.id);
+      if (!exists && !removedSet.has(defaultProject.id)) {
+        merged.push({ ...defaultProject });
+      }
+    });
+
+    return merged;
+  }
+
   function normalizeWorkData(raw) {
     const defaults = cloneDefaults();
     const parsed = raw && typeof raw === "object" ? raw : {};
@@ -261,6 +278,10 @@ const defaultWorkData = JSON.stringify({
       projects: Array.isArray(parsed.projects) ? parsed.projects : defaults.projects,
       tasks: Array.isArray(parsed.tasks) ? parsed.tasks : defaults.tasks,
       meetings: Array.isArray(parsed.meetings) ? parsed.meetings : defaults.meetings,
+      removedDefaults:
+        parsed && typeof parsed.removedDefaults === "object" && parsed.removedDefaults
+          ? parsed.removedDefaults
+          : { projects: [] },
     };
   }
 
@@ -306,6 +327,7 @@ const defaultWorkData = JSON.stringify({
             projects,
             tasks,
             meetings,
+            removedDefaults,
           },
         }),
       });
@@ -324,6 +346,9 @@ const defaultWorkData = JSON.stringify({
   let projects = cloneDefaults().projects;
   let tasks = cloneDefaults().tasks;
   let meetings = cloneDefaults().meetings;
+  let removedDefaults = {
+    projects: [],
+  };
 
   const taskForm = document.getElementById("task-form");
   const meetingForm = document.getElementById("meeting-form");
@@ -349,6 +374,7 @@ const defaultWorkData = JSON.stringify({
   const projectNameInput = document.getElementById("project-name");
   const projectColorInput = document.getElementById("project-color");
   const projectColorPicker = document.getElementById("project-color-picker");
+  const restoreProjectsBtn = document.getElementById("restore-projects-btn");
 
   const projectList = document.getElementById("project-list");
   const dueTodayEl = document.getElementById("due-today");
@@ -358,8 +384,24 @@ const defaultWorkData = JSON.stringify({
   const completedListEl = document.getElementById("completed-list");
   const completedCountEl = document.getElementById("completed-count");
 
+  const defaultProjectIds = new Set(cloneDefaults().projects.map((project) => project.id));
+
   function getProjectById(projectId) {
     return projects.find((project) => project.id === projectId);
+  }
+
+  function markDefaultProjectDeleted(projectId) {
+    if (!defaultProjectIds.has(projectId)) return;
+
+    const arr = removedDefaults.projects || [];
+    if (!arr.includes(projectId)) {
+      removedDefaults.projects = [...arr, projectId];
+    }
+  }
+
+  function unmarkDefaultProjectDeleted(projectId) {
+    const arr = removedDefaults.projects || [];
+    removedDefaults.projects = arr.filter((id) => id !== projectId);
   }
 
   function startOfToday() {
@@ -517,6 +559,23 @@ const defaultWorkData = JSON.stringify({
     return `<span class="work-badge work-badge-${tone}">${escapeHtml(text)}</span>`;
   }
 
+  function restoreDefaultProjects() {
+    const defaults = cloneDefaults().projects.map((item) => ({
+      id: item.id,
+      name: item.name,
+      color: item.color || "#2f5d62",
+    }));
+
+    removedDefaults.projects = [];
+
+    defaults.forEach((defaultProject) => {
+      const exists = projects.some((project) => project.id === defaultProject.id);
+      if (!exists) {
+        projects.push(defaultProject);
+      }
+    });
+  }
+
   function renderProjects() {
     projectList.innerHTML = "";
 
@@ -546,11 +605,15 @@ const defaultWorkData = JSON.stringify({
     projectList.querySelectorAll("[data-project-id]").forEach((button) => {
       button.addEventListener("click", async () => {
         const projectId = button.getAttribute("data-project-id");
+
+        markDefaultProjectDeleted(projectId);
+
         projects = projects.filter((project) => project.id !== projectId);
         tasks = tasks.filter((task) => task.projectId !== projectId);
         meetings = meetings.map((meeting) =>
           meeting.projectId === projectId ? { ...meeting, projectId: "" } : meeting
         );
+
         renderAll();
         await saveState();
       });
@@ -754,18 +817,25 @@ const defaultWorkData = JSON.stringify({
     const saved = normalizeWorkData(await loadState());
     const defaults = cloneDefaults();
 
-    projects =
-      Array.isArray(saved.projects) && saved.projects.length
+    removedDefaults = {
+      projects: uniqueStrings(saved?.removedDefaults?.projects),
+    };
+
+    projects = mergeDefaultProjects(
+      Array.isArray(saved.projects)
         ? saved.projects.map((item) => ({
             id: item.id,
             name: item.name,
             color: item.color || "#2f5d62",
           }))
-        : defaults.projects.map((item) => ({
-            id: item.id,
-            name: item.name,
-            color: item.color || "#2f5d62",
-          }));
+        : [],
+      defaults.projects.map((item) => ({
+        id: item.id,
+        name: item.name,
+        color: item.color || "#2f5d62",
+      })),
+      removedDefaults.projects
+    );
 
     tasks = (saved.tasks || []).map((item) => ({
       id: item.id,
@@ -879,6 +949,12 @@ const defaultWorkData = JSON.stringify({
 
     projectForm.reset();
     setSelectedColor("#2f5d62");
+    renderProjects();
+    await saveState();
+  });
+
+  restoreProjectsBtn?.addEventListener("click", async () => {
+    restoreDefaultProjects();
     renderProjects();
     await saveState();
   });

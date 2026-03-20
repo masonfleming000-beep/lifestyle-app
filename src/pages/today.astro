@@ -92,7 +92,10 @@ const defaultCalendar = JSON.stringify(defaultCalendarEmbed);
         style="display:flex; justify-content:space-between; align-items:center; gap:1rem; flex-wrap:wrap;"
       >
         <h2 class="section-title">Today</h2>
-        <button id="todo-edit-btn" type="button" class="todo-add-btn">Edit</button>
+        <div style="display:flex; gap:.5rem; flex-wrap:wrap;">
+          <button id="todo-restore-btn" type="button" class="todo-add-btn">Restore</button>
+          <button id="todo-edit-btn" type="button" class="todo-add-btn">Edit</button>
+        </div>
       </div>
 
       <form id="todo-form" class="todo-form" style="display:none;">
@@ -117,7 +120,10 @@ const defaultCalendar = JSON.stringify(defaultCalendarEmbed);
           style="display:flex; justify-content:space-between; align-items:center; gap:1rem; flex-wrap:wrap;"
         >
           <h2 class="section-title">Morning</h2>
-          <button id="morning-edit-btn" type="button" class="todo-add-btn">Edit</button>
+          <div style="display:flex; gap:.5rem; flex-wrap:wrap;">
+            <button id="morning-restore-btn" type="button" class="todo-add-btn">Restore</button>
+            <button id="morning-edit-btn" type="button" class="todo-add-btn">Edit</button>
+          </div>
         </div>
 
         <form
@@ -142,7 +148,10 @@ const defaultCalendar = JSON.stringify(defaultCalendarEmbed);
           style="display:flex; justify-content:space-between; align-items:center; gap:1rem; flex-wrap:wrap;"
         >
           <h2 class="section-title">Night</h2>
-          <button id="night-edit-btn" type="button" class="todo-add-btn">Edit</button>
+          <div style="display:flex; gap:.5rem; flex-wrap:wrap;">
+            <button id="night-restore-btn" type="button" class="todo-add-btn">Restore</button>
+            <button id="night-edit-btn" type="button" class="todo-add-btn">Edit</button>
+          </div>
         </div>
 
         <form
@@ -178,6 +187,7 @@ const defaultCalendar = JSON.stringify(defaultCalendarEmbed);
     const todoForm = document.getElementById("todo-form");
     const todoInput = document.getElementById("todo-input");
     const todoEditBtn = document.getElementById("todo-edit-btn");
+    const todoRestoreBtn = document.getElementById("todo-restore-btn");
 
     const morningListEl = document.getElementById("morning-list");
     const nightListEl = document.getElementById("night-list");
@@ -188,6 +198,8 @@ const defaultCalendar = JSON.stringify(defaultCalendarEmbed);
     const nightInput = document.getElementById("night-input");
     const morningEditBtn = document.getElementById("morning-edit-btn");
     const nightEditBtn = document.getElementById("night-edit-btn");
+    const morningRestoreBtn = document.getElementById("morning-restore-btn");
+    const nightRestoreBtn = document.getElementById("night-restore-btn");
 
     const calendarForm = document.getElementById("calendar-form");
     const calendarInput = document.getElementById("calendar-input");
@@ -202,6 +214,10 @@ const defaultCalendar = JSON.stringify(defaultCalendarEmbed);
     const defaultNightRoutineItems = JSON.parse(defaultNightItems);
     const defaultCalendarEmbed = JSON.parse(defaultCalendar);
 
+    const defaultTodoTexts = new Set(defaultTodoItems.map((item) => item.text));
+    const defaultMorningTexts = new Set(defaultMorningRoutineItems);
+    const defaultNightTexts = new Set(defaultNightRoutineItems);
+
     let editModes = {
       calendar: false,
       todo: false,
@@ -214,20 +230,48 @@ const defaultCalendar = JSON.stringify(defaultCalendarEmbed);
       todos: [...defaultTodoItems],
       morning: defaultMorningRoutineItems.map((text) => ({ text, done: false })),
       night: defaultNightRoutineItems.map((text) => ({ text, done: false })),
+      removedDefaults: {
+        todos: [],
+        morning: [],
+        night: [],
+      },
     };
 
     let hasLoadedInitialState = false;
     let isSaving = false;
+    let pendingSave = false;
 
-    function mergeDefaults(savedItems, defaultItems, keyFn) {
+
+    function uniqueStrings(items = []) {
+      return [...new Set(items.filter(Boolean))];
+    }
+
+    function mergeDefaults(savedItems, defaultItems, keyFn, removedKeys = []) {
+      const removedSet = new Set(removedKeys || []);
       const merged = [...(savedItems || [])];
 
       defaultItems.forEach((defaultItem) => {
-        const exists = merged.some((item) => keyFn(item) === keyFn(defaultItem));
-        if (!exists) merged.push(defaultItem);
+        const key = keyFn(defaultItem);
+        const exists = merged.some((item) => keyFn(item) === key);
+
+        if (!exists && !removedSet.has(key)) {
+          merged.push(defaultItem);
+        }
       });
 
       return merged;
+    }
+
+    function markDefaultDeleted(section, text) {
+      const arr = state.removedDefaults?.[section] || [];
+      if (!arr.includes(text)) {
+        state.removedDefaults[section] = [...arr, text];
+      }
+    }
+
+    function unmarkDefaultDeleted(section, text) {
+      const arr = state.removedDefaults?.[section] || [];
+      state.removedDefaults[section] = arr.filter((item) => item !== text);
     }
 
     async function loadState() {
@@ -247,8 +291,14 @@ const defaultCalendar = JSON.stringify(defaultCalendarEmbed);
       }
     }
 
+
     async function saveState() {
-      if (!hasLoadedInitialState || isSaving) return;
+      if (!hasLoadedInitialState) return;
+
+      if (isSaving) {
+        pendingSave = true;
+        return;
+      }
 
       isSaving = true;
 
@@ -263,6 +313,11 @@ const defaultCalendar = JSON.stringify(defaultCalendarEmbed);
         console.error("Failed to save state:", error);
       } finally {
         isSaving = false;
+
+        if (pendingSave) {
+          pendingSave = false;
+          await saveState();
+        }
       }
     }
 
@@ -376,6 +431,12 @@ const defaultCalendar = JSON.stringify(defaultCalendarEmbed);
         label.appendChild(text);
 
         const deleteBtn = createDeleteButton(async () => {
+          const removed = state.todos[index];
+
+          if (defaultTodoTexts.has(removed.text)) {
+            markDefaultDeleted("todos", removed.text);
+          }
+
           state.todos.splice(index, 1);
           renderTodos();
           await saveState();
@@ -426,6 +487,16 @@ const defaultCalendar = JSON.stringify(defaultCalendarEmbed);
         label.appendChild(span);
 
         const deleteBtn = createDeleteButton(async () => {
+          const removed = state[key][index];
+
+          if (key === "morning" && defaultMorningTexts.has(removed.text)) {
+            markDefaultDeleted("morning", removed.text);
+          }
+
+          if (key === "night" && defaultNightTexts.has(removed.text)) {
+            markDefaultDeleted("night", removed.text);
+          }
+
           state[key].splice(index, 1);
           renderRoutine(listEl, key);
           await saveState();
@@ -436,6 +507,52 @@ const defaultCalendar = JSON.stringify(defaultCalendarEmbed);
         li.appendChild(row);
         listEl.appendChild(li);
       });
+    }
+
+    function restoreSection(section) {
+      if (section === "todos") {
+        state.removedDefaults.todos = [];
+        state.todos = mergeDefaults(
+          state.todos,
+          defaultTodoItems,
+          (item) => item.text,
+          []
+        ).map((item) => ({
+          text: item.text,
+          done: !!item.done,
+        }));
+        renderTodos();
+        return;
+      }
+
+      if (section === "morning") {
+        state.removedDefaults.morning = [];
+        state.morning = mergeDefaults(
+          state.morning,
+          defaultMorningRoutineItems.map((text) => ({ text, done: false })),
+          (item) => item.text,
+          []
+        ).map((item) => ({
+          text: item.text,
+          done: !!item.done,
+        }));
+        renderRoutine(morningListEl, "morning");
+        return;
+      }
+
+      if (section === "night") {
+        state.removedDefaults.night = [];
+        state.night = mergeDefaults(
+          state.night,
+          defaultNightRoutineItems.map((text) => ({ text, done: false })),
+          (item) => item.text,
+          []
+        ).map((item) => ({
+          text: item.text,
+          done: !!item.done,
+        }));
+        renderRoutine(nightListEl, "night");
+      }
     }
 
     calendarEditBtn?.addEventListener("click", () => {
@@ -462,10 +579,27 @@ const defaultCalendar = JSON.stringify(defaultCalendarEmbed);
       renderRoutine(nightListEl, "night");
     });
 
+    todoRestoreBtn?.addEventListener("click", async () => {
+      restoreSection("todos");
+      await saveState();
+    });
+
+    morningRestoreBtn?.addEventListener("click", async () => {
+      restoreSection("morning");
+      await saveState();
+    });
+
+    nightRestoreBtn?.addEventListener("click", async () => {
+      restoreSection("night");
+      await saveState();
+    });
+
     todoForm?.addEventListener("submit", async (e) => {
       e.preventDefault();
       const value = todoInput.value.trim();
       if (!value) return;
+
+      unmarkDefaultDeleted("todos", value);
 
       state.todos.unshift({ text: value, done: false });
       todoInput.value = "";
@@ -478,6 +612,8 @@ const defaultCalendar = JSON.stringify(defaultCalendarEmbed);
       const value = morningInput.value.trim();
       if (!value) return;
 
+      unmarkDefaultDeleted("morning", value);
+
       state.morning.unshift({ text: value, done: false });
       morningInput.value = "";
       renderRoutine(morningListEl, "morning");
@@ -488,6 +624,8 @@ const defaultCalendar = JSON.stringify(defaultCalendarEmbed);
       e.preventDefault();
       const value = nightInput.value.trim();
       if (!value) return;
+
+      unmarkDefaultDeleted("night", value);
 
       state.night.unshift({ text: value, done: false });
       nightInput.value = "";
@@ -521,12 +659,20 @@ const defaultCalendar = JSON.stringify(defaultCalendarEmbed);
 
       const saved = await loadState();
 
+      const removedDefaults = {
+        todos: uniqueStrings(saved?.removedDefaults?.todos),
+        morning: uniqueStrings(saved?.removedDefaults?.morning),
+        night: uniqueStrings(saved?.removedDefaults?.night),
+      };
+
       state = {
         calendarEmbed: saved?.calendarEmbed ?? "",
+        removedDefaults,
         todos: mergeDefaults(
           saved?.todos,
           defaultTodoItems,
-          (t) => t.text
+          (item) => item.text,
+          removedDefaults.todos
         ).map((item) => ({
           text: item.text,
           done: !!item.done,
@@ -534,7 +680,8 @@ const defaultCalendar = JSON.stringify(defaultCalendarEmbed);
         morning: mergeDefaults(
           saved?.morning,
           defaultMorningRoutineItems.map((text) => ({ text, done: false })),
-          (item) => item.text
+          (item) => item.text,
+          removedDefaults.morning
         ).map((item) => ({
           text: item.text,
           done: !!item.done,
@@ -542,7 +689,8 @@ const defaultCalendar = JSON.stringify(defaultCalendarEmbed);
         night: mergeDefaults(
           saved?.night,
           defaultNightRoutineItems.map((text) => ({ text, done: false })),
-          (item) => item.text
+          (item) => item.text,
+          removedDefaults.night
         ).map((item) => ({
           text: item.text,
           done: !!item.done,

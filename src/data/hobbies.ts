@@ -7,26 +7,47 @@ export type HobbyCategory =
   | "Collecting"
   | "Other";
 
+export type HobbyEvidenceType = "Text" | "File" | "Link";
+
 export interface HobbyStage {
+  id: string;
   name: string;
   description: string;
   status: StageStatus;
   progress: number;
   targetDate: string;
   update: string;
-  evidenceType?: "Text" | "File" | "Link";
+  evidenceType?: HobbyEvidenceType;
   evidenceValue?: string;
   updatedOn: string;
 }
 
 export interface HobbyMilestone {
+  id: string;
   title: string;
   date: string;
 }
 
 export interface HobbyLog {
+  id: string;
   date: string;
   text: string;
+  stageId: string;
+}
+
+export interface HobbyLibraryItem {
+  id: string;
+  title: string;
+  type: "book" | "song" | "course" | "project" | "custom";
+  stageId: string;
+  status: "Active" | "Paused" | "Completed";
+  notes: string;
+  updatedOn: string;
+  progress: {
+    current: number;
+    target: number;
+    unit: string;
+  };
 }
 
 export interface HobbyItem {
@@ -41,6 +62,7 @@ export interface HobbyItem {
   notes: string;
   favorite?: boolean;
   stages: HobbyStage[];
+  library: HobbyLibraryItem[];
   milestones: HobbyMilestone[];
   activityLog: HobbyLog[];
 }
@@ -61,6 +83,7 @@ export const hobbies: HobbyItem[] = [
     favorite: true,
     stages: [
       {
+        id: "drumming-stick-control-basics",
         name: "Stick Control Basics",
         description: "Build hand control, timing, and consistency.",
         status: "Done",
@@ -72,6 +95,7 @@ export const hobbies: HobbyItem[] = [
         updatedOn: "2025-10-02",
       },
       {
+        id: "drumming-groove-practice",
         name: "Groove Practice",
         description: "Lock in steady grooves without tensing up.",
         status: "In Progress",
@@ -83,6 +107,7 @@ export const hobbies: HobbyItem[] = [
         updatedOn: "2026-03-10",
       },
       {
+        id: "drumming-play-full-song-cleanly",
         name: "Play Full Song Cleanly",
         description: "Play through an entire song with timing and confidence.",
         status: "Not Started",
@@ -94,14 +119,53 @@ export const hobbies: HobbyItem[] = [
         updatedOn: "2026-03-08",
       },
     ],
+    library: [
+      {
+        id: "drumming-library-groove-guide",
+        title: "Groove Practice Guide",
+        type: "course",
+        stageId: "drumming-groove-practice",
+        status: "Active",
+        notes: "Use for timing drills and groove transitions.",
+        updatedOn: "2026-03-10",
+        progress: {
+          current: 6,
+          target: 12,
+          unit: "lessons",
+        },
+      },
+    ],
     milestones: [
-      { title: "Completed first month of consistent practice", date: "2025-09-15" },
-      { title: "Held tempo through full groove session", date: "2026-02-28" },
+      {
+        id: "drumming-milestone-first-month",
+        title: "Completed first month of consistent practice",
+        date: "2025-09-15",
+      },
+      {
+        id: "drumming-milestone-groove-session",
+        title: "Held tempo through full groove session",
+        date: "2026-02-28",
+      },
     ],
     activityLog: [
-      { date: "2026-03-10", text: "Practiced groove timing and transitions." },
-      { date: "2026-03-06", text: "Focused on rudiments for 25 minutes." },
-      { date: "2026-03-01", text: "Reviewed sticking control and posture." },
+      {
+        id: "drumming-log-2026-03-10",
+        date: "2026-03-10",
+        text: "Practiced groove timing and transitions.",
+        stageId: "drumming-groove-practice",
+      },
+      {
+        id: "drumming-log-2026-03-06",
+        date: "2026-03-06",
+        text: "Focused on rudiments for 25 minutes.",
+        stageId: "drumming-stick-control-basics",
+      },
+      {
+        id: "drumming-log-2026-03-01",
+        date: "2026-03-01",
+        text: "Reviewed sticking control and posture.",
+        stageId: "drumming-stick-control-basics",
+      },
     ],
   },
   {
@@ -119,6 +183,7 @@ export const hobbies: HobbyItem[] = [
     favorite: false,
     stages: [
       {
+        id: "juggling-two-ball-control",
         name: "Two Ball Control",
         description: "Make motion smooth and repeatable.",
         status: "Done",
@@ -130,6 +195,7 @@ export const hobbies: HobbyItem[] = [
         updatedOn: "2025-11-18",
       },
       {
+        id: "juggling-three-ball-cascade",
         name: "Three Ball Cascade",
         description: "Build a consistent cascade pattern.",
         status: "In Progress",
@@ -141,6 +207,7 @@ export const hobbies: HobbyItem[] = [
         updatedOn: "2026-03-12",
       },
       {
+        id: "juggling-one-minute-continuous",
         name: "One Minute Continuous",
         description: "Sustain control without panic or rushing.",
         status: "Not Started",
@@ -152,12 +219,42 @@ export const hobbies: HobbyItem[] = [
         updatedOn: "2026-03-11",
       },
     ],
+    library: [
+      {
+        id: "juggling-library-cascade-drills",
+        title: "Cascade Drill Notes",
+        type: "custom",
+        stageId: "juggling-three-ball-cascade",
+        status: "Active",
+        notes: "Quick reminders for rhythm and release height.",
+        updatedOn: "2026-03-12",
+        progress: {
+          current: 4,
+          target: 10,
+          unit: "drills",
+        },
+      },
+    ],
     milestones: [
-      { title: "First clean 20-second cascade", date: "2026-02-14" },
+      {
+        id: "juggling-milestone-20-second-cascade",
+        title: "First clean 20-second cascade",
+        date: "2026-02-14",
+      },
     ],
     activityLog: [
-      { date: "2026-03-12", text: "Worked on smoother three-ball rhythm." },
-      { date: "2026-03-09", text: "Practiced catches and reset timing." },
+      {
+        id: "juggling-log-2026-03-12",
+        date: "2026-03-12",
+        text: "Worked on smoother three-ball rhythm.",
+        stageId: "juggling-three-ball-cascade",
+      },
+      {
+        id: "juggling-log-2026-03-09",
+        date: "2026-03-09",
+        text: "Practiced catches and reset timing.",
+        stageId: "juggling-three-ball-cascade",
+      },
     ],
   },
   {
@@ -175,6 +272,7 @@ export const hobbies: HobbyItem[] = [
     favorite: true,
     stages: [
       {
+        id: "reading-daily-reading-habit",
         name: "Daily Reading Habit",
         description: "Build consistency first, even with short sessions.",
         status: "Done",
@@ -186,6 +284,7 @@ export const hobbies: HobbyItem[] = [
         updatedOn: "2025-10-15",
       },
       {
+        id: "reading-finish-current-book",
         name: "Finish Current Book",
         description: "Read through current book with notes and retention.",
         status: "In Progress",
@@ -197,6 +296,7 @@ export const hobbies: HobbyItem[] = [
         updatedOn: "2026-03-14",
       },
       {
+        id: "reading-notes-archive",
         name: "Reading Notes Archive",
         description: "Track takeaways and favorite quotes.",
         status: "In Progress",
@@ -208,13 +308,61 @@ export const hobbies: HobbyItem[] = [
         updatedOn: "2026-03-13",
       },
     ],
+    library: [
+      {
+        id: "reading-library-current-book",
+        title: "Current Book",
+        type: "book",
+        stageId: "reading-finish-current-book",
+        status: "Active",
+        notes: "Annotate key sections and summarize after each session.",
+        updatedOn: "2026-03-14",
+        progress: {
+          current: 216,
+          target: 300,
+          unit: "pages",
+        },
+      },
+      {
+        id: "reading-library-notes-system",
+        title: "Reading Notes System",
+        type: "project",
+        stageId: "reading-notes-archive",
+        status: "Active",
+        notes: "Capture quotes, takeaways, and short reflections.",
+        updatedOn: "2026-03-13",
+        progress: {
+          current: 4,
+          target: 10,
+          unit: "entries",
+        },
+      },
+    ],
     milestones: [
-      { title: "Finished first full book of the cycle", date: "2025-12-21" },
-      { title: "Built nightly reading streak", date: "2026-01-15" },
+      {
+        id: "reading-milestone-first-book",
+        title: "Finished first full book of the cycle",
+        date: "2025-12-21",
+      },
+      {
+        id: "reading-milestone-nightly-streak",
+        title: "Built nightly reading streak",
+        date: "2026-01-15",
+      },
     ],
     activityLog: [
-      { date: "2026-03-14", text: "Read 22 pages and noted two strong takeaways." },
-      { date: "2026-03-11", text: "Night reading session felt focused and calm." },
+      {
+        id: "reading-log-2026-03-14",
+        date: "2026-03-14",
+        text: "Read 22 pages and noted two strong takeaways.",
+        stageId: "reading-finish-current-book",
+      },
+      {
+        id: "reading-log-2026-03-11",
+        date: "2026-03-11",
+        text: "Night reading session felt focused and calm.",
+        stageId: "reading-daily-reading-habit",
+      },
     ],
   },
   {
@@ -232,6 +380,7 @@ export const hobbies: HobbyItem[] = [
     favorite: false,
     stages: [
       {
+        id: "writing-daily-short-writing",
         name: "Daily Short Writing",
         description: "Write short reflections or summaries consistently.",
         status: "In Progress",
@@ -243,6 +392,7 @@ export const hobbies: HobbyItem[] = [
         updatedOn: "2026-03-05",
       },
       {
+        id: "writing-technical-writing-samples",
         name: "Technical Writing Samples",
         description: "Create stronger structured writing examples.",
         status: "Not Started",
@@ -254,11 +404,36 @@ export const hobbies: HobbyItem[] = [
         updatedOn: "2026-03-03",
       },
     ],
+    library: [
+      {
+        id: "writing-library-journal-prompts",
+        title: "Journal Prompt List",
+        type: "custom",
+        stageId: "writing-daily-short-writing",
+        status: "Paused",
+        notes: "Use when restarting regular writing blocks.",
+        updatedOn: "2026-03-05",
+        progress: {
+          current: 8,
+          target: 20,
+          unit: "prompts",
+        },
+      },
+    ],
     milestones: [
-      { title: "Started structured writing habit", date: "2025-11-02" },
+      {
+        id: "writing-milestone-started-habit",
+        title: "Started structured writing habit",
+        date: "2025-11-02",
+      },
     ],
     activityLog: [
-      { date: "2026-03-05", text: "Paused formal writing focus to prioritize schoolwork." },
+      {
+        id: "writing-log-2026-03-05",
+        date: "2026-03-05",
+        text: "Paused formal writing focus to prioritize schoolwork.",
+        stageId: "writing-daily-short-writing",
+      },
     ],
   },
 ];
@@ -276,7 +451,7 @@ export type HobbyFilter = (typeof hobbyFilters)[number];
 
 export function getOverallProgress(stages: HobbyStage[]) {
   if (!stages.length) return 0;
-  const total = stages.reduce((sum, stage) => sum + stage.progress, 0);
+  const total = stages.reduce((sum, stage) => sum + Number(stage.progress || 0), 0);
   return Math.round(total / stages.length);
 }
 

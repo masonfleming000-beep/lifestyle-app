@@ -35,6 +35,9 @@ const defaultHobbiesData = JSON.stringify({
               <button class="ui-button ui-button-secondary" id="delete-hobby-btn" type="button">
                 Delete Selected
               </button>
+              <button class="ui-button ui-button-secondary" id="restore-hobbies-btn" type="button">
+                Restore Defaults
+              </button>
             </div>
 
             <div class="field-group">
@@ -243,6 +246,10 @@ const defaultHobbiesData = JSON.stringify({
         return JSON.parse(defaultHobbiesData);
       }
 
+      function uniqueStrings(items = []) {
+        return [...new Set(items.filter(Boolean))];
+      }
+
       function makeId(prefix) {
         return `${prefix}-${Date.now()}-${Math.random().toString(16).slice(2)}`;
       }
@@ -353,6 +360,20 @@ const defaultHobbiesData = JSON.stringify({
         };
       }
 
+      function mergeDefaultHobbies(savedHobbies, defaultHobbies, removedHobbyIds = []) {
+        const removedSet = new Set(removedHobbyIds || []);
+        const merged = [...(savedHobbies || [])];
+
+        defaultHobbies.forEach((defaultHobby) => {
+          const exists = merged.some((hobby) => hobby.id === defaultHobby.id);
+          if (!exists && !removedSet.has(defaultHobby.id)) {
+            merged.push(normalizeHobby(defaultHobby));
+          }
+        });
+
+        return merged;
+      }
+
       function normalizeData(raw) {
         const defaults = cloneDefaults();
         const parsed = raw && typeof raw === "object" ? raw : {};
@@ -361,6 +382,10 @@ const defaultHobbiesData = JSON.stringify({
           hobbies: Array.isArray(parsed.hobbies)
             ? parsed.hobbies.map(normalizeHobby)
             : defaults.hobbies.map(normalizeHobby),
+          removedDefaults:
+            parsed && typeof parsed.removedDefaults === "object" && parsed.removedDefaults
+              ? parsed.removedDefaults
+              : { hobbies: [] },
         };
       }
 
@@ -402,7 +427,10 @@ const defaultHobbiesData = JSON.stringify({
             headers: { "Content-Type": "application/json" },
             body: JSON.stringify({
               pageKey,
-              state: { hobbies },
+              state: {
+                hobbies,
+                removedDefaults,
+              },
             }),
           });
         } catch (error) {
@@ -450,6 +478,7 @@ const defaultHobbiesData = JSON.stringify({
 
       const addHobbyBtn = document.getElementById("add-hobby-btn");
       const deleteHobbyBtn = document.getElementById("delete-hobby-btn");
+      const restoreHobbiesBtn = document.getElementById("restore-hobbies-btn");
       const saveHobbyBtn = document.getElementById("save-hobby-btn");
       const addStageBtn = document.getElementById("add-stage-btn");
       const addLogBtn = document.getElementById("add-log-btn");
@@ -465,7 +494,12 @@ const defaultHobbiesData = JSON.stringify({
       const editLibraryBtn = document.getElementById("edit-library-btn");
 
       let hobbies = cloneDefaults().hobbies.map(normalizeHobby);
+      let removedDefaults = {
+        hobbies: [],
+      };
       let selectedId = hobbies[0]?.id ?? null;
+
+      const defaultHobbyIds = new Set(cloneDefaults().hobbies.map((hobby) => hobby.id));
 
       const sectionState = {
         summary: { expanded: true, editing: false },
@@ -473,6 +507,35 @@ const defaultHobbiesData = JSON.stringify({
         logs: { expanded: false, editing: false },
         library: { expanded: false, editing: false },
       };
+
+      function markDefaultHobbyDeleted(hobbyId) {
+        if (!defaultHobbyIds.has(hobbyId)) return;
+
+        const arr = removedDefaults.hobbies || [];
+        if (!arr.includes(hobbyId)) {
+          removedDefaults.hobbies = [...arr, hobbyId];
+        }
+      }
+
+      function unmarkDefaultHobbyDeleted(hobbyId) {
+        const arr = removedDefaults.hobbies || [];
+        removedDefaults.hobbies = arr.filter((id) => id !== hobbyId);
+      }
+
+      function restoreDefaultHobbies() {
+        const defaults = cloneDefaults().hobbies.map(normalizeHobby);
+
+        removedDefaults.hobbies = [];
+
+        defaults.forEach((defaultHobby) => {
+          const exists = hobbies.some((hobby) => hobby.id === defaultHobby.id);
+          if (!exists) {
+            hobbies.push(normalizeHobby(defaultHobby));
+          } else {
+            unmarkDefaultHobbyDeleted(defaultHobby.id);
+          }
+        });
+      }
 
       function getOverallProgress(stages) {
         if (!stages || !stages.length) return 0;
@@ -1344,8 +1407,16 @@ const defaultHobbiesData = JSON.stringify({
         const ok = window.confirm(`Delete "${selected.name}"?`);
         if (!ok) return;
 
+        markDefaultHobbyDeleted(selected.id);
+
         hobbies = hobbies.filter((h) => h.id !== selected.id);
         selectedId = hobbies[0]?.id ?? null;
+        render();
+        await saveState();
+      });
+
+      restoreHobbiesBtn?.addEventListener("click", async () => {
+        restoreDefaultHobbies();
         render();
         await saveState();
       });
@@ -1445,11 +1516,17 @@ const defaultHobbiesData = JSON.stringify({
         render();
 
         const saved = normalizeData(await loadState());
+        const defaults = cloneDefaults();
 
-        hobbies =
-          Array.isArray(saved.hobbies) && saved.hobbies.length
-            ? saved.hobbies.map(normalizeHobby)
-            : cloneDefaults().hobbies.map(normalizeHobby);
+        removedDefaults = {
+          hobbies: uniqueStrings(saved?.removedDefaults?.hobbies),
+        };
+
+        hobbies = mergeDefaultHobbies(
+          Array.isArray(saved.hobbies) ? saved.hobbies.map(normalizeHobby) : [],
+          defaults.hobbies.map(normalizeHobby),
+          removedDefaults.hobbies
+        );
 
         selectedId = hobbies[0]?.id ?? null;
         hasLoadedInitialState = true;

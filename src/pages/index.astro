@@ -64,6 +64,12 @@ const defaultMorals = JSON.stringify(morals);
           </div>
         </form>
 
+        <div style="margin: 0 0 1rem 0;">
+          <button id="restore-quotes-btn" type="button" class="action-btn secondary-btn">
+            Restore Default Quotes
+          </button>
+        </div>
+
         <div id="quotes-list" class="grid three"></div>
       </div>
     </details>
@@ -89,10 +95,17 @@ const defaultMorals = JSON.stringify(morals);
           </div>
         </form>
 
+        <div style="margin: 0 0 1rem 0;">
+          <button id="restore-reminders-btn" type="button" class="action-btn secondary-btn">
+            Restore Default Reminders
+          </button>
+        </div>
+
         <div id="reminders-list" class="grid three"></div>
       </div>
     </details>
   </section>
+
   <script define:vars={{ defaultQuotes, defaultMorals }}>
     const pageKey = "home";
 
@@ -102,28 +115,68 @@ const defaultMorals = JSON.stringify(morals);
     const quoteForm = document.getElementById("quote-form");
     const quoteTextInput = document.getElementById("quote-text");
     const quoteAuthorInput = document.getElementById("quote-author");
+    const restoreQuotesBtn = document.getElementById("restore-quotes-btn");
 
     const reminderForm = document.getElementById("reminder-form");
     const reminderTitleInput = document.getElementById("reminder-title");
     const reminderTextInput = document.getElementById("reminder-text");
+    const restoreRemindersBtn = document.getElementById("restore-reminders-btn");
 
     const defaultQuoteItems = JSON.parse(defaultQuotes);
     const defaultMoralItems = JSON.parse(defaultMorals);
 
+    function quoteKey(q) {
+      return `${q.text}::${q.author || ""}`;
+    }
+
+    function moralKey(m) {
+      return `${m.title}::${m.text}`;
+    }
+
+    const defaultQuoteKeySet = new Set(defaultQuoteItems.map(quoteKey));
+    const defaultMoralKeySet = new Set(defaultMoralItems.map(moralKey));
+
     let state = {
-      quotes: [...defaultQuoteItems],
-      morals: [...defaultMoralItems],
+      quotes: [],
+      morals: [],
+      removedDefaultQuotes: [],
+      removedDefaultMorals: [],
     };
-    
-    function mergeDefaults(savedItems, defaultItems, keyFn) {
+
+    function normalizeState(saved) {
+      return {
+        quotes: Array.isArray(saved?.quotes) ? saved.quotes : [],
+        morals: Array.isArray(saved?.morals) ? saved.morals : [],
+        removedDefaultQuotes: Array.isArray(saved?.removedDefaultQuotes) ? saved.removedDefaultQuotes : [],
+        removedDefaultMorals: Array.isArray(saved?.removedDefaultMorals) ? saved.removedDefaultMorals : [],
+      };
+    }
+
+    function mergeDefaults(savedItems, defaultItems, removedKeys, keyFn) {
+      const removedSet = new Set(removedKeys || []);
       const merged = [...(savedItems || [])];
+      const existingKeys = new Set(merged.map(keyFn));
 
       defaultItems.forEach((defaultItem) => {
-        const exists = merged.some((item) => keyFn(item) === keyFn(defaultItem));
-        if (!exists) merged.push(defaultItem);
+        const key = keyFn(defaultItem);
+        if (removedSet.has(key)) return;
+        if (existingKeys.has(key)) return;
+
+        merged.push(defaultItem);
+        existingKeys.add(key);
       });
 
       return merged;
+    }
+
+    function dedupeBy(items, keyFn) {
+      const seen = new Set();
+      return (items || []).filter((item) => {
+        const key = keyFn(item);
+        if (seen.has(key)) return false;
+        seen.add(key);
+        return true;
+      });
     }
 
     async function loadState() {
@@ -168,6 +221,15 @@ const defaultMorals = JSON.stringify(morals);
       }
     }
 
+    function escapeHtml(value) {
+      return String(value)
+        .replaceAll("&", "&amp;")
+        .replaceAll("<", "&lt;")
+        .replaceAll(">", "&gt;")
+        .replaceAll('"', "&quot;")
+        .replaceAll("'", "&#039;");
+    }
+
     function renderQuotes() {
       if (!quotesList) return;
       quotesList.innerHTML = "";
@@ -190,7 +252,17 @@ const defaultMorals = JSON.stringify(morals);
       quotesList.querySelectorAll("[data-quote-index]").forEach((btn) => {
         btn.addEventListener("click", async (event) => {
           const index = Number(event.currentTarget.getAttribute("data-quote-index"));
+          const item = state.quotes[index];
+          if (!item) return;
+
+          const key = quoteKey(item);
+
           state.quotes.splice(index, 1);
+
+          if (defaultQuoteKeySet.has(key) && !state.removedDefaultQuotes.includes(key)) {
+            state.removedDefaultQuotes.push(key);
+          }
+
           renderQuotes();
           await saveState();
         });
@@ -217,20 +289,21 @@ const defaultMorals = JSON.stringify(morals);
       remindersList.querySelectorAll("[data-reminder-index]").forEach((btn) => {
         btn.addEventListener("click", async (event) => {
           const index = Number(event.currentTarget.getAttribute("data-reminder-index"));
+          const item = state.morals[index];
+          if (!item) return;
+
+          const key = moralKey(item);
+
           state.morals.splice(index, 1);
+
+          if (defaultMoralKeySet.has(key) && !state.removedDefaultMorals.includes(key)) {
+            state.removedDefaultMorals.push(key);
+          }
+
           renderMorals();
           await saveState();
         });
       });
-    }
-
-    function escapeHtml(value) {
-      return String(value)
-        .replaceAll("&", "&amp;")
-        .replaceAll("<", "&lt;")
-        .replaceAll(">", "&gt;")
-        .replaceAll('"', "&quot;")
-        .replaceAll("'", "&#039;");
     }
 
     quoteForm?.addEventListener("submit", async (event) => {
@@ -240,7 +313,12 @@ const defaultMorals = JSON.stringify(morals);
       const author = quoteAuthorInput?.value.trim() || "Personal reminder";
       if (!text) return;
 
-      state.quotes.unshift({ text, author });
+      const newQuote = { text, author };
+      const newKey = quoteKey(newQuote);
+
+      state.quotes = dedupeBy([newQuote, ...state.quotes], quoteKey);
+      state.removedDefaultQuotes = state.removedDefaultQuotes.filter((key) => key !== newKey);
+
       renderQuotes();
       quoteForm.reset();
       await saveState();
@@ -253,9 +331,40 @@ const defaultMorals = JSON.stringify(morals);
       const text = reminderTextInput?.value.trim();
       if (!title || !text) return;
 
-      state.morals.unshift({ title, text });
+      const newReminder = { title, text };
+      const newKey = moralKey(newReminder);
+
+      state.morals = dedupeBy([newReminder, ...state.morals], moralKey);
+      state.removedDefaultMorals = state.removedDefaultMorals.filter((key) => key !== newKey);
+
       renderMorals();
       reminderForm.reset();
+      await saveState();
+    });
+
+    restoreQuotesBtn?.addEventListener("click", async () => {
+      state.removedDefaultQuotes = [];
+      state.quotes = mergeDefaults(
+        state.quotes,
+        defaultQuoteItems,
+        state.removedDefaultQuotes,
+        quoteKey
+      );
+      state.quotes = dedupeBy(state.quotes, quoteKey);
+      renderQuotes();
+      await saveState();
+    });
+
+    restoreRemindersBtn?.addEventListener("click", async () => {
+      state.removedDefaultMorals = [];
+      state.morals = mergeDefaults(
+        state.morals,
+        defaultMoralItems,
+        state.removedDefaultMorals,
+        moralKey
+      );
+      state.morals = dedupeBy(state.morals, moralKey);
+      renderMorals();
       await saveState();
     });
 
@@ -263,23 +372,27 @@ const defaultMorals = JSON.stringify(morals);
     window.addEventListener("beforeunload", saveStateOnLeave);
 
     async function init() {
-      renderQuotes();
-      renderMorals();
-
-      const saved = await loadState();
+      const saved = normalizeState(await loadState());
 
       state = {
         quotes: mergeDefaults(
-          saved?.quotes,
+          saved.quotes,
           defaultQuoteItems,
-          (q) => `${q.text}::${q.author || ""}`
+          saved.removedDefaultQuotes,
+          quoteKey
         ),
         morals: mergeDefaults(
-          saved?.morals,
+          saved.morals,
           defaultMoralItems,
-          (m) => `${m.title}::${m.text}`
+          saved.removedDefaultMorals,
+          moralKey
         ),
+        removedDefaultQuotes: [...saved.removedDefaultQuotes],
+        removedDefaultMorals: [...saved.removedDefaultMorals],
       };
+
+      state.quotes = dedupeBy(state.quotes, quoteKey);
+      state.morals = dedupeBy(state.morals, moralKey);
 
       renderQuotes();
       renderMorals();

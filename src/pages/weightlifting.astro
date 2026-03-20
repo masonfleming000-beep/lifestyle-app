@@ -44,6 +44,8 @@ const defaultWeightliftingData = JSON.stringify({
           Add section
         </button>
       </div>
+
+      <div id="hidden-default-groups" class="hidden-default-groups"></div>
     </article>
   </section>
 
@@ -60,30 +62,142 @@ const defaultWeightliftingData = JSON.stringify({
             <div class="lift-group-summary">
               <div>
                 <p class="kicker">Muscle Group</p>
-                <h2 class="section-title">{group.title}</h2>
+                <h2 class="section-title group-title">{group.title}</h2>
               </div>
-              <label class="group-hit-toggle" onclick="event.stopPropagation();">
-                <input
-                  type="checkbox"
-                  class="group-hit-checkbox"
-                  data-group-hit={group.id}
-                  aria-label={`Mark ${group.title} for today`}
-                />
-                <span>Today</span>
-              </label>
+
+              <div class="group-summary-actions" onclick="event.stopPropagation();">
+                <button
+                  type="button"
+                  class="secondary-btn compact-btn"
+                  data-toggle-section-editor={group.id}
+                >
+                  Edit section
+                </button>
+
+                <label class="group-hit-toggle">
+                  <input
+                    type="checkbox"
+                    class="group-hit-checkbox"
+                    data-group-hit={group.id}
+                    aria-label={`Mark ${group.title} for today`}
+                  />
+                  <span>Today</span>
+                </label>
+              </div>
             </div>
           </summary>
 
           <div class="lift-group-body">
-            <div class="lift-group-tools">
-              <button
-                type="button"
-                class="secondary-btn add-exercise-btn"
-                data-add-group={group.id}
-              >
-                Add exercise
-              </button>
+            <div class="section-editor" data-section-editor={group.id} hidden>
+              <h3 class="card-title">Edit section</h3>
+
+              <div class="mind-form-grid">
+                <label>
+                  <span>Section name</span>
+                  <input
+                    type="text"
+                    class="text-input"
+                    data-group-title-input={group.id}
+                    value={group.title}
+                    placeholder="Section name"
+                  />
+                </label>
+              </div>
+
+              <div class="mind-form-actions">
+                <button
+                  type="button"
+                  class="secondary-btn"
+                  data-save-group-title={group.id}
+                >
+                  Save name
+                </button>
+
+                <button
+                  type="button"
+                  class="secondary-btn"
+                  data-restore-group-defaults={group.id}
+                  data-is-custom="false"
+                >
+                  Restore default section
+                </button>
+
+                <button
+                  type="button"
+                  class="danger-btn"
+                  data-delete-section={group.id}
+                  data-is-custom="false"
+                >
+                  Delete section
+                </button>
+              </div>
             </div>
+
+            <details class="add-exercise-panel">
+              <summary class="secondary-btn add-exercise-toggle">Add exercise</summary>
+
+              <form class="lift-exercise-form" data-exercise-form={group.id}>
+                <h3 class="card-title">Add Exercise</h3>
+
+                <div class="mind-form-grid">
+                  <label>
+                    <span>Name</span>
+                    <input
+                      type="text"
+                      name="name"
+                      placeholder="Ex: Incline Dumbbell Press"
+                      required
+                    />
+                  </label>
+
+                  <label>
+                    <span>Video URL</span>
+                    <input
+                      type="text"
+                      name="video"
+                      placeholder="Paste YouTube link or embed code (optional)"
+                    />
+                  </label>
+
+                  <label>
+                    <span>Weight</span>
+                    <input type="text" name="weight" placeholder="Ex: 50 lb" />
+                  </label>
+
+                  <label>
+                    <span>Sets</span>
+                    <input type="text" name="sets" placeholder="Ex: 3-4" required />
+                  </label>
+
+                  <label>
+                    <span>Reps</span>
+                    <input type="text" name="reps" placeholder="Ex: 8-12" required />
+                  </label>
+
+                  <label>
+                    <span>Weeks since increase</span>
+                    <input
+                      type="text"
+                      name="weeksSinceIncrease"
+                      placeholder="Ex: 2"
+                    />
+                  </label>
+                </div>
+
+                <div class="mind-form-actions">
+                  <button type="submit" class="secondary-btn">Add Exercise</button>
+
+                  <button
+                    type="button"
+                    class="secondary-btn"
+                    data-restore-exercises={group.id}
+                    data-is-custom="false"
+                  >
+                    Restore default exercises
+                  </button>
+                </div>
+              </form>
+            </details>
 
             <div
               class="exercise-grid"
@@ -91,17 +205,6 @@ const defaultWeightliftingData = JSON.stringify({
               data-group-id={group.id}
               data-default-exercises={JSON.stringify(group.exercises)}
             ></div>
-
-            <div class="group-bottom-actions">
-              <button
-                type="button"
-                class="danger-btn delete-group-btn"
-                data-delete-section={group.id}
-                data-is-custom="false"
-              >
-                Delete section
-              </button>
-            </div>
           </div>
         </details>
       ))}
@@ -293,12 +396,26 @@ const defaultWeightliftingData = JSON.stringify({
       }
     }
 
-    let defaultGroups = cloneDefaults().groups.map(normalizeGroup);
+    const sourceDefaultGroups = cloneDefaults().groups.map(normalizeGroup);
+
+    let defaultGroups = sourceDefaultGroups.map(normalizeGroup);
     let hiddenGroupIds = [];
     let customGroups = [];
     let groupDone = {};
     let exerciseData = {};
     let exerciseDone = {};
+
+    function getDefaultSourceGroup(groupId) {
+      return sourceDefaultGroups.find((group) => group.id === groupId) || null;
+    }
+
+    function getMutableDefaultGroup(groupId) {
+      return defaultGroups.find((group) => group.id === groupId) || null;
+    }
+
+    function getCustomGroup(groupId) {
+      return customGroups.find((group) => group.id === groupId) || null;
+    }
 
     function getExercises(groupId, defaults) {
       const saved = exerciseData[groupId];
@@ -307,6 +424,11 @@ const defaultWeightliftingData = JSON.stringify({
 
     function saveExercises(groupId, exercises) {
       exerciseData[groupId] = exercises.map(normalizeExercise);
+    }
+
+    function clearSavedExercises(groupId) {
+      delete exerciseData[groupId];
+      delete exerciseDone[groupId];
     }
 
     function getExerciseDone(groupId) {
@@ -362,6 +484,20 @@ const defaultWeightliftingData = JSON.stringify({
       saveGroupDone(nextGroupDone);
     }
 
+    function updateGroupTitleState(groupId, title, isCustom) {
+      if (isCustom) {
+        saveCustomGroups(
+          getCustomGroups().map((group) =>
+            group.id === groupId ? { ...group, title } : group
+          )
+        );
+      } else {
+        defaultGroups = defaultGroups.map((group) =>
+          group.id === groupId ? { ...group, title } : group
+        );
+      }
+    }
+
     function makeMetric(label, value) {
       return `
         <div class="exercise-metric">
@@ -383,30 +519,142 @@ const defaultWeightliftingData = JSON.stringify({
           <div class="lift-group-summary">
             <div>
               <p class="kicker">Muscle Group</p>
-              <h2 class="section-title">${escapeHtml(group.title)}</h2>
+              <h2 class="section-title group-title">${escapeHtml(group.title)}</h2>
             </div>
-            <label class="group-hit-toggle" onclick="event.stopPropagation();">
-              <input
-                type="checkbox"
-                class="group-hit-checkbox"
-                data-group-hit="${group.id}"
-                aria-label="Mark ${escapeHtml(group.title)} for today"
-              />
-              <span>Today</span>
-            </label>
+
+            <div class="group-summary-actions" onclick="event.stopPropagation();">
+              <button
+                type="button"
+                class="secondary-btn compact-btn"
+                data-toggle-section-editor="${group.id}"
+              >
+                Edit section
+              </button>
+
+              <label class="group-hit-toggle">
+                <input
+                  type="checkbox"
+                  class="group-hit-checkbox"
+                  data-group-hit="${group.id}"
+                  aria-label="Mark ${escapeHtml(group.title)} for today"
+                />
+                <span>Today</span>
+              </label>
+            </div>
           </div>
         </summary>
 
         <div class="lift-group-body">
-          <div class="lift-group-tools">
-            <button
-              type="button"
-              class="secondary-btn add-exercise-btn"
-              data-add-group="${group.id}"
-            >
-              Add exercise
-            </button>
+          <div class="section-editor" data-section-editor="${group.id}" hidden>
+            <h3 class="card-title">Edit section</h3>
+
+            <div class="mind-form-grid">
+              <label>
+                <span>Section name</span>
+                <input
+                  type="text"
+                  class="text-input"
+                  data-group-title-input="${group.id}"
+                  value="${escapeHtml(group.title)}"
+                  placeholder="Section name"
+                />
+              </label>
+            </div>
+
+            <div class="mind-form-actions">
+              <button
+                type="button"
+                class="secondary-btn"
+                data-save-group-title="${group.id}"
+              >
+                Save name
+              </button>
+
+              <button
+                type="button"
+                class="secondary-btn"
+                data-restore-group-defaults="${group.id}"
+                data-is-custom="${String(isCustom)}"
+              >
+                ${isCustom ? "Clear custom section" : "Restore default section"}
+              </button>
+
+              <button
+                type="button"
+                class="danger-btn"
+                data-delete-section="${group.id}"
+                data-is-custom="${String(isCustom)}"
+              >
+                Delete section
+              </button>
+            </div>
           </div>
+
+          <details class="add-exercise-panel">
+            <summary class="secondary-btn add-exercise-toggle">Add exercise</summary>
+
+            <form class="lift-exercise-form" data-exercise-form="${group.id}">
+              <h3 class="card-title">Add Exercise</h3>
+
+              <div class="mind-form-grid">
+                <label>
+                  <span>Name</span>
+                  <input
+                    type="text"
+                    name="name"
+                    placeholder="Ex: Incline Dumbbell Press"
+                    required
+                  />
+                </label>
+
+                <label>
+                  <span>Video URL</span>
+                  <input
+                    type="text"
+                    name="video"
+                    placeholder="Paste YouTube link or embed code (optional)"
+                  />
+                </label>
+
+                <label>
+                  <span>Weight</span>
+                  <input type="text" name="weight" placeholder="Ex: 50 lb" />
+                </label>
+
+                <label>
+                  <span>Sets</span>
+                  <input type="text" name="sets" placeholder="Ex: 3-4" required />
+                </label>
+
+                <label>
+                  <span>Reps</span>
+                  <input type="text" name="reps" placeholder="Ex: 8-12" required />
+                </label>
+
+                <label>
+                  <span>Weeks since increase</span>
+                  <input
+                    type="text"
+                    name="weeksSinceIncrease"
+                    placeholder="Ex: 2"
+                  />
+                </label>
+              </div>
+
+              <div class="mind-form-actions">
+                <button type="submit" class="secondary-btn">Add Exercise</button>
+
+                <button
+                  type="button"
+                  class="secondary-btn"
+                  data-restore-exercises="${group.id}"
+                  data-is-custom="${String(isCustom)}"
+                >
+                  ${isCustom ? "Clear all exercises" : "Restore default exercises"}
+                </button>
+              </div>
+            </form>
+          </details>
 
           <div
             class="exercise-grid"
@@ -414,26 +662,39 @@ const defaultWeightliftingData = JSON.stringify({
             data-group-id="${group.id}"
             data-default-exercises='${JSON.stringify(group.exercises || [])}'
           ></div>
-
-          <div class="group-bottom-actions">
-            <button
-              type="button"
-              class="danger-btn delete-group-btn"
-              data-delete-section="${group.id}"
-              data-is-custom="${String(isCustom)}"
-            >
-              Delete section
-            </button>
-          </div>
         </div>
       `;
 
       return details;
     }
 
+    function updateGroupDom(groupEl, group) {
+      groupEl.dataset.groupTitle = group.title;
+
+      const titleEl = groupEl.querySelector(".group-title");
+      if (titleEl) titleEl.textContent = group.title;
+
+      const titleInput = groupEl.querySelector(`[data-group-title-input="${group.id}"]`);
+      if (titleInput instanceof HTMLInputElement) {
+        titleInput.value = group.title;
+      }
+
+      const checkbox = groupEl.querySelector("[data-group-hit]");
+      if (checkbox instanceof HTMLInputElement) {
+        checkbox.setAttribute("aria-label", `Mark ${group.title} for today`);
+      }
+
+      const grid = groupEl.querySelector(".exercise-grid");
+      if (grid instanceof HTMLElement) {
+        grid.dataset.defaultExercises = JSON.stringify(group.exercises || []);
+      }
+    }
+
     function renderGroup(groupEl) {
       const groupId = groupEl.dataset.groupId;
       const grid = document.getElementById(`group-${groupId}`);
+      if (!grid) return;
+
       const defaults = JSON.parse(grid.dataset.defaultExercises || "[]").map(normalizeExercise);
       const exercises = getExercises(groupId, defaults);
       const doneMap = getExerciseDone(groupId);
@@ -482,10 +743,76 @@ const defaultWeightliftingData = JSON.stringify({
           }
 
           <div class="exercise-actions">
-            <button type="button" class="secondary-btn delete-exercise-btn" data-delete-group="${groupId}" data-index="${index}">
-              Delete exercise
+            <button
+              type="button"
+              class="secondary-btn compact-btn edit-exercise-btn"
+              data-edit-exercise="${groupId}"
+              data-index="${index}"
+            >
+              Edit
+            </button>
+
+            <button
+              type="button"
+              class="danger-btn compact-btn delete-exercise-btn"
+              data-delete-group="${groupId}"
+              data-index="${index}"
+            >
+              Delete
             </button>
           </div>
+
+          <form class="exercise-edit-form" data-exercise-edit-form="${groupId}" data-index="${index}" hidden>
+            <h4 class="card-title">Edit exercise</h4>
+
+            <div class="mind-form-grid">
+              <label>
+                <span>Name</span>
+                <input type="text" name="name" value="${escapeHtml(exercise.name)}" required />
+              </label>
+
+              <label>
+                <span>Video URL</span>
+                <input type="text" name="video" value="${escapeHtml(exercise.video)}" />
+              </label>
+
+              <label>
+                <span>Weight</span>
+                <input type="text" name="weight" value="${escapeHtml(exercise.weight)}" />
+              </label>
+
+              <label>
+                <span>Sets</span>
+                <input type="text" name="sets" value="${escapeHtml(exercise.sets)}" required />
+              </label>
+
+              <label>
+                <span>Reps</span>
+                <input type="text" name="reps" value="${escapeHtml(exercise.reps)}" required />
+              </label>
+
+              <label>
+                <span>Weeks since increase</span>
+                <input
+                  type="text"
+                  name="weeksSinceIncrease"
+                  value="${escapeHtml(exercise.weeksSinceIncrease)}"
+                />
+              </label>
+            </div>
+
+            <div class="mind-form-actions">
+              <button type="submit" class="secondary-btn compact-btn">Save</button>
+              <button
+                type="button"
+                class="secondary-btn compact-btn"
+                data-cancel-exercise-edit="${groupId}"
+                data-index="${index}"
+              >
+                Cancel
+              </button>
+            </div>
+          </form>
         `;
 
         grid.appendChild(article);
@@ -521,12 +848,71 @@ const defaultWeightliftingData = JSON.stringify({
           await saveState();
         });
       });
+
+      grid.querySelectorAll("[data-edit-exercise]").forEach((btn) => {
+        btn.addEventListener("click", (e) => {
+          const idx = Number(e.currentTarget.dataset.index);
+          const form = grid.querySelector(
+            `[data-exercise-edit-form="${groupId}"][data-index="${idx}"]`
+          );
+          if (form instanceof HTMLElement) {
+            form.hidden = false;
+          }
+        });
+      });
+
+      grid.querySelectorAll("[data-cancel-exercise-edit]").forEach((btn) => {
+        btn.addEventListener("click", (e) => {
+          const idx = Number(e.currentTarget.dataset.index);
+          const form = grid.querySelector(
+            `[data-exercise-edit-form="${groupId}"][data-index="${idx}"]`
+          );
+          if (form instanceof HTMLElement) {
+            form.hidden = true;
+          }
+        });
+      });
+
+      grid.querySelectorAll(`[data-exercise-edit-form="${groupId}"]`).forEach((form) => {
+        form.addEventListener("submit", async (event) => {
+          event.preventDefault();
+
+          const idx = Number(form.dataset.index);
+          const currentExercises = getExercises(groupId, defaults);
+          const formData = new FormData(form);
+
+          const name = String(formData.get("name") || "").trim();
+          const weight = String(formData.get("weight") || "").trim();
+          const sets = String(formData.get("sets") || "").trim();
+          const reps = String(formData.get("reps") || "").trim();
+          const weeksSinceIncrease = String(formData.get("weeksSinceIncrease") || "").trim();
+          const video = String(formData.get("video") || "").trim();
+
+          if (!name || !sets || !reps) {
+            window.alert("Please fill out name, sets, and reps.");
+            return;
+          }
+
+          currentExercises[idx] = normalizeExercise({
+            name,
+            weight,
+            sets,
+            reps,
+            weeksSinceIncrease,
+            video,
+          });
+
+          saveExercises(groupId, currentExercises);
+          renderGroup(groupEl);
+          await saveState();
+        });
+      });
     }
 
     function wireGroupDoneCheckbox(groupEl) {
       const groupDoneMap = loadGroupDone();
       const checkbox = groupEl.querySelector("[data-group-hit]");
-      if (!checkbox) return;
+      if (!(checkbox instanceof HTMLInputElement)) return;
 
       const groupId = checkbox.dataset.groupHit;
       checkbox.checked = !!groupDoneMap[groupId];
@@ -539,45 +925,71 @@ const defaultWeightliftingData = JSON.stringify({
       });
     }
 
-    function wireAddExerciseButton(groupEl) {
-      const btn = groupEl.querySelector("[data-add-group]");
-      if (!btn) return;
+    function setupExerciseForm(groupEl) {
+      const form = groupEl.querySelector("[data-exercise-form]");
+      if (!(form instanceof HTMLFormElement)) return;
 
-      btn.addEventListener("click", async () => {
-        const groupId = btn.dataset.addGroup;
-        const grid = document.getElementById(`group-${groupId}`);
-        const defaults = JSON.parse(grid.dataset.defaultExercises || "[]").map(normalizeExercise);
-        const exercises = getExercises(groupId, defaults);
+      form.addEventListener("submit", async (event) => {
+        event.preventDefault();
 
-        const name = window.prompt("Exercise name:");
-        if (!name) return;
+        try {
+          const groupId = form.getAttribute("data-exercise-form");
+          if (!groupId) return;
 
-        const weight = window.prompt("Weight:", "") ?? "";
-        const sets = window.prompt("Sets:", "3-4") ?? "";
-        const reps = window.prompt("Reps:", "8-12") ?? "";
-        const weeksSinceIncrease = window.prompt("Weeks since increase:", "") ?? "";
-        const video = window.prompt("YouTube link or embed code:", "") ?? "";
+          const grid = document.getElementById(`group-${groupId}`);
+          if (!grid) return;
 
-        exercises.push(
-          normalizeExercise({
+          const defaults = JSON.parse(grid.dataset.defaultExercises || "[]").map(normalizeExercise);
+          const exercises = getExercises(groupId, defaults);
+
+          const formData = new FormData(form);
+
+          const name = String(formData.get("name") || "").trim();
+          const weight = String(formData.get("weight") || "").trim();
+          const sets = String(formData.get("sets") || "").trim();
+          const reps = String(formData.get("reps") || "").trim();
+          const weeksSinceIncrease = String(formData.get("weeksSinceIncrease") || "").trim();
+          const video = String(formData.get("video") || "").trim();
+
+          if (!name) {
+            window.alert("Please enter an exercise name.");
+            return;
+          }
+
+          if (!sets || !reps) {
+            window.alert("Please fill out sets and reps.");
+            return;
+          }
+
+          const newExercise = normalizeExercise({
             name,
             weight,
             sets,
             reps,
             weeksSinceIncrease,
             video,
-          })
-        );
+          });
 
-        saveExercises(groupId, exercises);
-        renderGroup(groupEl);
-        await saveState();
+          saveExercises(groupId, [...exercises, newExercise]);
+          form.reset();
+
+          const panel = form.closest(".add-exercise-panel");
+          if (panel instanceof HTMLDetailsElement) {
+            panel.open = false;
+          }
+
+          renderGroup(groupEl);
+          await saveState();
+        } catch (error) {
+          console.error("Failed to add exercise:", error);
+          window.alert("Could not add exercise. Check console for the exact error.");
+        }
       });
     }
 
     function wireDeleteGroupButton(groupEl) {
       const btn = groupEl.querySelector("[data-delete-section]");
-      if (!btn) return;
+      if (!(btn instanceof HTMLElement)) return;
 
       btn.addEventListener("click", async () => {
         const groupId = btn.dataset.deleteSection;
@@ -594,15 +1006,118 @@ const defaultWeightliftingData = JSON.stringify({
         }
 
         groupEl.remove();
+        renderHiddenDefaultGroups();
         await saveState();
       });
+    }
+
+    function wireSectionEditor(groupEl) {
+      const groupId = groupEl.dataset.groupId;
+      const isCustom = groupEl.dataset.isCustom === "true";
+
+      const toggleBtn = groupEl.querySelector(`[data-toggle-section-editor="${groupId}"]`);
+      const editor = groupEl.querySelector(`[data-section-editor="${groupId}"]`);
+      const titleInput = groupEl.querySelector(`[data-group-title-input="${groupId}"]`);
+      const saveBtn = groupEl.querySelector(`[data-save-group-title="${groupId}"]`);
+      const restoreGroupBtn = groupEl.querySelector(`[data-restore-group-defaults="${groupId}"]`);
+      const restoreExercisesBtn = groupEl.querySelector(`[data-restore-exercises="${groupId}"]`);
+
+      if (toggleBtn instanceof HTMLElement && editor instanceof HTMLElement) {
+        toggleBtn.addEventListener("click", () => {
+          editor.hidden = !editor.hidden;
+        });
+      }
+
+      if (saveBtn instanceof HTMLElement && titleInput instanceof HTMLInputElement) {
+        saveBtn.addEventListener("click", async () => {
+          const nextTitle = titleInput.value.trim();
+          if (!nextTitle) {
+            window.alert("Please enter a section name.");
+            return;
+          }
+
+          updateGroupTitleState(groupId, nextTitle, isCustom);
+
+          const nextGroup = isCustom ? getCustomGroup(groupId) : getMutableDefaultGroup(groupId);
+          if (nextGroup) {
+            updateGroupDom(groupEl, nextGroup);
+          }
+
+          await saveState();
+        });
+      }
+
+      if (restoreGroupBtn instanceof HTMLElement) {
+        restoreGroupBtn.addEventListener("click", async () => {
+          if (isCustom) {
+            const confirmed = window.confirm("Clear this custom section back to empty?");
+            if (!confirmed) return;
+
+            saveExercises(groupId, []);
+            saveExerciseDone(groupId, {});
+            renderGroup(groupEl);
+            await saveState();
+            return;
+          }
+
+          const source = getDefaultSourceGroup(groupId);
+          if (!source) return;
+
+          defaultGroups = defaultGroups.map((group) =>
+            group.id === groupId ? normalizeGroup(source) : group
+          );
+
+          clearSavedExercises(groupId);
+
+          const nextDone = { ...loadGroupDone() };
+          delete nextDone[groupId];
+          saveGroupDone(nextDone);
+
+          updateGroupDom(groupEl, normalizeGroup(source));
+          renderGroup(groupEl);
+          await saveState();
+        });
+      }
+
+      if (restoreExercisesBtn instanceof HTMLElement) {
+        restoreExercisesBtn.addEventListener("click", async () => {
+          if (isCustom) {
+            const confirmed = window.confirm("Remove all exercises from this custom section?");
+            if (!confirmed) return;
+
+            saveExercises(groupId, []);
+            saveExerciseDone(groupId, {});
+            renderGroup(groupEl);
+            await saveState();
+            return;
+          }
+
+          const source = getDefaultSourceGroup(groupId);
+          if (!source) return;
+
+          saveExercises(groupId, source.exercises.map(normalizeExercise));
+          saveExerciseDone(groupId, {});
+          renderGroup(groupEl);
+          await saveState();
+        });
+      }
     }
 
     function setupGroup(groupEl) {
       renderGroup(groupEl);
       wireGroupDoneCheckbox(groupEl);
-      wireAddExerciseButton(groupEl);
+      setupExerciseForm(groupEl);
       wireDeleteGroupButton(groupEl);
+      wireSectionEditor(groupEl);
+    }
+
+    function syncExistingDefaultGroupMarkup() {
+      document.querySelectorAll('.lift-group[data-is-custom="false"]').forEach((groupEl) => {
+        const groupId = groupEl.dataset.groupId;
+        const group = getMutableDefaultGroup(groupId);
+        if (!group) return;
+        updateGroupDom(groupEl, group);
+      });
     }
 
     function hideDefaultGroupsMarkedHidden() {
@@ -615,21 +1130,94 @@ const defaultWeightliftingData = JSON.stringify({
 
     function renderCustomGroups() {
       const container = document.getElementById("weightlifting-groups");
+      if (!container) return;
+
       const custom = getCustomGroups();
       const hidden = getHiddenGroups();
 
       custom.forEach((group) => {
         if (hidden.includes(group.id)) return;
         if (container.querySelector(`[data-group-id="${group.id}"]`)) return;
+
         const groupEl = makeGroupMarkup(group, true);
         container.appendChild(groupEl);
         setupGroup(groupEl);
       });
     }
 
+    function renderHiddenDefaultGroups() {
+      const container = document.getElementById("hidden-default-groups");
+      if (!container) return;
+
+      const hiddenDefaults = getHiddenGroups()
+        .map((id) => getDefaultSourceGroup(id))
+        .filter(Boolean);
+
+      if (!hiddenDefaults.length) {
+        container.innerHTML = "";
+        return;
+      }
+
+      container.innerHTML = `
+        <div class="hidden-default-groups-card">
+          <h3 class="card-title">Hidden default sections</h3>
+          <p class="section-subtitle">Restore any built-in section you deleted.</p>
+
+          <div class="hidden-default-groups-list">
+            ${hiddenDefaults
+              .map(
+                (group) => `
+                  <div class="hidden-default-group-row">
+                    <span>${escapeHtml(group.title)}</span>
+                    <button
+                      type="button"
+                      class="secondary-btn compact-btn"
+                      data-restore-hidden-group="${group.id}"
+                    >
+                      Restore
+                    </button>
+                  </div>
+                `
+              )
+              .join("")}
+          </div>
+        </div>
+      `;
+
+      container.querySelectorAll("[data-restore-hidden-group]").forEach((btn) => {
+        btn.addEventListener("click", async () => {
+          const groupId = btn.dataset.restoreHiddenGroup;
+          const source = getDefaultSourceGroup(groupId);
+          if (!source) return;
+
+          defaultGroups = defaultGroups.map((group) =>
+            group.id === groupId ? normalizeGroup(source) : group
+          );
+
+          clearSavedExercises(groupId);
+          unhideGroup(groupId);
+
+          const weightliftingGroups = document.getElementById("weightlifting-groups");
+          if (!weightliftingGroups) return;
+
+          const existing = weightliftingGroups.querySelector(`[data-group-id="${groupId}"]`);
+          if (!existing) {
+            const groupEl = makeGroupMarkup(source, false);
+            weightliftingGroups.appendChild(groupEl);
+            setupGroup(groupEl);
+          }
+
+          renderHiddenDefaultGroups();
+          await saveState();
+        });
+      });
+    }
+
     function setupCreateGroup() {
       const btn = document.getElementById("create-group-btn");
       const input = document.getElementById("new-group-title");
+
+      if (!(btn instanceof HTMLElement) || !(input instanceof HTMLInputElement)) return;
 
       btn.addEventListener("click", async () => {
         const rawTitle = input.value.trim();
@@ -659,6 +1247,8 @@ const defaultWeightliftingData = JSON.stringify({
         unhideGroup(nextId);
 
         const container = document.getElementById("weightlifting-groups");
+        if (!container) return;
+
         const groupEl = makeGroupMarkup(newGroup, true);
         container.appendChild(groupEl);
         setupGroup(groupEl);
@@ -670,6 +1260,7 @@ const defaultWeightliftingData = JSON.stringify({
     }
 
     function setupWeightTraining() {
+      syncExistingDefaultGroupMarkup();
       hideDefaultGroupsMarkedHidden();
 
       document.querySelectorAll(".lift-group").forEach((groupEl) => {
@@ -677,6 +1268,7 @@ const defaultWeightliftingData = JSON.stringify({
       });
 
       renderCustomGroups();
+      renderHiddenDefaultGroups();
       setupCreateGroup();
     }
 
@@ -686,7 +1278,7 @@ const defaultWeightliftingData = JSON.stringify({
       defaultGroups =
         Array.isArray(saved.groups) && saved.groups.length
           ? saved.groups.map(normalizeGroup)
-          : cloneDefaults().groups.map(normalizeGroup);
+          : sourceDefaultGroups.map(normalizeGroup);
 
       hiddenGroupIds = Array.isArray(saved.hiddenGroupIds) ? saved.hiddenGroupIds : [];
       customGroups = Array.isArray(saved.customGroups) ? saved.customGroups.map(normalizeGroup) : [];
