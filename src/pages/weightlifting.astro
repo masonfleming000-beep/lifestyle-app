@@ -3,12 +3,19 @@ import BaseLayout from "../layouts/BaseLayout.astro";
 import { liftingGroups } from "../data/weightlifting";
 
 const defaultWeightliftingData = JSON.stringify({
-  groups: liftingGroups,
-  hiddenGroupIds: [],
+  defaultGroups: liftingGroups.map((group, groupIndex) => ({
+    ...group,
+    id: group.id || `default-group-${groupIndex}`,
+    isDefault: true,
+    exercises: (group.exercises || []).map((exercise, exerciseIndex) => ({
+      ...exercise,
+      id: `${group.id || `default-group-${groupIndex}`}-exercise-${exerciseIndex}`,
+      isDefault: true,
+    })),
+  })),
   customGroups: [],
+  hiddenDefaultGroupIds: [],
   groupDone: {},
-  exerciseData: {},
-  exerciseDone: {},
 });
 ---
 
@@ -18,8 +25,8 @@ const defaultWeightliftingData = JSON.stringify({
       <p class="kicker">Weight Training</p>
       <h1>Train by muscle group.</h1>
       <p>
-        Keep your defaults, add your own sections, add workouts to any section,
-        and remove any section you do not want showing.
+        Same cleaner pattern as the Mind page — default groups, custom groups,
+        and a simple exercise add flow inside each section.
       </p>
     </div>
   </section>
@@ -50,165 +57,7 @@ const defaultWeightliftingData = JSON.stringify({
   </section>
 
   <section class="section">
-    <div class="grid one" id="weightlifting-groups">
-      {liftingGroups.map((group) => (
-        <details
-          class="lift-group"
-          data-group-id={group.id}
-          data-group-title={group.title}
-          data-is-custom="false"
-        >
-          <summary>
-            <div class="lift-group-summary">
-              <div>
-                <p class="kicker">Muscle Group</p>
-                <h2 class="section-title group-title">{group.title}</h2>
-              </div>
-
-              <div class="group-summary-actions" onclick="event.stopPropagation();">
-                <button
-                  type="button"
-                  class="secondary-btn compact-btn"
-                  data-toggle-section-editor={group.id}
-                >
-                  Edit section
-                </button>
-
-                <label class="group-hit-toggle">
-                  <input
-                    type="checkbox"
-                    class="group-hit-checkbox"
-                    data-group-hit={group.id}
-                    aria-label={`Mark ${group.title} for today`}
-                  />
-                  <span>Today</span>
-                </label>
-              </div>
-            </div>
-          </summary>
-
-          <div class="lift-group-body">
-            <div class="section-editor" data-section-editor={group.id} hidden>
-              <h3 class="card-title">Edit section</h3>
-
-              <div class="mind-form-grid">
-                <label>
-                  <span>Section name</span>
-                  <input
-                    type="text"
-                    class="text-input"
-                    data-group-title-input={group.id}
-                    value={group.title}
-                    placeholder="Section name"
-                  />
-                </label>
-              </div>
-
-              <div class="mind-form-actions">
-                <button
-                  type="button"
-                  class="secondary-btn"
-                  data-save-group-title={group.id}
-                >
-                  Save name
-                </button>
-
-                <button
-                  type="button"
-                  class="secondary-btn"
-                  data-restore-group-defaults={group.id}
-                  data-is-custom="false"
-                >
-                  Restore default section
-                </button>
-
-                <button
-                  type="button"
-                  class="danger-btn"
-                  data-delete-section={group.id}
-                  data-is-custom="false"
-                >
-                  Delete section
-                </button>
-              </div>
-            </div>
-
-            <details class="add-exercise-panel">
-              <summary class="secondary-btn add-exercise-toggle">Add exercise</summary>
-
-              <form class="lift-exercise-form" data-exercise-form={group.id}>
-                <h3 class="card-title">Add Exercise</h3>
-
-                <div class="mind-form-grid">
-                  <label>
-                    <span>Name</span>
-                    <input
-                      type="text"
-                      name="name"
-                      placeholder="Ex: Incline Dumbbell Press"
-                      required
-                    />
-                  </label>
-
-                  <label>
-                    <span>Video URL</span>
-                    <input
-                      type="text"
-                      name="video"
-                      placeholder="Paste YouTube link or embed code (optional)"
-                    />
-                  </label>
-
-                  <label>
-                    <span>Weight</span>
-                    <input type="text" name="weight" placeholder="Ex: 50 lb" />
-                  </label>
-
-                  <label>
-                    <span>Sets</span>
-                    <input type="text" name="sets" placeholder="Ex: 3-4" required />
-                  </label>
-
-                  <label>
-                    <span>Reps</span>
-                    <input type="text" name="reps" placeholder="Ex: 8-12" required />
-                  </label>
-
-                  <label>
-                    <span>Weeks since increase</span>
-                    <input
-                      type="text"
-                      name="weeksSinceIncrease"
-                      placeholder="Ex: 2"
-                    />
-                  </label>
-                </div>
-
-                <div class="mind-form-actions">
-                  <button type="submit" class="secondary-btn">Add Exercise</button>
-
-                  <button
-                    type="button"
-                    class="secondary-btn"
-                    data-restore-exercises={group.id}
-                    data-is-custom="false"
-                  >
-                    Restore default exercises
-                  </button>
-                </div>
-              </form>
-            </details>
-
-            <div
-              class="exercise-grid"
-              id={`group-${group.id}`}
-              data-group-id={group.id}
-              data-default-exercises={JSON.stringify(group.exercises)}
-            ></div>
-          </div>
-        </details>
-      ))}
-    </div>
+    <div class="grid one" id="weightlifting-groups"></div>
   </section>
 
   <script define:vars={{ defaultWeightliftingData }}>
@@ -219,7 +68,7 @@ const defaultWeightliftingData = JSON.stringify({
     }
 
     function slugify(value) {
-      return value
+      return String(value || "")
         .toLowerCase()
         .trim()
         .replace(/[^a-z0-9]+/g, "-")
@@ -237,7 +86,6 @@ const defaultWeightliftingData = JSON.stringify({
 
     function parseYouTubeTimeToSeconds(value) {
       if (!value) return 0;
-
       if (/^\d+$/.test(value)) return Number(value);
 
       const match = value.match(/(?:(\d+)h)?(?:(\d+)m)?(?:(\d+)s)?/i);
@@ -303,20 +151,31 @@ const defaultWeightliftingData = JSON.stringify({
 
     function normalizeExercise(exercise) {
       return {
+        id:
+          exercise?.id ||
+          (typeof crypto !== "undefined" && crypto.randomUUID
+            ? crypto.randomUUID()
+            : `exercise-${Date.now()}-${Math.random().toString(16).slice(2)}`),
         name: exercise?.name || "Untitled Exercise",
         weight: exercise?.weight || "",
         sets: exercise?.sets || "",
         reps: exercise?.reps || "",
         weeksSinceIncrease: exercise?.weeksSinceIncrease || "",
         video: normalizeYouTubeEmbed(exercise?.video || ""),
+        isDefault: !!exercise?.isDefault,
       };
     }
 
     function normalizeGroup(group) {
       return {
-        id: group?.id || `group-${Date.now()}-${Math.random().toString(16).slice(2)}`,
+        id:
+          group?.id ||
+          (typeof crypto !== "undefined" && crypto.randomUUID
+            ? crypto.randomUUID()
+            : `group-${Date.now()}-${Math.random().toString(16).slice(2)}`),
         title: group?.title || "Untitled Group",
         exercises: Array.isArray(group?.exercises) ? group.exercises.map(normalizeExercise) : [],
+        isDefault: !!group?.isDefault,
       };
     }
 
@@ -324,15 +183,17 @@ const defaultWeightliftingData = JSON.stringify({
       const defaults = cloneDefaults();
       const parsed = raw && typeof raw === "object" ? raw : {};
 
-      const defaultGroups = Array.isArray(defaults.groups) ? defaults.groups.map(normalizeGroup) : [];
-
       return {
-        groups: Array.isArray(parsed.groups) ? parsed.groups.map(normalizeGroup) : defaultGroups,
-        hiddenGroupIds: Array.isArray(parsed.hiddenGroupIds) ? parsed.hiddenGroupIds : [],
-        customGroups: Array.isArray(parsed.customGroups) ? parsed.customGroups.map(normalizeGroup) : [],
+        defaultGroups: Array.isArray(parsed.defaultGroups)
+          ? parsed.defaultGroups.map(normalizeGroup)
+          : defaults.defaultGroups.map(normalizeGroup),
+        customGroups: Array.isArray(parsed.customGroups)
+          ? parsed.customGroups.map(normalizeGroup).map((group) => ({ ...group, isDefault: false }))
+          : [],
+        hiddenDefaultGroupIds: Array.isArray(parsed.hiddenDefaultGroupIds)
+          ? parsed.hiddenDefaultGroupIds
+          : [],
         groupDone: parsed.groupDone && typeof parsed.groupDone === "object" ? parsed.groupDone : {},
-        exerciseData: parsed.exerciseData && typeof parsed.exerciseData === "object" ? parsed.exerciseData : {},
-        exerciseDone: parsed.exerciseDone && typeof parsed.exerciseDone === "object" ? parsed.exerciseDone : {},
       };
     }
 
@@ -375,12 +236,10 @@ const defaultWeightliftingData = JSON.stringify({
           body: JSON.stringify({
             pageKey,
             state: {
-              groups: defaultGroups,
-              hiddenGroupIds,
+              defaultGroups,
               customGroups,
+              hiddenDefaultGroupIds,
               groupDone,
-              exerciseData,
-              exerciseDone,
             },
           }),
         });
@@ -396,204 +255,204 @@ const defaultWeightliftingData = JSON.stringify({
       }
     }
 
-    const sourceDefaultGroups = cloneDefaults().groups.map(normalizeGroup);
+    const sourceDefaultGroups = cloneDefaults().defaultGroups.map(normalizeGroup);
 
     let defaultGroups = sourceDefaultGroups.map(normalizeGroup);
-    let hiddenGroupIds = [];
     let customGroups = [];
+    let hiddenDefaultGroupIds = [];
     let groupDone = {};
-    let exerciseData = {};
-    let exerciseDone = {};
 
-    function getDefaultSourceGroup(groupId) {
+    function getVisibleGroups() {
+      return [
+        ...defaultGroups.filter((group) => !hiddenDefaultGroupIds.includes(group.id)),
+        ...customGroups.map((group) => ({ ...group, isDefault: false })),
+      ];
+    }
+
+    function getGroupById(groupId) {
+      return (
+        defaultGroups.find((group) => group.id === groupId) ||
+        customGroups.find((group) => group.id === groupId) ||
+        null
+      );
+    }
+
+    function getSourceDefaultGroup(groupId) {
       return sourceDefaultGroups.find((group) => group.id === groupId) || null;
     }
 
-    function getMutableDefaultGroup(groupId) {
-      return defaultGroups.find((group) => group.id === groupId) || null;
-    }
+    function updateGroup(groupId, updater) {
+      const defaultIndex = defaultGroups.findIndex((group) => group.id === groupId);
+      if (defaultIndex !== -1) {
+        const next = [...defaultGroups];
+        next[defaultIndex] = normalizeGroup(updater(next[defaultIndex]));
+        defaultGroups = next;
+        return;
+      }
 
-    function getCustomGroup(groupId) {
-      return customGroups.find((group) => group.id === groupId) || null;
-    }
-
-    function getExercises(groupId, defaults) {
-      const saved = exerciseData[groupId];
-      return Array.isArray(saved) ? saved.map(normalizeExercise) : defaults.map(normalizeExercise);
-    }
-
-    function saveExercises(groupId, exercises) {
-      exerciseData[groupId] = exercises.map(normalizeExercise);
-    }
-
-    function clearSavedExercises(groupId) {
-      delete exerciseData[groupId];
-      delete exerciseDone[groupId];
-    }
-
-    function getExerciseDone(groupId) {
-      const saved = exerciseDone[groupId];
-      return saved && typeof saved === "object" ? saved : {};
-    }
-
-    function saveExerciseDone(groupId, value) {
-      exerciseDone[groupId] = value;
-    }
-
-    function getCustomGroups() {
-      return customGroups;
-    }
-
-    function saveCustomGroups(groups) {
-      customGroups = groups.map(normalizeGroup);
-    }
-
-    function getHiddenGroups() {
-      return hiddenGroupIds;
-    }
-
-    function saveHiddenGroups(groupIds) {
-      hiddenGroupIds = [...groupIds];
-    }
-
-    function loadGroupDone() {
-      return groupDone;
-    }
-
-    function saveGroupDone(value) {
-      groupDone = { ...value };
-    }
-
-    function hideGroup(groupId) {
-      const hidden = getHiddenGroups();
-      if (!hidden.includes(groupId)) {
-        saveHiddenGroups([...hidden, groupId]);
+      const customIndex = customGroups.findIndex((group) => group.id === groupId);
+      if (customIndex !== -1) {
+        const next = [...customGroups];
+        next[customIndex] = { ...normalizeGroup(updater(next[customIndex])), isDefault: false };
+        customGroups = next;
       }
     }
 
-    function unhideGroup(groupId) {
-      saveHiddenGroups(getHiddenGroups().filter((id) => id !== groupId));
-    }
+    function renderHiddenDefaultGroups() {
+      const container = document.getElementById("hidden-default-groups");
+      if (!container) return;
 
-    function removeStorageForGroup(groupId) {
-      delete exerciseData[groupId];
-      delete exerciseDone[groupId];
+      const hiddenDefaults = hiddenDefaultGroupIds
+        .map((id) => getSourceDefaultGroup(id))
+        .filter(Boolean);
 
-      const nextGroupDone = { ...loadGroupDone() };
-      delete nextGroupDone[groupId];
-      saveGroupDone(nextGroupDone);
-    }
-
-    function updateGroupTitleState(groupId, title, isCustom) {
-      if (isCustom) {
-        saveCustomGroups(
-          getCustomGroups().map((group) =>
-            group.id === groupId ? { ...group, title } : group
-          )
-        );
-      } else {
-        defaultGroups = defaultGroups.map((group) =>
-          group.id === groupId ? { ...group, title } : group
-        );
+      if (!hiddenDefaults.length) {
+        container.innerHTML = "";
+        return;
       }
-    }
 
-    function makeMetric(label, value) {
-      return `
-        <div class="exercise-metric">
-          <span class="exercise-metric-label">${label}</span>
-          <span class="exercise-metric-value">${value || "-"}</span>
+      container.innerHTML = `
+        <div class="hidden-default-groups-card">
+          <h3 class="card-title">Hidden default sections</h3>
+          <p class="section-subtitle">Restore any built-in section you deleted.</p>
+
+          <div class="hidden-default-groups-list">
+            ${hiddenDefaults
+              .map(
+                (group) => `
+                  <div class="hidden-default-group-row">
+                    <span>${escapeHtml(group.title)}</span>
+                    <button
+                      type="button"
+                      class="secondary-btn compact-btn"
+                      data-restore-hidden-group="${escapeHtml(group.id)}"
+                    >
+                      Restore
+                    </button>
+                  </div>
+                `
+              )
+              .join("")}
+          </div>
         </div>
+      `;
+
+      container.querySelectorAll("[data-restore-hidden-group]").forEach((btn) => {
+        btn.addEventListener("click", async () => {
+          const groupId = btn.getAttribute("data-restore-hidden-group");
+          if (!groupId) return;
+
+          hiddenDefaultGroupIds = hiddenDefaultGroupIds.filter((id) => id !== groupId);
+
+          const source = getSourceDefaultGroup(groupId);
+          if (source) {
+            defaultGroups = defaultGroups.map((group) =>
+              group.id === groupId ? normalizeGroup(source) : group
+            );
+          }
+
+          renderGroups();
+          renderHiddenDefaultGroups();
+          await saveState();
+        });
+      });
+    }
+
+    function makeExerciseMarkup(group, exercise) {
+      const safeVideo = normalizeYouTubeEmbed(exercise.video || "");
+
+      return `
+        <details class="mind-dropdown">
+          <summary class="mind-summary">
+            <div>
+              <h3 class="card-title">${escapeHtml(exercise.name)}</h3>
+              <p class="meta">
+                ${exercise.isDefault ? "Default exercise" : "Custom exercise"}
+              </p>
+            </div>
+            <span class="mind-summary-icon">+</span>
+          </summary>
+
+          <div class="mind-dropdown-body">
+            <div class="metric-grid yoga-metrics">
+              <article class="metric">
+                <p class="metric-label">Weight</p>
+                <p class="big-number">${escapeHtml(exercise.weight || "--")}</p>
+              </article>
+              <article class="metric">
+                <p class="metric-label">Sets</p>
+                <p class="big-number">${escapeHtml(exercise.sets || "--")}</p>
+              </article>
+              <article class="metric">
+                <p class="metric-label">Reps</p>
+                <p class="big-number">${escapeHtml(exercise.reps || "--")}</p>
+              </article>
+              <article class="metric">
+                <p class="metric-label">Weeks since increase</p>
+                <p class="big-number">${escapeHtml(exercise.weeksSinceIncrease || "--")}</p>
+              </article>
+            </div>
+
+            ${
+              safeVideo
+                ? `
+              <div class="video-wrap">
+                <iframe
+                  src="${safeVideo}"
+                  title="${escapeHtml(exercise.name)}"
+                  frameborder="0"
+                  allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share"
+                  referrerpolicy="strict-origin-when-cross-origin"
+                  allowfullscreen
+                  loading="lazy"
+                ></iframe>
+              </div>
+            `
+                : ""
+            }
+
+            <div class="mind-item-actions">
+              <button
+                type="button"
+                class="delete-btn"
+                data-delete-exercise-id="${escapeHtml(exercise.id)}"
+                data-delete-exercise-group-id="${escapeHtml(group.id)}"
+              >
+                Delete Exercise
+              </button>
+            </div>
+          </div>
+        </details>
       `;
     }
 
-    function makeGroupMarkup(group, isCustom = false) {
-      const details = document.createElement("details");
-      details.className = "lift-group";
-      details.dataset.groupId = group.id;
-      details.dataset.groupTitle = group.title;
-      details.dataset.isCustom = String(isCustom);
+    function makeGroupMarkup(group) {
+      return `
+        <details class="lift-group" data-group-id="${escapeHtml(group.id)}">
+          <summary>
+            <div class="lift-group-summary">
+              <div>
+                <p class="kicker">Muscle Group</p>
+                <h2 class="section-title group-title">${escapeHtml(group.title)}</h2>
+              </div>
 
-      details.innerHTML = `
-        <summary>
-          <div class="lift-group-summary">
-            <div>
-              <p class="kicker">Muscle Group</p>
-              <h2 class="section-title group-title">${escapeHtml(group.title)}</h2>
+              <div class="group-summary-actions" onclick="event.stopPropagation();">
+                <label class="group-hit-toggle">
+                  <input
+                    type="checkbox"
+                    class="group-hit-checkbox"
+                    data-group-hit="${escapeHtml(group.id)}"
+                    ${groupDone[group.id] ? "checked" : ""}
+                    aria-label="Mark ${escapeHtml(group.title)} for today"
+                  />
+                  <span>Today</span>
+                </label>
+              </div>
             </div>
+          </summary>
 
-            <div class="group-summary-actions" onclick="event.stopPropagation();">
-              <button
-                type="button"
-                class="secondary-btn compact-btn"
-                data-toggle-section-editor="${group.id}"
-              >
-                Edit section
-              </button>
-
-              <label class="group-hit-toggle">
-                <input
-                  type="checkbox"
-                  class="group-hit-checkbox"
-                  data-group-hit="${group.id}"
-                  aria-label="Mark ${escapeHtml(group.title)} for today"
-                />
-                <span>Today</span>
-              </label>
-            </div>
-          </div>
-        </summary>
-
-        <div class="lift-group-body">
-          <div class="section-editor" data-section-editor="${group.id}" hidden>
-            <h3 class="card-title">Edit section</h3>
-
-            <div class="mind-form-grid">
-              <label>
-                <span>Section name</span>
-                <input
-                  type="text"
-                  class="text-input"
-                  data-group-title-input="${group.id}"
-                  value="${escapeHtml(group.title)}"
-                  placeholder="Section name"
-                />
-              </label>
-            </div>
-
-            <div class="mind-form-actions">
-              <button
-                type="button"
-                class="secondary-btn"
-                data-save-group-title="${group.id}"
-              >
-                Save name
-              </button>
-
-              <button
-                type="button"
-                class="secondary-btn"
-                data-restore-group-defaults="${group.id}"
-                data-is-custom="${String(isCustom)}"
-              >
-                ${isCustom ? "Clear custom section" : "Restore default section"}
-              </button>
-
-              <button
-                type="button"
-                class="danger-btn"
-                data-delete-section="${group.id}"
-                data-is-custom="${String(isCustom)}"
-              >
-                Delete section
-              </button>
-            </div>
-          </div>
-
-          <details class="add-exercise-panel">
-            <summary class="secondary-btn add-exercise-toggle">Add exercise</summary>
-
-            <form class="lift-exercise-form" data-exercise-form="${group.id}">
+          <div class="lift-group-body">
+            <form class="mind-form lift-exercise-form" data-exercise-form="${escapeHtml(group.id)}">
               <h3 class="card-title">Add Exercise</h3>
 
               <div class="mind-form-grid">
@@ -642,314 +501,79 @@ const defaultWeightliftingData = JSON.stringify({
               </div>
 
               <div class="mind-form-actions">
-                <button type="submit" class="secondary-btn">Add Exercise</button>
+                <button type="submit" class="action-btn">Add Exercise</button>
 
                 <button
                   type="button"
                   class="secondary-btn"
-                  data-restore-exercises="${group.id}"
-                  data-is-custom="${String(isCustom)}"
+                  data-restore-exercises="${escapeHtml(group.id)}"
+                  data-group-default="${group.isDefault ? "true" : "false"}"
                 >
-                  ${isCustom ? "Clear all exercises" : "Restore default exercises"}
+                  ${group.isDefault ? "Restore Default Exercises" : "Clear Exercises"}
+                </button>
+
+                <button
+                  type="button"
+                  class="${group.isDefault ? "secondary-btn" : "danger-btn"}"
+                  data-delete-group-id="${escapeHtml(group.id)}"
+                  data-group-default="${group.isDefault ? "true" : "false"}"
+                >
+                  ${group.isDefault ? "Delete Section" : "Delete Custom Section"}
                 </button>
               </div>
             </form>
-          </details>
 
-          <div
-            class="exercise-grid"
-            id="group-${group.id}"
-            data-group-id="${group.id}"
-            data-default-exercises='${JSON.stringify(group.exercises || [])}'
-          ></div>
-        </div>
+            <div class="grid two">
+              ${(group.exercises || []).map((exercise) => makeExerciseMarkup(group, exercise)).join("")}
+            </div>
+          </div>
+        </details>
       `;
-
-      return details;
     }
 
-    function updateGroupDom(groupEl, group) {
-      groupEl.dataset.groupTitle = group.title;
+    function renderGroups() {
+      const container = document.getElementById("weightlifting-groups");
+      if (!container) return;
 
-      const titleEl = groupEl.querySelector(".group-title");
-      if (titleEl) titleEl.textContent = group.title;
+      const groups = getVisibleGroups();
 
-      const titleInput = groupEl.querySelector(`[data-group-title-input="${group.id}"]`);
-      if (titleInput instanceof HTMLInputElement) {
-        titleInput.value = group.title;
-      }
+      container.innerHTML = groups.map(makeGroupMarkup).join("");
 
-      const checkbox = groupEl.querySelector("[data-group-hit]");
-      if (checkbox instanceof HTMLInputElement) {
-        checkbox.setAttribute("aria-label", `Mark ${group.title} for today`);
-      }
+      container.querySelectorAll("[data-group-hit]").forEach((checkbox) => {
+        checkbox.addEventListener("change", async (event) => {
+          const target = event.currentTarget;
+          if (!(target instanceof HTMLInputElement)) return;
 
-      const grid = groupEl.querySelector(".exercise-grid");
-      if (grid instanceof HTMLElement) {
-        grid.dataset.defaultExercises = JSON.stringify(group.exercises || []);
-      }
-    }
+          const groupId = target.getAttribute("data-group-hit");
+          if (!groupId) return;
 
-    function renderGroup(groupEl) {
-      const groupId = groupEl.dataset.groupId;
-      const grid = document.getElementById(`group-${groupId}`);
-      if (!grid) return;
+          groupDone = {
+            ...groupDone,
+            [groupId]: target.checked,
+          };
 
-      const defaults = JSON.parse(grid.dataset.defaultExercises || "[]").map(normalizeExercise);
-      const exercises = getExercises(groupId, defaults);
-      const doneMap = getExerciseDone(groupId);
-
-      grid.innerHTML = "";
-
-      exercises.forEach((exercise, index) => {
-        const safeVideo = normalizeYouTubeEmbed(exercise.video || "");
-        const article = document.createElement("article");
-        article.className = "exercise-card" + (doneMap[index] ? " is-done" : "");
-
-        article.innerHTML = `
-          <div class="exercise-header">
-            <div>
-              <h3 class="card-title">${escapeHtml(exercise.name)}</h3>
-            </div>
-            <label class="exercise-check">
-              <input type="checkbox" ${doneMap[index] ? "checked" : ""} data-exercise-check="${groupId}" data-index="${index}" />
-              <span>Done</span>
-            </label>
-          </div>
-
-          <div class="exercise-metrics">
-            ${makeMetric("Weight", escapeHtml(exercise.weight))}
-            ${makeMetric("Sets", escapeHtml(exercise.sets))}
-            ${makeMetric("Reps", escapeHtml(exercise.reps))}
-            ${makeMetric("Weeks since increase", escapeHtml(exercise.weeksSinceIncrease))}
-          </div>
-
-          ${
-            safeVideo
-              ? `
-            <div class="exercise-video-shell">
-              <iframe
-                src="${safeVideo}"
-                title="${escapeHtml(exercise.name)}"
-                frameborder="0"
-                allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share"
-                referrerpolicy="strict-origin-when-cross-origin"
-                allowfullscreen
-                loading="lazy"
-              ></iframe>
-            </div>
-          `
-              : ""
-          }
-
-          <div class="exercise-actions">
-            <button
-              type="button"
-              class="secondary-btn compact-btn edit-exercise-btn"
-              data-edit-exercise="${groupId}"
-              data-index="${index}"
-            >
-              Edit
-            </button>
-
-            <button
-              type="button"
-              class="danger-btn compact-btn delete-exercise-btn"
-              data-delete-group="${groupId}"
-              data-index="${index}"
-            >
-              Delete
-            </button>
-          </div>
-
-          <form class="exercise-edit-form" data-exercise-edit-form="${groupId}" data-index="${index}" hidden>
-            <h4 class="card-title">Edit exercise</h4>
-
-            <div class="mind-form-grid">
-              <label>
-                <span>Name</span>
-                <input type="text" name="name" value="${escapeHtml(exercise.name)}" required />
-              </label>
-
-              <label>
-                <span>Video URL</span>
-                <input type="text" name="video" value="${escapeHtml(exercise.video)}" />
-              </label>
-
-              <label>
-                <span>Weight</span>
-                <input type="text" name="weight" value="${escapeHtml(exercise.weight)}" />
-              </label>
-
-              <label>
-                <span>Sets</span>
-                <input type="text" name="sets" value="${escapeHtml(exercise.sets)}" required />
-              </label>
-
-              <label>
-                <span>Reps</span>
-                <input type="text" name="reps" value="${escapeHtml(exercise.reps)}" required />
-              </label>
-
-              <label>
-                <span>Weeks since increase</span>
-                <input
-                  type="text"
-                  name="weeksSinceIncrease"
-                  value="${escapeHtml(exercise.weeksSinceIncrease)}"
-                />
-              </label>
-            </div>
-
-            <div class="mind-form-actions">
-              <button type="submit" class="secondary-btn compact-btn">Save</button>
-              <button
-                type="button"
-                class="secondary-btn compact-btn"
-                data-cancel-exercise-edit="${groupId}"
-                data-index="${index}"
-              >
-                Cancel
-              </button>
-            </div>
-          </form>
-        `;
-
-        grid.appendChild(article);
-      });
-
-      grid.querySelectorAll("[data-exercise-check]").forEach((checkbox) => {
-        checkbox.addEventListener("change", async (e) => {
-          const target = e.currentTarget;
-          const idx = Number(target.dataset.index);
-          const next = { ...getExerciseDone(groupId) };
-          next[idx] = target.checked;
-          saveExerciseDone(groupId, next);
-          renderGroup(groupEl);
           await saveState();
         });
       });
 
-      grid.querySelectorAll("[data-delete-group]").forEach((btn) => {
-        btn.addEventListener("click", async (e) => {
-          const idx = Number(e.currentTarget.dataset.index);
-          const nextExercises = getExercises(groupId, defaults).filter((_, i) => i !== idx);
-          saveExercises(groupId, nextExercises);
-
-          const oldDone = getExerciseDone(groupId);
-          const nextDone = {};
-          nextExercises.forEach((_, newIndex) => {
-            const oldIndex = newIndex >= idx ? newIndex + 1 : newIndex;
-            nextDone[newIndex] = !!oldDone[oldIndex];
-          });
-          saveExerciseDone(groupId, nextDone);
-
-          renderGroup(groupEl);
-          await saveState();
-        });
-      });
-
-      grid.querySelectorAll("[data-edit-exercise]").forEach((btn) => {
-        btn.addEventListener("click", (e) => {
-          const idx = Number(e.currentTarget.dataset.index);
-          const form = grid.querySelector(
-            `[data-exercise-edit-form="${groupId}"][data-index="${idx}"]`
-          );
-          if (form instanceof HTMLElement) {
-            form.hidden = false;
-          }
-        });
-      });
-
-      grid.querySelectorAll("[data-cancel-exercise-edit]").forEach((btn) => {
-        btn.addEventListener("click", (e) => {
-          const idx = Number(e.currentTarget.dataset.index);
-          const form = grid.querySelector(
-            `[data-exercise-edit-form="${groupId}"][data-index="${idx}"]`
-          );
-          if (form instanceof HTMLElement) {
-            form.hidden = true;
-          }
-        });
-      });
-
-      grid.querySelectorAll(`[data-exercise-edit-form="${groupId}"]`).forEach((form) => {
+      container.querySelectorAll("[data-exercise-form]").forEach((form) => {
         form.addEventListener("submit", async (event) => {
           event.preventDefault();
 
-          const idx = Number(form.dataset.index);
-          const currentExercises = getExercises(groupId, defaults);
-          const formData = new FormData(form);
+          const targetForm = event.currentTarget;
+          if (!(targetForm instanceof HTMLFormElement)) return;
 
-          const name = String(formData.get("name") || "").trim();
-          const weight = String(formData.get("weight") || "").trim();
-          const sets = String(formData.get("sets") || "").trim();
-          const reps = String(formData.get("reps") || "").trim();
-          const weeksSinceIncrease = String(formData.get("weeksSinceIncrease") || "").trim();
-          const video = String(formData.get("video") || "").trim();
-
-          if (!name || !sets || !reps) {
-            window.alert("Please fill out name, sets, and reps.");
-            return;
-          }
-
-          currentExercises[idx] = normalizeExercise({
-            name,
-            weight,
-            sets,
-            reps,
-            weeksSinceIncrease,
-            video,
-          });
-
-          saveExercises(groupId, currentExercises);
-          renderGroup(groupEl);
-          await saveState();
-        });
-      });
-    }
-
-    function wireGroupDoneCheckbox(groupEl) {
-      const groupDoneMap = loadGroupDone();
-      const checkbox = groupEl.querySelector("[data-group-hit]");
-      if (!(checkbox instanceof HTMLInputElement)) return;
-
-      const groupId = checkbox.dataset.groupHit;
-      checkbox.checked = !!groupDoneMap[groupId];
-
-      checkbox.addEventListener("change", async () => {
-        const next = { ...loadGroupDone() };
-        next[groupId] = checkbox.checked;
-        saveGroupDone(next);
-        await saveState();
-      });
-    }
-
-    function setupExerciseForm(groupEl) {
-      const form = groupEl.querySelector("[data-exercise-form]");
-      if (!(form instanceof HTMLFormElement)) return;
-
-      form.addEventListener("submit", async (event) => {
-        event.preventDefault();
-
-        try {
-          const groupId = form.getAttribute("data-exercise-form");
+          const groupId = targetForm.getAttribute("data-exercise-form");
           if (!groupId) return;
 
-          const grid = document.getElementById(`group-${groupId}`);
-          if (!grid) return;
-
-          const defaults = JSON.parse(grid.dataset.defaultExercises || "[]").map(normalizeExercise);
-          const exercises = getExercises(groupId, defaults);
-
-          const formData = new FormData(form);
+          const formData = new FormData(targetForm);
 
           const name = String(formData.get("name") || "").trim();
+          const video = String(formData.get("video") || "").trim();
           const weight = String(formData.get("weight") || "").trim();
           const sets = String(formData.get("sets") || "").trim();
           const reps = String(formData.get("reps") || "").trim();
           const weeksSinceIncrease = String(formData.get("weeksSinceIncrease") || "").trim();
-          const video = String(formData.get("video") || "").trim();
 
           if (!name) {
             window.alert("Please enter an exercise name.");
@@ -962,251 +586,95 @@ const defaultWeightliftingData = JSON.stringify({
           }
 
           const newExercise = normalizeExercise({
+            id:
+              typeof crypto !== "undefined" && crypto.randomUUID
+                ? crypto.randomUUID()
+                : `exercise-${Date.now()}-${Math.random().toString(16).slice(2)}`,
             name,
+            video,
             weight,
             sets,
             reps,
             weeksSinceIncrease,
-            video,
+            isDefault: false,
           });
 
-          saveExercises(groupId, [...exercises, newExercise]);
-          form.reset();
+          updateGroup(groupId, (group) => ({
+            ...group,
+            exercises: [...group.exercises, { ...newExercise, isDefault: false }],
+          }));
 
-          const panel = form.closest(".add-exercise-panel");
-          if (panel instanceof HTMLDetailsElement) {
-            panel.open = false;
-          }
-
-          renderGroup(groupEl);
-          await saveState();
-        } catch (error) {
-          console.error("Failed to add exercise:", error);
-          window.alert("Could not add exercise. Check console for the exact error.");
-        }
-      });
-    }
-
-    function wireDeleteGroupButton(groupEl) {
-      const btn = groupEl.querySelector("[data-delete-section]");
-      if (!(btn instanceof HTMLElement)) return;
-
-      btn.addEventListener("click", async () => {
-        const groupId = btn.dataset.deleteSection;
-        const isCustom = btn.dataset.isCustom === "true";
-        const confirmed = window.confirm("Delete this entire section?");
-        if (!confirmed) return;
-
-        if (isCustom) {
-          const nextGroups = getCustomGroups().filter((group) => group.id !== groupId);
-          saveCustomGroups(nextGroups);
-          removeStorageForGroup(groupId);
-        } else {
-          hideGroup(groupId);
-        }
-
-        groupEl.remove();
-        renderHiddenDefaultGroups();
-        await saveState();
-      });
-    }
-
-    function wireSectionEditor(groupEl) {
-      const groupId = groupEl.dataset.groupId;
-      const isCustom = groupEl.dataset.isCustom === "true";
-
-      const toggleBtn = groupEl.querySelector(`[data-toggle-section-editor="${groupId}"]`);
-      const editor = groupEl.querySelector(`[data-section-editor="${groupId}"]`);
-      const titleInput = groupEl.querySelector(`[data-group-title-input="${groupId}"]`);
-      const saveBtn = groupEl.querySelector(`[data-save-group-title="${groupId}"]`);
-      const restoreGroupBtn = groupEl.querySelector(`[data-restore-group-defaults="${groupId}"]`);
-      const restoreExercisesBtn = groupEl.querySelector(`[data-restore-exercises="${groupId}"]`);
-
-      if (toggleBtn instanceof HTMLElement && editor instanceof HTMLElement) {
-        toggleBtn.addEventListener("click", () => {
-          editor.hidden = !editor.hidden;
-        });
-      }
-
-      if (saveBtn instanceof HTMLElement && titleInput instanceof HTMLInputElement) {
-        saveBtn.addEventListener("click", async () => {
-          const nextTitle = titleInput.value.trim();
-          if (!nextTitle) {
-            window.alert("Please enter a section name.");
-            return;
-          }
-
-          updateGroupTitleState(groupId, nextTitle, isCustom);
-
-          const nextGroup = isCustom ? getCustomGroup(groupId) : getMutableDefaultGroup(groupId);
-          if (nextGroup) {
-            updateGroupDom(groupEl, nextGroup);
-          }
-
+          targetForm.reset();
+          renderGroups();
           await saveState();
         });
-      }
+      });
 
-      if (restoreGroupBtn instanceof HTMLElement) {
-        restoreGroupBtn.addEventListener("click", async () => {
-          if (isCustom) {
-            const confirmed = window.confirm("Clear this custom section back to empty?");
-            if (!confirmed) return;
+      container.querySelectorAll("[data-delete-exercise-id]").forEach((btn) => {
+        btn.addEventListener("click", async (event) => {
+          const target = event.currentTarget;
+          if (!(target instanceof HTMLElement)) return;
 
-            saveExercises(groupId, []);
-            saveExerciseDone(groupId, {});
-            renderGroup(groupEl);
-            await saveState();
-            return;
-          }
+          const exerciseId = target.getAttribute("data-delete-exercise-id");
+          const groupId = target.getAttribute("data-delete-exercise-group-id");
 
-          const source = getDefaultSourceGroup(groupId);
-          if (!source) return;
+          if (!exerciseId || !groupId) return;
 
-          defaultGroups = defaultGroups.map((group) =>
-            group.id === groupId ? normalizeGroup(source) : group
-          );
+          updateGroup(groupId, (group) => ({
+            ...group,
+            exercises: group.exercises.filter((exercise) => exercise.id !== exerciseId),
+          }));
 
-          clearSavedExercises(groupId);
-
-          const nextDone = { ...loadGroupDone() };
-          delete nextDone[groupId];
-          saveGroupDone(nextDone);
-
-          updateGroupDom(groupEl, normalizeGroup(source));
-          renderGroup(groupEl);
+          renderGroups();
           await saveState();
         });
-      }
+      });
 
-      if (restoreExercisesBtn instanceof HTMLElement) {
-        restoreExercisesBtn.addEventListener("click", async () => {
-          if (isCustom) {
-            const confirmed = window.confirm("Remove all exercises from this custom section?");
-            if (!confirmed) return;
+      container.querySelectorAll("[data-restore-exercises]").forEach((btn) => {
+        btn.addEventListener("click", async (event) => {
+          const target = event.currentTarget;
+          if (!(target instanceof HTMLElement)) return;
 
-            saveExercises(groupId, []);
-            saveExerciseDone(groupId, {});
-            renderGroup(groupEl);
-            await saveState();
-            return;
+          const groupId = target.getAttribute("data-restore-exercises");
+          const isDefault = target.getAttribute("data-group-default") === "true";
+          if (!groupId) return;
+
+          if (isDefault) {
+            const source = getSourceDefaultGroup(groupId);
+            if (!source) return;
+
+            updateGroup(groupId, () => normalizeGroup(source));
+          } else {
+            updateGroup(groupId, (group) => ({
+              ...group,
+              exercises: [],
+            }));
           }
 
-          const source = getDefaultSourceGroup(groupId);
-          if (!source) return;
-
-          saveExercises(groupId, source.exercises.map(normalizeExercise));
-          saveExerciseDone(groupId, {});
-          renderGroup(groupEl);
+          renderGroups();
           await saveState();
         });
-      }
-    }
-
-    function setupGroup(groupEl) {
-      renderGroup(groupEl);
-      wireGroupDoneCheckbox(groupEl);
-      setupExerciseForm(groupEl);
-      wireDeleteGroupButton(groupEl);
-      wireSectionEditor(groupEl);
-    }
-
-    function syncExistingDefaultGroupMarkup() {
-      document.querySelectorAll('.lift-group[data-is-custom="false"]').forEach((groupEl) => {
-        const groupId = groupEl.dataset.groupId;
-        const group = getMutableDefaultGroup(groupId);
-        if (!group) return;
-        updateGroupDom(groupEl, group);
       });
-    }
 
-    function hideDefaultGroupsMarkedHidden() {
-      const hidden = getHiddenGroups();
-      hidden.forEach((groupId) => {
-        const existing = document.querySelector(`.lift-group[data-group-id="${groupId}"]`);
-        if (existing) existing.remove();
-      });
-    }
+      container.querySelectorAll("[data-delete-group-id]").forEach((btn) => {
+        btn.addEventListener("click", async (event) => {
+          const target = event.currentTarget;
+          if (!(target instanceof HTMLElement)) return;
 
-    function renderCustomGroups() {
-      const container = document.getElementById("weightlifting-groups");
-      if (!container) return;
+          const groupId = target.getAttribute("data-delete-group-id");
+          const isDefault = target.getAttribute("data-group-default") === "true";
+          if (!groupId) return;
 
-      const custom = getCustomGroups();
-      const hidden = getHiddenGroups();
-
-      custom.forEach((group) => {
-        if (hidden.includes(group.id)) return;
-        if (container.querySelector(`[data-group-id="${group.id}"]`)) return;
-
-        const groupEl = makeGroupMarkup(group, true);
-        container.appendChild(groupEl);
-        setupGroup(groupEl);
-      });
-    }
-
-    function renderHiddenDefaultGroups() {
-      const container = document.getElementById("hidden-default-groups");
-      if (!container) return;
-
-      const hiddenDefaults = getHiddenGroups()
-        .map((id) => getDefaultSourceGroup(id))
-        .filter(Boolean);
-
-      if (!hiddenDefaults.length) {
-        container.innerHTML = "";
-        return;
-      }
-
-      container.innerHTML = `
-        <div class="hidden-default-groups-card">
-          <h3 class="card-title">Hidden default sections</h3>
-          <p class="section-subtitle">Restore any built-in section you deleted.</p>
-
-          <div class="hidden-default-groups-list">
-            ${hiddenDefaults
-              .map(
-                (group) => `
-                  <div class="hidden-default-group-row">
-                    <span>${escapeHtml(group.title)}</span>
-                    <button
-                      type="button"
-                      class="secondary-btn compact-btn"
-                      data-restore-hidden-group="${group.id}"
-                    >
-                      Restore
-                    </button>
-                  </div>
-                `
-              )
-              .join("")}
-          </div>
-        </div>
-      `;
-
-      container.querySelectorAll("[data-restore-hidden-group]").forEach((btn) => {
-        btn.addEventListener("click", async () => {
-          const groupId = btn.dataset.restoreHiddenGroup;
-          const source = getDefaultSourceGroup(groupId);
-          if (!source) return;
-
-          defaultGroups = defaultGroups.map((group) =>
-            group.id === groupId ? normalizeGroup(source) : group
-          );
-
-          clearSavedExercises(groupId);
-          unhideGroup(groupId);
-
-          const weightliftingGroups = document.getElementById("weightlifting-groups");
-          if (!weightliftingGroups) return;
-
-          const existing = weightliftingGroups.querySelector(`[data-group-id="${groupId}"]`);
-          if (!existing) {
-            const groupEl = makeGroupMarkup(source, false);
-            weightliftingGroups.appendChild(groupEl);
-            setupGroup(groupEl);
+          if (isDefault) {
+            if (!hiddenDefaultGroupIds.includes(groupId)) {
+              hiddenDefaultGroupIds = [...hiddenDefaultGroupIds, groupId];
+            }
+          } else {
+            customGroups = customGroups.filter((group) => group.id !== groupId);
+            delete groupDone[groupId];
           }
 
+          renderGroups();
           renderHiddenDefaultGroups();
           await saveState();
         });
@@ -1223,16 +691,16 @@ const defaultWeightliftingData = JSON.stringify({
         const rawTitle = input.value.trim();
         if (!rawTitle) return;
 
-        const baseId = slugify(rawTitle);
-        const allExistingIds = [
+        const existingIds = [
           ...defaultGroups.map((group) => group.id),
-          ...getCustomGroups().map((group) => group.id),
+          ...customGroups.map((group) => group.id),
         ];
 
-        let nextId = baseId || `group-${Date.now()}`;
+        const baseId = slugify(rawTitle) || `group-${Date.now()}`;
+        let nextId = baseId;
         let counter = 2;
 
-        while (allExistingIds.includes(nextId)) {
+        while (existingIds.includes(nextId)) {
           nextId = `${baseId}-${counter}`;
           counter += 1;
         }
@@ -1241,53 +709,40 @@ const defaultWeightliftingData = JSON.stringify({
           id: nextId,
           title: rawTitle,
           exercises: [],
+          isDefault: false,
         });
 
-        saveCustomGroups([...getCustomGroups(), newGroup]);
-        unhideGroup(nextId);
-
-        const container = document.getElementById("weightlifting-groups");
-        if (!container) return;
-
-        const groupEl = makeGroupMarkup(newGroup, true);
-        container.appendChild(groupEl);
-        setupGroup(groupEl);
-        groupEl.open = true;
-
+        customGroups = [...customGroups, { ...newGroup, isDefault: false }];
         input.value = "";
+
+        renderGroups();
         await saveState();
       });
-    }
-
-    function setupWeightTraining() {
-      syncExistingDefaultGroupMarkup();
-      hideDefaultGroupsMarkedHidden();
-
-      document.querySelectorAll(".lift-group").forEach((groupEl) => {
-        setupGroup(groupEl);
-      });
-
-      renderCustomGroups();
-      renderHiddenDefaultGroups();
-      setupCreateGroup();
     }
 
     async function init() {
       const saved = normalizeData(await loadState());
 
       defaultGroups =
-        Array.isArray(saved.groups) && saved.groups.length
-          ? saved.groups.map(normalizeGroup)
+        Array.isArray(saved.defaultGroups) && saved.defaultGroups.length
+          ? saved.defaultGroups.map(normalizeGroup)
           : sourceDefaultGroups.map(normalizeGroup);
 
-      hiddenGroupIds = Array.isArray(saved.hiddenGroupIds) ? saved.hiddenGroupIds : [];
-      customGroups = Array.isArray(saved.customGroups) ? saved.customGroups.map(normalizeGroup) : [];
+      customGroups = Array.isArray(saved.customGroups)
+        ? saved.customGroups.map(normalizeGroup).map((group) => ({ ...group, isDefault: false }))
+        : [];
+
+      hiddenDefaultGroupIds = Array.isArray(saved.hiddenDefaultGroupIds)
+        ? saved.hiddenDefaultGroupIds
+        : [];
+
       groupDone = saved.groupDone && typeof saved.groupDone === "object" ? saved.groupDone : {};
-      exerciseData = saved.exerciseData && typeof saved.exerciseData === "object" ? saved.exerciseData : {};
-      exerciseDone = saved.exerciseDone && typeof saved.exerciseDone === "object" ? saved.exerciseDone : {};
 
       hasLoadedInitialState = true;
-      setupWeightTraining();
+
+      renderGroups();
+      renderHiddenDefaultGroups();
+      setupCreateGroup();
     }
 
     init();
