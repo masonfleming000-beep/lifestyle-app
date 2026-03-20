@@ -6,17 +6,23 @@ const PUBLIC_PATHS = new Set([
   "/",
   "/login",
   "/signup",
+  "/forgot-password",
+  "/reset-password",
   "/favicon.ico",
   "/favicon.svg",
 ]);
 
-const PUBLIC_PREFIXES = ["/api/auth/", "/images/", "/_astro/"];
+const PUBLIC_PREFIXES = [
+  "/api/auth/",
+  "/images/",
+  "/_astro/",
+];
 
 function isProtectedPage(pathname: string) {
   if (PUBLIC_PATHS.has(pathname)) return false;
-  if (pathname.startsWith("/api/")) return false;
   if (PUBLIC_PREFIXES.some((prefix) => pathname.startsWith(prefix))) return false;
   if (pathname.includes(".")) return false;
+  if (pathname.startsWith("/api/")) return false;
   return true;
 }
 
@@ -36,14 +42,11 @@ export const onRequest = defineMiddleware(async (context, next) => {
   }
 
   const pathname = context.url.pathname;
+  const user = await getCurrentUser(context.cookies);
+  context.locals.currentUser = user;
 
-  if (isProtectedPage(pathname)) {
-    const user = await getCurrentUser(context.cookies);
-    context.locals.currentUser = user;
-
-    if (!user) {
-      return context.redirect(`/login?next=${encodeURIComponent(pathname)}`);
-    }
+  if (isProtectedPage(pathname) && !user) {
+    return context.redirect(`/login?next=${encodeURIComponent(pathname)}`);
   }
 
   const response = await next();

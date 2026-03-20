@@ -19,16 +19,10 @@ const message = Astro.url.searchParams.get("message");
       <div class="auth-card">
         <h2 class="auth-title">Welcome back</h2>
         <p class="auth-subtitle">
-          Use your approved email and password to sign in.
+          Sign in with email and password or continue with Google.
         </p>
 
-        {message === "check-email" && (
-          <p class="auth-note">Check your email to confirm your account.</p>
-        )}
 
-        {message === "confirmed" && (
-          <p class="auth-note">Email confirmed. You can sign in now.</p>
-        )}
 
         <p id="login-message" class="auth-note" style="display:none;"></p>
 
@@ -47,6 +41,10 @@ const message = Astro.url.searchParams.get("message");
         <p class="auth-footer">
           Don’t have an account?
           <a href="/signup">Create one</a>
+        </p>
+
+        <p class="auth-footer">
+          <a href="/forgot-password">Forgot password?</a>
         </p>
 
         <div
@@ -103,7 +101,7 @@ const message = Astro.url.searchParams.get("message");
         }
 
         setMessage("Google login successful. Redirecting...");
-        window.location.href = "/today";
+        window.location.href = "/";
       } catch (err) {
         console.error("Google login error:", err);
         setMessage("Google login request failed.", true);
@@ -158,7 +156,7 @@ const message = Astro.url.searchParams.get("message");
         }
 
         setMessage("Login successful. Redirecting...");
-        window.location.href = "/today";
+        window.location.href = "/";
       } catch (error) {
         console.error("Login request failed:", error);
         setMessage("Unable to reach the server.", true);

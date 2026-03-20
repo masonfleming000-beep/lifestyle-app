@@ -7,7 +7,7 @@ import {
   getUserByEmail,
   verifyPassword,
 } from "../../../lib/auth";
-import { consumeRateLimit, isAllowedSignupEmail, normalizeEmail } from "../../../lib/security";
+import { consumeRateLimit, normalizeEmail } from "../../../lib/security";
 
 export const prerender = false;
 
@@ -37,10 +37,6 @@ export const POST: APIRoute = async ({ request, cookies }) => {
 
     if (!email || !password) {
       return json({ error: "Email and password are required." }, 400);
-    }
-
-    if (!isAllowedSignupEmail(email)) {
-      return json({ error: "This account is not approved for private access yet." }, 403);
     }
 
     const user = await getUserByEmail(email);

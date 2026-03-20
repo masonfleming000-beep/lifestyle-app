@@ -1,10 +1,9 @@
 import bcrypt from "bcryptjs";
 import { getSql } from "./db";
-import { assertAllowedSignupEmail, normalizeEmail } from "./security";
+import { normalizeEmail } from "./security";
+import { createRawToken, hashToken } from "./tokens";
 
-const SESSION_COOKIE_NAME =
-  import.meta.env.SESSION_COOKIE_NAME || "session_id";
-
+const SESSION_COOKIE_NAME = import.meta.env.SESSION_COOKIE_NAME || "session_id";
 const SESSION_TTL_DAYS = Number(import.meta.env.SESSION_TTL_DAYS || "14");
 
 export type SafeUser = {
@@ -74,6 +73,18 @@ export async function deleteSession(sessionId: string) {
   }
 }
 
+export async function deleteSessionsForUser(userId: string) {
+  const sql = getSql();
+  try {
+    await sql`
+      delete from sessions
+      where user_id = ${userId}
+    `;
+  } finally {
+    await sql.end();
+  }
+}
+
 export async function cleanupExpiredSessions() {
   const sql = getSql();
   try {
@@ -93,11 +104,13 @@ export async function getUserByEmail(email: string) {
       {
         id: string;
         email: string;
-        password_hash: string;
+        password_hash: string | null;
+        google_sub: string | null;
+        verified: boolean;
         created_at: string;
       }[]
     >`
-      select id, email, password_hash, created_at
+      select id, email, password_hash, google_sub, verified, created_at
       from users
       where email = ${normalizeEmail(email)}
       limit 1
@@ -109,22 +122,155 @@ export async function getUserByEmail(email: string) {
   }
 }
 
-export async function createUser(email: string, password: string) {
-  assertAllowedSignupEmail(email);
-
+export async function createUser(
+  email: string,
+  password: string,
+  options?: { verified?: boolean }
+) {
   const sql = getSql();
   try {
     const passwordHash = await hashPassword(password);
+    const verified = options?.verified ?? false;
 
     const rows = await sql<
-      { id: string; email: string; created_at: string }[]
+      { id: string; email: string; created_at: string; verified: boolean }[]
     >`
-      insert into users (email, password_hash)
-      values (${normalizeEmail(email)}, ${passwordHash})
-      returning id, email, created_at
+      insert into users (email, password_hash, verified)
+      values (${normalizeEmail(email)}, ${passwordHash}, ${verified})
+      returning id, email, created_at, verified
     `;
 
     return rows[0];
+  } finally {
+    await sql.end();
+  }
+}
+
+export async function createGoogleUser(email: string, googleSub: string) {
+  const sql = getSql();
+  try {
+    const rows = await sql<
+      { id: string; email: string; created_at: string; verified: boolean; google_sub: string }[]
+    >`
+      insert into users (email, google_sub, verified)
+      values (${normalizeEmail(email)}, ${googleSub}, true)
+      returning id, email, created_at, verified, google_sub
+    `;
+
+    return rows[0];
+  } finally {
+    await sql.end();
+  }
+}
+
+export async function linkGoogleToExistingUser(userId: string, googleSub: string) {
+  const sql = getSql();
+  try {
+    const rows = await sql<
+      { id: string; email: string; created_at: string; verified: boolean; google_sub: string }[]
+    >`
+      update users
+      set google_sub = ${googleSub}, verified = true, verified_at = coalesce(verified_at, now())
+      where id = ${userId}
+      returning id, email, created_at, verified, google_sub
+    `;
+
+    return rows[0] ?? null;
+  } finally {
+    await sql.end();
+  }
+}
+
+export async function setEmailVerificationToken(userId: string, rawToken?: string) {
+  const sql = getSql();
+  try {
+    const token = rawToken || createRawToken();
+    const tokenHash = hashToken(token);
+    const expiresAt = new Date(Date.now() + 24 * 60 * 60 * 1000);
+
+    await sql`
+      update users
+      set verification_token_hash = ${tokenHash},
+          verification_expires_at = ${expiresAt.toISOString()}
+      where id = ${userId}
+    `;
+
+    return { token, expiresAt };
+  } finally {
+    await sql.end();
+  }
+}
+
+export async function verifyEmailToken(rawToken: string) {
+  const sql = getSql();
+  try {
+    const tokenHash = hashToken(rawToken);
+
+    const rows = await sql<{ id: string }[]>`
+      update users
+      set verified = true,
+          verified_at = now(),
+          verification_token_hash = null,
+          verification_expires_at = null
+      where verification_token_hash = ${tokenHash}
+        and verification_expires_at > now()
+      returning id
+    `;
+
+    return rows.length > 0;
+  } finally {
+    await sql.end();
+  }
+}
+
+export async function setPasswordResetToken(email: string, rawToken?: string) {
+  const sql = getSql();
+  try {
+    const token = rawToken || createRawToken();
+    const tokenHash = hashToken(token);
+    const expiresAt = new Date(Date.now() + 60 * 60 * 1000);
+
+    const rows = await sql<{ id: string; email: string }[]>`
+      update users
+      set password_reset_token_hash = ${tokenHash},
+          password_reset_expires_at = ${expiresAt.toISOString()}
+      where email = ${normalizeEmail(email)}
+      returning id, email
+    `;
+
+    if (!rows[0]) return null;
+
+    return { token, expiresAt, user: rows[0] };
+  } finally {
+    await sql.end();
+  }
+}
+
+export async function resetPasswordWithToken(rawToken: string, newPassword: string) {
+  const sql = getSql();
+  try {
+    const tokenHash = hashToken(rawToken);
+    const passwordHash = await hashPassword(newPassword);
+
+    const rows = await sql<{ id: string }[]>`
+      update users
+      set password_hash = ${passwordHash},
+          password_reset_token_hash = null,
+          password_reset_expires_at = null,
+          password_changed_at = now()
+      where password_reset_token_hash = ${tokenHash}
+        and password_reset_expires_at > now()
+      returning id
+    `;
+
+    if (!rows[0]) return false;
+
+    await sql`
+      delete from sessions
+      where user_id = ${rows[0].id}
+    `;
+
+    return true;
   } finally {
     await sql.end();
   }

@@ -1,15 +1,13 @@
 import type { APIRoute } from "astro";
-import { OAuth2Client } from "google-auth-library";
-import { getSql } from "../../../lib/db";
 import {
   buildSessionCookieOptions,
   createSession,
   getSessionCookieName,
   getSessionExpiryDate,
+  getUserByEmail,
+  verifyPassword,
 } from "../../../lib/auth";
-import { consumeRateLimit, isAllowedSignupEmail, normalizeEmail } from "../../../lib/security";
-
-const client = new OAuth2Client(import.meta.env.PUBLIC_GOOGLE_CLIENT_ID);
+import { consumeRateLimit, normalizeEmail } from "../../../lib/security";
 
 export const prerender = false;
 
@@ -22,71 +20,45 @@ function json(data: unknown, status = 200) {
 
 export const POST: APIRoute = async ({ request, cookies }) => {
   const rateLimit = consumeRateLimit({
-    bucket: "auth-google",
+    bucket: "auth-login",
     request,
     max: 10,
     windowMs: 10 * 60 * 1000,
   });
 
   if (!rateLimit.allowed) {
-    return json({ error: "Too many sign-in attempts. Try again later." }, 429);
+    return json({ error: "Too many login attempts. Try again later." }, 429);
   }
 
-  const sql = getSql();
-
   try {
-    const { credential } = await request.json().catch(() => ({}));
+    const body = await request.json().catch(() => null);
+    const email = normalizeEmail(String(body?.email || ""));
+    const password = String(body?.password || "");
 
-    if (!credential || typeof credential !== "string") {
-      return json({ error: "Missing credential." }, 400);
+    if (!email || !password) {
+      return json({ error: "Email and password are required." }, 400);
     }
 
-    const ticket = await client.verifyIdToken({
-      idToken: credential,
-      audience: import.meta.env.PUBLIC_GOOGLE_CLIENT_ID,
-    });
+    const user = await getUserByEmail(email);
 
-    const payload = ticket.getPayload();
-
-    if (!payload?.sub || !payload.email || !payload.email_verified) {
-      return json({ error: "Google account verification failed." }, 401);
+    if (!user) {
+      return json({ error: "Invalid credentials." }, 401);
     }
 
-    const sub = payload.sub;
-    const email = normalizeEmail(payload.email);
-
-    if (!isAllowedSignupEmail(email)) {
-      return json({ error: "This account is not approved for private access yet." }, 403);
+    if (!user.password_hash) {
+      return json({ error: "This account uses Google sign-in. Please continue with Google." }, 401);
     }
 
-    let users = await sql`
-      SELECT * FROM users
-      WHERE google_sub = ${sub}
-    `;
-
-    if (users.length === 0) {
-      users = await sql`
-        SELECT * FROM users
-        WHERE email = ${email}
-      `;
+    if (!user.verified) {
+      return json({ error: "Please verify your email before logging in." }, 403);
     }
 
-    if (users.length === 0) {
-      users = await sql`
-        INSERT INTO users (email, google_sub)
-        VALUES (${email}, ${sub})
-        RETURNING *
-      `;
-    } else if (!users[0].google_sub) {
-      users = await sql`
-        UPDATE users
-        SET google_sub = ${sub}
-        WHERE id = ${users[0].id}
-        RETURNING *
-      `;
+    const valid = await verifyPassword(password, user.password_hash);
+
+    if (!valid) {
+      return json({ error: "Invalid credentials." }, 401);
     }
 
-    const user = users[0];
     const session = await createSession(user.id);
     const expires = getSessionExpiryDate();
 
@@ -100,10 +72,8 @@ export const POST: APIRoute = async ({ request, cookies }) => {
         created_at: user.created_at,
       },
     });
-  } catch (err) {
-    console.error("google auth error:", err instanceof Error ? err.message : err);
-    return json({ error: "Auth failed" }, 500);
-  } finally {
-    await sql.end();
+  } catch (error) {
+    console.error("login error:", error instanceof Error ? error.message : error);
+    return json({ error: "Failed to log in." }, 500);
   }
 };

@@ -9,7 +9,7 @@ import {
   validateEmail,
   validatePassword,
 } from "../../../lib/auth";
-import { consumeRateLimit, isAllowedSignupEmail, normalizeEmail } from "../../../lib/security";
+import { consumeRateLimit, normalizeEmail } from "../../../lib/security";
 
 export const prerender = false;
 
@@ -45,10 +45,6 @@ export const POST: APIRoute = async ({ request, cookies }) => {
       return json({ error: "Invalid email address." }, 400);
     }
 
-    if (!isAllowedSignupEmail(email)) {
-      return json({ error: "This account is not approved for private access yet." }, 403);
-    }
-
     if (!validatePassword(password, email)) {
       return json(
         { error: "Password must be 12-128 characters, contain no spaces, and must not include your email." },
@@ -61,7 +57,7 @@ export const POST: APIRoute = async ({ request, cookies }) => {
       return json({ error: "User already exists." }, 409);
     }
 
-    const user = await createUser(email, password);
+    const user = await createUser(email, password, { verified: true });
     const session = await createSession(user.id);
     const expires = getSessionExpiryDate();
 
@@ -77,10 +73,7 @@ export const POST: APIRoute = async ({ request, cookies }) => {
     }, 201);
   } catch (error) {
     const message = error instanceof Error ? error.message : "Failed to sign up.";
-    const status = message.includes("not approved") ? 403 : 500;
-    if (status === 500) {
-      console.error("signup error:", message);
-    }
-    return json({ error: message }, status);
+    console.error("signup error:", message);
+    return json({ error: message }, 500);
   }
 };

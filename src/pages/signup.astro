@@ -3,30 +3,24 @@ import BaseLayout from "../layouts/BaseLayout.astro";
 ---
 
 <BaseLayout title="Sign Up | Lifestyle App" description="Create your Lifestyle App account">
-
-  <!-- ================= AUTH UI ================= -->
   <section class="auth-page">
     <div class="auth-shell">
-
-      <!-- Left Intro -->
       <div class="auth-intro">
         <p class="kicker">Lifestyle App</p>
-        <h1>Create your private account.</h1>
+        <h1>Create your account.</h1>
         <p>
-          Private beta access is limited to approved accounts while the app is being secured and tested.
+          Sign up with email and password to create your account.
         </p>
       </div>
 
-      <!-- Signup Card -->
       <div class="auth-card">
         <h2 class="auth-title">Get started</h2>
         <p class="auth-subtitle">
-          Use email and password to create your private account.
+          Use email and password to create your account.
         </p>
 
         <p id="signup-message" class="auth-note" style="display:none;"></p>
 
-        <!-- Signup Form -->
         <form id="signup-form" class="auth-form">
           <label for="email">Email</label>
           <input id="email" name="email" type="email" required />
@@ -50,7 +44,6 @@ import BaseLayout from "../layouts/BaseLayout.astro";
           <a href="/login">Sign in</a>
         </p>
 
-        <!-- Google Sign-Up -->
         <div
           id="g_id_onload"
           data-client_id={import.meta.env.PUBLIC_GOOGLE_CLIENT_ID}
@@ -62,11 +55,10 @@ import BaseLayout from "../layouts/BaseLayout.astro";
     </div>
   </section>
 
-  <!-- ================= GOOGLE SCRIPT ================= -->
   <script src="https://accounts.google.com/gsi/client" async defer></script>
 
-  <script>
-    async function handleGoogleSignup(response) {
+  <script is:inline>
+    window.handleGoogleSignup = async (response) => {
       try {
         const res = await fetch("/api/auth/google", {
           method: "POST",
@@ -79,27 +71,31 @@ import BaseLayout from "../layouts/BaseLayout.astro";
           }),
         });
 
-        const data = await res.json();
+        const data = await res.json().catch(() => ({}));
 
-        if (data.user) {
-          window.location.href = "/today";
-        } else {
-          console.error("Google signup failed:", data);
+        if (!res.ok || !data.user) {
+          const signupMessage = document.getElementById("signup-message");
+          if (signupMessage) {
+            signupMessage.textContent = data.error || "Google signup failed.";
+            signupMessage.style.display = "block";
+            signupMessage.style.color = "#b42318";
+          }
+          return;
         }
+
+        window.location.href = "/today";
       } catch (err) {
         console.error("Google signup error:", err);
       }
-    }
+    };
   </script>
 
-  <!-- ================= EMAIL SIGNUP SCRIPT ================= -->
-  <script>
+  <script is:inline>
     const signupForm = document.getElementById("signup-form");
     const signupMessage = document.getElementById("signup-message");
 
     function setMessage(text, isError = false) {
       if (!signupMessage) return;
-
       signupMessage.textContent = text;
       signupMessage.style.display = text ? "block" : "none";
       signupMessage.style.color = isError ? "#b42318" : "";
@@ -118,9 +114,7 @@ import BaseLayout from "../layouts/BaseLayout.astro";
         return;
       }
 
-      const submitButton = signupForm.querySelector(
-        'button[type="submit"]'
-      );
+      const submitButton = signupForm.querySelector('button[type="submit"]');
 
       if (submitButton) submitButton.disabled = true;
 
@@ -141,8 +135,8 @@ import BaseLayout from "../layouts/BaseLayout.astro";
           return;
         }
 
-        setMessage("Account created. Redirecting...");
-        window.location.href = "/today";
+      setMessage("Account created. Redirecting...");
+      window.location.href = "/today";
       } catch (error) {
         console.error("Signup request failed:", error);
         setMessage("Unable to reach the server.", true);
@@ -151,5 +145,4 @@ import BaseLayout from "../layouts/BaseLayout.astro";
       }
     });
   </script>
-
 </BaseLayout>

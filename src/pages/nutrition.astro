@@ -1,6 +1,10 @@
 ---
 import BaseLayout from "../layouts/BaseLayout.astro";
 import { goodFoods, badFoods, optionalMicronutrientTargets } from "../data/nutrition";
+
+const defaultGoodFoods = JSON.stringify(goodFoods ?? []);
+const defaultBadFoods = JSON.stringify(badFoods ?? []);
+const defaultMicros = JSON.stringify(optionalMicronutrientTargets ?? {});
 ---
 
 <BaseLayout title="Nutrition | Lifestyle App" description="Nutrition dashboard">
@@ -15,11 +19,11 @@ import { goodFoods, badFoods, optionalMicronutrientTargets } from "../data/nutri
       </summary>
 
       <div class="dropdown-content stack-gap">
-        <article class="card soft">
+        <article class="card">
           <div class="section-header">
             <div>
               <h2 class="section-title">Macro Targets</h2>
-              <p class="section-subtitle">Saved in your browser.</p>
+              <p class="section-subtitle">Saved cross-platform to your account.</p>
             </div>
           </div>
 
@@ -238,7 +242,7 @@ import { goodFoods, badFoods, optionalMicronutrientTargets } from "../data/nutri
           </form>
         </article>
 
-        <article class="card soft">
+        <article class="card">
           <div class="section-header">
             <div>
               <h2 class="section-title">Water Log</h2>
@@ -273,7 +277,7 @@ import { goodFoods, badFoods, optionalMicronutrientTargets } from "../data/nutri
       </summary>
 
       <div class="dropdown-content">
-        <article class="card soft">
+        <article class="card">
           <div class="section-header">
             <div>
               <h2 class="section-title">Today’s Intake</h2>
@@ -290,19 +294,93 @@ import { goodFoods, badFoods, optionalMicronutrientTargets } from "../data/nutri
 
   <section class="section">
     <div class="grid two">
-      <article class="card">
-        <h2 class="section-title">Good Foods</h2>
-        <ul class="list-clean">
-          {goodFoods.map((item) => <li>{item}</li>)}
-        </ul>
-      </article>
+      <details class="dropdown-card" open>
+        <summary>
+          <div>
+            <p class="kicker">Nutrition</p>
+            <h2 class="section-title">Good Foods</h2>
+          </div>
+          <span class="dropdown-arrow">⌄</span>
+        </summary>
 
-      <article class="card soft">
-        <h2 class="section-title">Foods to Limit</h2>
-        <ul class="list-clean">
-          {badFoods.map((item) => <li>{item}</li>)}
-        </ul>
-      </article>
+        <div class="dropdown-content">
+          <article class="card">
+            <div
+              style="display:flex; justify-content:space-between; align-items:center; gap:1rem; flex-wrap:wrap;"
+            >
+              <div>
+                <h2 class="section-title">Good Foods</h2>
+                <p class="section-subtitle">Add, delete, edit mode, and restore defaults without removing your custom items.</p>
+              </div>
+
+              <div style="display:flex; gap:.5rem; flex-wrap:wrap;">
+                <button id="good-foods-restore-btn" type="button" class="todo-add-btn">Restore</button>
+                <button id="good-foods-edit-btn" type="button" class="todo-add-btn">Edit</button>
+              </div>
+            </div>
+
+            <form
+              id="good-foods-form"
+              class="todo-form"
+              style="margin-top: 1rem; display:none;"
+            >
+              <input
+                id="good-foods-input"
+                type="text"
+                class="todo-input"
+                placeholder="Add a good food..."
+              />
+              <button type="submit" class="todo-add-btn">Add</button>
+            </form>
+
+            <ul id="good-foods-list" class="list-clean" style="margin-top:1rem;"></ul>
+          </article>
+        </div>
+      </details>
+
+      <details class="dropdown-card" open>
+        <summary>
+          <div>
+            <p class="kicker">Nutrition</p>
+            <h2 class="section-title">Foods to Limit</h2>
+          </div>
+          <span class="dropdown-arrow">⌄</span>
+        </summary>
+
+        <div class="dropdown-content">
+          <article class="card">
+            <div
+              style="display:flex; justify-content:space-between; align-items:center; gap:1rem; flex-wrap:wrap;"
+            >
+              <div>
+                <h2 class="section-title">Foods to Limit</h2>
+                <p class="section-subtitle">Add, delete, edit mode, and restore defaults without removing your custom items.</p>
+              </div>
+
+              <div style="display:flex; gap:.5rem; flex-wrap:wrap;">
+                <button id="bad-foods-restore-btn" type="button" class="todo-add-btn">Restore</button>
+                <button id="bad-foods-edit-btn" type="button" class="todo-add-btn">Edit</button>
+              </div>
+            </div>
+
+            <form
+              id="bad-foods-form"
+              class="todo-form"
+              style="margin-top: 1rem; display:none;"
+            >
+              <input
+                id="bad-foods-input"
+                type="text"
+                class="todo-input"
+                placeholder="Add a food to limit..."
+              />
+              <button type="submit" class="todo-add-btn">Add</button>
+            </form>
+
+            <ul id="bad-foods-list" class="list-clean" style="margin-top:1rem;"></ul>
+          </article>
+        </div>
+      </details>
     </div>
   </section>
 
@@ -339,7 +417,7 @@ import { goodFoods, badFoods, optionalMicronutrientTargets } from "../data/nutri
           </div>
         </article>
 
-        <article class="card soft">
+        <article class="card">
           <div class="section-header">
             <div>
               <h2 class="section-title">Apply Calculator Results</h2>
@@ -382,9 +460,19 @@ import { goodFoods, badFoods, optionalMicronutrientTargets } from "../data/nutri
     </details>
   </section>
 
-  <script is:inline>
-    const TARGETS_KEY = "nutrition-targets-v2";
-    const LOG_KEY = "nutrition-log-v2";
+  <script
+    define:vars={{
+      defaultGoodFoods,
+      defaultBadFoods,
+      defaultMicros,
+    }}
+  >
+    const pageKey = "nutrition";
+
+    const defaultGoodFoodsList = JSON.parse(defaultGoodFoods);
+    const defaultBadFoodsList = JSON.parse(defaultBadFoods);
+    const defaultMicroTargets = JSON.parse(defaultMicros);
+
     const DEFAULT_MICROS = {
       fiber: 30,
       sodium: 2300,
@@ -395,6 +483,7 @@ import { goodFoods, badFoods, optionalMicronutrientTargets } from "../data/nutri
       zinc: 11,
       copper: 0.9,
       niacin: 16,
+      ...defaultMicroTargets,
     };
 
     const MICRO_CONFIG = [
@@ -408,6 +497,44 @@ import { goodFoods, badFoods, optionalMicronutrientTargets } from "../data/nutri
       { key: "copper", label: "Copper", unit: "mg" },
       { key: "niacin", label: "Niacin", unit: "mg" },
     ];
+
+    const defaultGoodFoodTexts = new Set(defaultGoodFoodsList);
+    const defaultBadFoodTexts = new Set(defaultBadFoodsList);
+
+    const goodFoodsListEl = document.getElementById("good-foods-list");
+    const badFoodsListEl = document.getElementById("bad-foods-list");
+
+    const goodFoodsForm = document.getElementById("good-foods-form");
+    const badFoodsForm = document.getElementById("bad-foods-form");
+
+    const goodFoodsInput = document.getElementById("good-foods-input");
+    const badFoodsInput = document.getElementById("bad-foods-input");
+
+    const goodFoodsEditBtn = document.getElementById("good-foods-edit-btn");
+    const badFoodsEditBtn = document.getElementById("bad-foods-edit-btn");
+
+    const goodFoodsRestoreBtn = document.getElementById("good-foods-restore-btn");
+    const badFoodsRestoreBtn = document.getElementById("bad-foods-restore-btn");
+
+    let editModes = {
+      goodFoods: false,
+      badFoods: false,
+    };
+
+    let hasLoadedInitialState = false;
+    let isSaving = false;
+    let pendingSave = false;
+
+    let state = {
+      targets: getDefaultTargets(),
+      dailyLogs: {},
+      goodFoods: [...defaultGoodFoodsList],
+      badFoods: [...defaultBadFoodsList],
+      removedDefaults: {
+        goodFoods: [],
+        badFoods: [],
+      },
+    };
 
     function formatUpTo4(value) {
       const num = Number(value || 0);
@@ -430,6 +557,25 @@ import { goodFoods, badFoods, optionalMicronutrientTargets } from "../data/nutri
       });
     }
 
+    function uniqueStrings(items = []) {
+      return [...new Set((items || []).map((item) => String(item).trim()).filter(Boolean))];
+    }
+
+    function mergeDefaults(savedItems, defaultItems, removedItems = []) {
+      const removedSet = new Set(removedItems || []);
+      const merged = uniqueStrings(savedItems);
+
+      defaultItems.forEach((item) => {
+        const value = String(item).trim();
+        if (!value) return;
+        if (!merged.includes(value) && !removedSet.has(value)) {
+          merged.push(value);
+        }
+      });
+
+      return merged;
+    }
+
     function getDefaultTargets() {
       return {
         calories: 2200,
@@ -437,65 +583,100 @@ import { goodFoods, badFoods, optionalMicronutrientTargets } from "../data/nutri
         carbs: 220,
         fat: 70,
         waterOz: 125,
-        micros: DEFAULT_MICROS,
+        micros: { ...DEFAULT_MICROS },
       };
     }
 
-    function loadTargets() {
+    function getEmptyDailyLog() {
+      return { items: [], waterOz: 0 };
+    }
+
+    function getTodayState() {
+      const todayKey = getTodayKey();
+      const saved = state?.dailyLogs?.[todayKey];
+
+      return {
+        items: Array.isArray(saved?.items) ? saved.items : [],
+        waterOz: Number(saved?.waterOz || 0),
+      };
+    }
+
+    function setTodayState(nextToday) {
+      const todayKey = getTodayKey();
+      state.dailyLogs = {
+        ...(state.dailyLogs || {}),
+        [todayKey]: {
+          items: Array.isArray(nextToday?.items) ? nextToday.items : [],
+          waterOz: Number(nextToday?.waterOz || 0),
+        },
+      };
+    }
+
+    async function loadState() {
       try {
-        const raw = localStorage.getItem(TARGETS_KEY);
-        const defaults = getDefaultTargets();
+        const res = await fetch(`/api/state?pageKey=${encodeURIComponent(pageKey)}`, {
+          credentials: "include",
+          cache: "no-store",
+        });
 
-        if (!raw) return defaults;
+        if (!res.ok) return null;
 
-        const parsed = JSON.parse(raw);
-        return {
-          ...defaults,
-          ...parsed,
-          micros: {
-            ...DEFAULT_MICROS,
-            ...(parsed?.micros || {}),
-          },
-        };
-      } catch {
-        return getDefaultTargets();
+        const data = await res.json();
+        return data?.state ?? null;
+      } catch (error) {
+        console.error("Failed to load nutrition state:", error);
+        return null;
       }
     }
 
-    function saveTargets(targets) {
-      localStorage.setItem(TARGETS_KEY, JSON.stringify(targets));
-    }
+    async function saveState() {
+      if (!hasLoadedInitialState) return;
 
-    function loadFoodState() {
+      if (isSaving) {
+        pendingSave = true;
+        return;
+      }
+
+      isSaving = true;
+
       try {
-        const raw = localStorage.getItem(LOG_KEY);
-        const parsed = raw ? JSON.parse(raw) : null;
-        const today = getTodayKey();
+        await fetch("/api/state", {
+          method: "POST",
+          credentials: "include",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ pageKey, state }),
+        });
+      } catch (error) {
+        console.error("Failed to save nutrition state:", error);
+      } finally {
+        isSaving = false;
 
-        if (!parsed || parsed.date !== today) {
-          const fresh = { date: today, items: [], waterOz: 0 };
-          localStorage.setItem(LOG_KEY, JSON.stringify(fresh));
-          return fresh;
+        if (pendingSave) {
+          pendingSave = false;
+          await saveState();
         }
-
-        return {
-          date: parsed.date,
-          items: Array.isArray(parsed.items) ? parsed.items : [],
-          waterOz: Number(parsed.waterOz || 0),
-        };
-      } catch {
-        const fresh = { date: getTodayKey(), items: [], waterOz: 0 };
-        localStorage.setItem(LOG_KEY, JSON.stringify(fresh));
-        return fresh;
       }
     }
 
-    function saveFoodState(state) {
-      localStorage.setItem(LOG_KEY, JSON.stringify(state));
+    function markDefaultDeleted(section, value) {
+      const nextValue = String(value || "").trim();
+      if (!nextValue) return;
+
+      const current = uniqueStrings(state.removedDefaults?.[section] || []);
+      if (!current.includes(nextValue)) {
+        state.removedDefaults[section] = [...current, nextValue];
+      }
+    }
+
+    function unmarkDefaultDeleted(section, value) {
+      const nextValue = String(value || "").trim();
+      state.removedDefaults[section] = uniqueStrings(state.removedDefaults?.[section] || []).filter(
+        (item) => item !== nextValue
+      );
     }
 
     function setTargetInputs() {
-      const targets = loadTargets();
+      const targets = state.targets || getDefaultTargets();
       document.getElementById("target-calories").value = targets.calories;
       document.getElementById("target-protein").value = targets.protein;
       document.getElementById("target-carbs").value = targets.carbs;
@@ -564,21 +745,21 @@ import { goodFoods, badFoods, optionalMicronutrientTargets } from "../data/nutri
     }
 
     function renderTotals() {
-      const targets = loadTargets();
-      const state = loadFoodState();
-      const totals = computeTotals(state.items);
+      const targets = state.targets || getDefaultTargets();
+      const todayState = getTodayState();
+      const totals = computeTotals(todayState.items);
 
       document.getElementById("total-calories").textContent = formatUpTo4(totals.calories);
       document.getElementById("total-protein").textContent = `${formatUpTo4(totals.protein)}g`;
       document.getElementById("total-carbs").textContent = `${formatUpTo4(totals.carbs)}g`;
       document.getElementById("total-fat").textContent = `${formatUpTo4(totals.fat)}g`;
-      document.getElementById("total-water").textContent = `${formatUpTo4(state.waterOz)} oz`;
+      document.getElementById("total-water").textContent = `${formatUpTo4(todayState.waterOz)} oz`;
 
       document.getElementById("remaining-calories").textContent = `${formatUpTo4(targets.calories - totals.calories)} remaining`;
       document.getElementById("remaining-protein").textContent = `${formatUpTo4(targets.protein - totals.protein)}g remaining`;
       document.getElementById("remaining-carbs").textContent = `${formatUpTo4(targets.carbs - totals.carbs)}g remaining`;
       document.getElementById("remaining-fat").textContent = `${formatUpTo4(targets.fat - totals.fat)}g remaining`;
-      document.getElementById("remaining-water").textContent = `${formatUpTo4(targets.waterOz - state.waterOz)} oz remaining`;
+      document.getElementById("remaining-water").textContent = `${formatUpTo4(targets.waterOz - todayState.waterOz)} oz remaining`;
 
       document.getElementById("nutrition-date-label").textContent = getPrettyDate();
 
@@ -587,10 +768,10 @@ import { goodFoods, badFoods, optionalMicronutrientTargets } from "../data/nutri
 
     function renderFoodLog() {
       const foodLog = document.getElementById("food-log");
-      const state = loadFoodState();
+      const todayState = getTodayState();
       foodLog.innerHTML = "";
 
-      if (!state.items.length && !state.waterOz) {
+      if (!todayState.items.length && !todayState.waterOz) {
         const empty = document.createElement("li");
         empty.className = "food-log-empty";
         empty.textContent = "No nutrition logged yet today.";
@@ -599,19 +780,19 @@ import { goodFoods, badFoods, optionalMicronutrientTargets } from "../data/nutri
         return;
       }
 
-      if (state.waterOz > 0) {
+      if (todayState.waterOz > 0) {
         const waterLi = document.createElement("li");
         waterLi.className = "food-log-item";
         waterLi.innerHTML = `
           <div class="food-log-left">
             <h3 class="food-log-title">Water</h3>
-            <p class="food-log-meta">${formatUpTo4(state.waterOz)} oz logged</p>
+            <p class="food-log-meta">${formatUpTo4(todayState.waterOz)} oz logged</p>
           </div>
         `;
         foodLog.appendChild(waterLi);
       }
 
-      state.items.forEach((item, index) => {
+      todayState.items.forEach((item, index) => {
         const li = document.createElement("li");
         li.className = "food-log-item";
 
@@ -633,11 +814,12 @@ import { goodFoods, badFoods, optionalMicronutrientTargets } from "../data/nutri
         removeBtn.type = "button";
         removeBtn.className = "todo-remove";
         removeBtn.textContent = "Remove";
-        removeBtn.addEventListener("click", () => {
-          const next = loadFoodState();
-          next.items.splice(index, 1);
-          saveFoodState(next);
+        removeBtn.addEventListener("click", async () => {
+          const nextToday = getTodayState();
+          nextToday.items.splice(index, 1);
+          setTodayState(nextToday);
           renderFoodLog();
+          await saveState();
         });
 
         li.appendChild(left);
@@ -646,6 +828,126 @@ import { goodFoods, badFoods, optionalMicronutrientTargets } from "../data/nutri
       });
 
       renderTotals();
+    }
+
+    function updateEditUI() {
+      if (goodFoodsEditBtn) {
+        goodFoodsEditBtn.textContent = editModes.goodFoods ? "Done" : "Edit";
+      }
+      if (badFoodsEditBtn) {
+        badFoodsEditBtn.textContent = editModes.badFoods ? "Done" : "Edit";
+      }
+
+      if (goodFoodsForm) {
+        goodFoodsForm.style.display = editModes.goodFoods ? "flex" : "none";
+      }
+      if (badFoodsForm) {
+        badFoodsForm.style.display = editModes.badFoods ? "flex" : "none";
+      }
+    }
+
+    function createDeleteButton(onClick, isVisible) {
+      const btn = document.createElement("button");
+      btn.type = "button";
+      btn.textContent = "Delete";
+      btn.className = "todo-add-btn";
+      btn.style.marginLeft = "0.75rem";
+      btn.style.display = isVisible ? "inline-block" : "none";
+      btn.addEventListener("click", onClick);
+      return btn;
+    }
+
+    function renderSimpleEditableList(listEl, items, sectionKey, defaultSet, isEditing) {
+      if (!listEl) return;
+      listEl.innerHTML = "";
+
+      if (!items.length) {
+        const li = document.createElement("li");
+        li.className = "food-log-empty";
+        li.textContent = "No items yet.";
+        listEl.appendChild(li);
+        return;
+      }
+
+      items.forEach((item, index) => {
+        const li = document.createElement("li");
+        li.className = "food-log-item";
+
+        const row = document.createElement("div");
+        row.style.display = "flex";
+        row.style.alignItems = "center";
+        row.style.justifyContent = "space-between";
+        row.style.gap = "0.75rem";
+        row.style.width = "100%";
+
+        const label = document.createElement("div");
+        label.className = "food-log-left";
+        label.style.flex = "1";
+
+        const text = document.createElement("h3");
+        text.className = "food-log-title";
+        text.textContent = item;
+
+        label.appendChild(text);
+
+        const deleteBtn = createDeleteButton(async () => {
+          const removed = state[sectionKey][index];
+
+          if (defaultSet.has(removed)) {
+            markDefaultDeleted(sectionKey, removed);
+          }
+
+          state[sectionKey].splice(index, 1);
+          renderGoodBadFoods();
+          await saveState();
+        }, isEditing);
+
+        row.appendChild(label);
+        row.appendChild(deleteBtn);
+        li.appendChild(row);
+        listEl.appendChild(li);
+      });
+    }
+
+    function renderGoodBadFoods() {
+      renderSimpleEditableList(
+        goodFoodsListEl,
+        uniqueStrings(state.goodFoods),
+        "goodFoods",
+        defaultGoodFoodTexts,
+        editModes.goodFoods
+      );
+
+      renderSimpleEditableList(
+        badFoodsListEl,
+        uniqueStrings(state.badFoods),
+        "badFoods",
+        defaultBadFoodTexts,
+        editModes.badFoods
+      );
+    }
+
+    function restoreSection(section) {
+      if (section === "goodFoods") {
+        state.removedDefaults.goodFoods = [];
+        state.goodFoods = mergeDefaults(
+          state.goodFoods,
+          defaultGoodFoodsList,
+          []
+        );
+        renderGoodBadFoods();
+        return;
+      }
+
+      if (section === "badFoods") {
+        state.removedDefaults.badFoods = [];
+        state.badFoods = mergeDefaults(
+          state.badFoods,
+          defaultBadFoodsList,
+          []
+        );
+        renderGoodBadFoods();
+      }
     }
 
     async function searchNutrition(query) {
@@ -757,12 +1059,11 @@ import { goodFoods, badFoods, optionalMicronutrientTargets } from "../data/nutri
       }
     });
 
-    document.getElementById("macro-form")?.addEventListener("submit", (e) => {
+    document.getElementById("macro-form")?.addEventListener("submit", async (e) => {
       e.preventDefault();
 
-      const previous = loadTargets();
-      const targets = {
-        ...previous,
+      state.targets = {
+        ...(state.targets || getDefaultTargets()),
         calories: Number(document.getElementById("target-calories").value || 0),
         protein: Number(document.getElementById("target-protein").value || 0),
         carbs: Number(document.getElementById("target-carbs").value || 0),
@@ -770,11 +1071,11 @@ import { goodFoods, badFoods, optionalMicronutrientTargets } from "../data/nutri
         waterOz: Number(document.getElementById("target-water").value || 0),
       };
 
-      saveTargets(targets);
       renderTotals();
+      await saveState();
     });
 
-    document.getElementById("macro-autofill-form")?.addEventListener("submit", (e) => {
+    document.getElementById("macro-autofill-form")?.addEventListener("submit", async (e) => {
       e.preventDefault();
 
       const weight = Number(document.getElementById("bodyweight-lb")?.value || 0);
@@ -792,20 +1093,20 @@ import { goodFoods, badFoods, optionalMicronutrientTargets } from "../data/nutri
       document.getElementById("target-fat").value = (weight * fatPerLb).toFixed(4);
       document.getElementById("target-water").value = (weight * waterPerLb).toFixed(4);
 
-      const targets = loadTargets();
-      saveTargets({
-        ...targets,
+      state.targets = {
+        ...(state.targets || getDefaultTargets()),
         calories: Number((weight * caloriesPerLb).toFixed(4)),
         protein: Number((weight * proteinPerLb).toFixed(4)),
         carbs: Number((weight * carbsPerLb).toFixed(4)),
         fat: Number((weight * fatPerLb).toFixed(4)),
         waterOz: Number((weight * waterPerLb).toFixed(4)),
-      });
+      };
 
       renderTotals();
+      await saveState();
     });
 
-    document.getElementById("food-form")?.addEventListener("submit", (e) => {
+    document.getElementById("food-form")?.addEventListener("submit", async (e) => {
       e.preventDefault();
 
       const item = {
@@ -828,40 +1129,40 @@ import { goodFoods, badFoods, optionalMicronutrientTargets } from "../data/nutri
 
       if (!item.name) return;
 
-      const state = loadFoodState();
-      state.items.unshift(item);
-      saveFoodState(state);
+      const todayState = getTodayState();
+      todayState.items.unshift(item);
+      setTodayState(todayState);
 
       document.getElementById("food-form").reset();
       renderFoodLog();
+      await saveState();
     });
 
-    document.getElementById("water-form")?.addEventListener("submit", (e) => {
+    document.getElementById("water-form")?.addEventListener("submit", async (e) => {
       e.preventDefault();
       const amount = Number(document.getElementById("water-amount").value || 0);
       if (!amount) return;
 
-      const state = loadFoodState();
-      state.waterOz = Number(state.waterOz || 0) + amount;
-      saveFoodState(state);
+      const todayState = getTodayState();
+      todayState.waterOz = Number(todayState.waterOz || 0) + amount;
+      setTodayState(todayState);
 
       document.getElementById("water-form").reset();
       renderFoodLog();
+      await saveState();
     });
 
-    document.getElementById("clear-food-log")?.addEventListener("click", () => {
-      const fresh = { date: getTodayKey(), items: [], waterOz: 0 };
-      saveFoodState(fresh);
+    document.getElementById("clear-food-log")?.addEventListener("click", async () => {
+      setTodayState(getEmptyDailyLog());
       renderFoodLog();
+      await saveState();
     });
 
-    document.getElementById("calculator-apply-form")?.addEventListener("submit", (e) => {
+    document.getElementById("calculator-apply-form")?.addEventListener("submit", async (e) => {
       e.preventDefault();
 
-      const existing = loadTargets();
-
-      const nextTargets = {
-        ...existing,
+      state.targets = {
+        ...(state.targets || getDefaultTargets()),
         calories: Number(document.getElementById("calc-calories").value || 0),
         protein: Number(document.getElementById("calc-protein").value || 0),
         carbs: Number(document.getElementById("calc-carbs").value || 0),
@@ -869,18 +1170,119 @@ import { goodFoods, badFoods, optionalMicronutrientTargets } from "../data/nutri
         waterOz: Number(document.getElementById("calc-water").value || 0),
       };
 
-      saveTargets(nextTargets);
-
-      document.getElementById("target-calories").value = nextTargets.calories;
-      document.getElementById("target-protein").value = nextTargets.protein;
-      document.getElementById("target-carbs").value = nextTargets.carbs;
-      document.getElementById("target-fat").value = nextTargets.fat;
-      document.getElementById("target-water").value = nextTargets.waterOz;
+      document.getElementById("target-calories").value = state.targets.calories;
+      document.getElementById("target-protein").value = state.targets.protein;
+      document.getElementById("target-carbs").value = state.targets.carbs;
+      document.getElementById("target-fat").value = state.targets.fat;
+      document.getElementById("target-water").value = state.targets.waterOz;
 
       renderTotals();
+      await saveState();
     });
 
-    setTargetInputs();
-    renderFoodLog();
+    goodFoodsEditBtn?.addEventListener("click", () => {
+      editModes.goodFoods = !editModes.goodFoods;
+      updateEditUI();
+      renderGoodBadFoods();
+    });
+
+    badFoodsEditBtn?.addEventListener("click", () => {
+      editModes.badFoods = !editModes.badFoods;
+      updateEditUI();
+      renderGoodBadFoods();
+    });
+
+    goodFoodsRestoreBtn?.addEventListener("click", async () => {
+      restoreSection("goodFoods");
+      await saveState();
+    });
+
+    badFoodsRestoreBtn?.addEventListener("click", async () => {
+      restoreSection("badFoods");
+      await saveState();
+    });
+
+    goodFoodsForm?.addEventListener("submit", async (e) => {
+      e.preventDefault();
+      const value = goodFoodsInput.value.trim();
+      if (!value) return;
+
+      unmarkDefaultDeleted("goodFoods", value);
+      state.goodFoods = uniqueStrings([value, ...(state.goodFoods || [])]);
+
+      goodFoodsInput.value = "";
+      renderGoodBadFoods();
+      await saveState();
+    });
+
+    badFoodsForm?.addEventListener("submit", async (e) => {
+      e.preventDefault();
+      const value = badFoodsInput.value.trim();
+      if (!value) return;
+
+      unmarkDefaultDeleted("badFoods", value);
+      state.badFoods = uniqueStrings([value, ...(state.badFoods || [])]);
+
+      badFoodsInput.value = "";
+      renderGoodBadFoods();
+      await saveState();
+    });
+
+    async function init() {
+      updateEditUI();
+      renderGoodBadFoods();
+      setTargetInputs();
+      renderFoodLog();
+
+      const saved = await loadState();
+
+      const removedDefaults = {
+        goodFoods: uniqueStrings(saved?.removedDefaults?.goodFoods),
+        badFoods: uniqueStrings(saved?.removedDefaults?.badFoods),
+      };
+
+      state = {
+        targets: {
+          ...getDefaultTargets(),
+          ...(saved?.targets || {}),
+          micros: {
+            ...DEFAULT_MICROS,
+            ...(saved?.targets?.micros || {}),
+          },
+        },
+        dailyLogs: saved?.dailyLogs && typeof saved.dailyLogs === "object" ? saved.dailyLogs : {},
+        removedDefaults,
+        goodFoods: mergeDefaults(
+          saved?.goodFoods,
+          defaultGoodFoodsList,
+          removedDefaults.goodFoods
+        ),
+        badFoods: mergeDefaults(
+          saved?.badFoods,
+          defaultBadFoodsList,
+          removedDefaults.badFoods
+        ),
+      };
+
+      const todayKey = getTodayKey();
+      if (!state.dailyLogs[todayKey]) {
+        state.dailyLogs[todayKey] = getEmptyDailyLog();
+      } else {
+        state.dailyLogs[todayKey] = {
+          items: Array.isArray(state.dailyLogs[todayKey]?.items) ? state.dailyLogs[todayKey].items : [],
+          waterOz: Number(state.dailyLogs[todayKey]?.waterOz || 0),
+        };
+      }
+
+      hasLoadedInitialState = true;
+
+      updateEditUI();
+      setTargetInputs();
+      renderGoodBadFoods();
+      renderFoodLog();
+      renderTotals();
+    }
+
+    init();
   </script>
 </BaseLayout>

@@ -122,11 +122,34 @@ export function buildSecurityHeaders(request: Request) {
   connectSrc.add("https://accounts.google.com");
   connectSrc.add("https://*.googleapis.com");
   connectSrc.add("https://*.gstatic.com");
+  connectSrc.add("https://cdn.inchcalculator.com");
+  connectSrc.add("https://www.inchcalculator.com");
 
-  const imgSrc = ["'self'", "data:", "https:"];
+  const imgSrc = [
+    "'self'",
+    "data:",
+    "https:",
+    "https://cdn.inchcalculator.com",
+  ];
   const styleSrc = ["'self'", "'unsafe-inline'", "https://fonts.googleapis.com"];
-  const scriptSrc = ["'self'", "'unsafe-inline'", "https://accounts.google.com", "https://*.gstatic.com"];
+  const scriptSrc = [
+    "'self'",
+    "'unsafe-inline'",
+    "https://accounts.google.com",
+    "https://*.gstatic.com",
+    "https://cdn.inchcalculator.com",
+  ];
   const fontSrc = ["'self'", "https://fonts.gstatic.com", "data:"];
+
+  const frameSrc = [
+    "'self'",
+    "https://accounts.google.com",
+    "https://www.youtube.com",
+    "https://www.youtube-nocookie.com",
+    "https://calendar.google.com",
+    "https://www.google.com",
+    "https://www.strava.com",
+  ];
 
   const csp = [
     `default-src 'self'`,
@@ -139,7 +162,7 @@ export function buildSecurityHeaders(request: Request) {
     `script-src ${scriptSrc.join(" ")}`,
     `font-src ${fontSrc.join(" ")}`,
     `connect-src ${Array.from(connectSrc).join(" ")}`,
-    `frame-src https://accounts.google.com`,
+    `frame-src ${frameSrc.join(" ")}`,
     `upgrade-insecure-requests`,
   ].join("; ");
 
