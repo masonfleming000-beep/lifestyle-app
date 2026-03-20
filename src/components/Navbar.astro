@@ -21,9 +21,9 @@ const isHomePage = currentPath === "/";
 <header class="topbar">
   <div class="topbar-inner compact">
     <a href="/" class="brand">
-      <span class="brand-mark">MF</span>
+      <span class="brand-mark">LIFE</span>
       <div>
-        <p class="brand-kicker">Life</p>
+        <p class="brand-kicker">Lifestyle</p>
         <h1>{currentPage}</h1>
       </div>
     </a>
@@ -68,7 +68,7 @@ const isHomePage = currentPath === "/";
     if (logoutBtn) logoutBtn.style.display = "none";
   }
 
-  function setLoggedIn(email) {
+  function setLoggedIn(email: string) {
     if (authStatusEl) authStatusEl.textContent = email;
     if (loginLink) loginLink.style.display = "none";
     if (signupLink) signupLink.style.display = "none";
