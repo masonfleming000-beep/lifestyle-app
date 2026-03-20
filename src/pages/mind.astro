@@ -55,10 +55,9 @@ const defaultMindData = JSON.stringify({
           <label>
             <span>Video URL</span>
             <input
-              type="url"
+              type="text"
               name="video"
-              placeholder="https://www.youtube.com/embed/..."
-              required
+              placeholder="Paste YouTube link or embed code (optional)"
             />
           </label>
 
@@ -145,11 +144,86 @@ const defaultMindData = JSON.stringify({
       return JSON.parse(defaultMindData);
     }
 
+    function escapeHtml(value) {
+      return String(value ?? "")
+        .replace(/&/g, "&amp;")
+        .replace(/</g, "&lt;")
+        .replace(/>/g, "&gt;")
+        .replace(/"/g, "&quot;")
+        .replace(/'/g, "&#39;");
+    }
+
+    function parseYouTubeTimeToSeconds(value) {
+      if (!value) return 0;
+
+      if (/^\d+$/.test(value)) return Number(value);
+
+      const match = value.match(/(?:(\d+)h)?(?:(\d+)m)?(?:(\d+)s)?/i);
+      if (!match) return 0;
+
+      const hours = Number(match[1] || 0);
+      const minutes = Number(match[2] || 0);
+      const seconds = Number(match[3] || 0);
+
+      return hours * 3600 + minutes * 60 + seconds;
+    }
+
+    function normalizeYouTubeEmbed(input) {
+      if (!input) return "";
+
+      const raw = String(input).trim();
+      let candidate = raw;
+
+      if (raw.includes("<iframe")) {
+        const srcMatch = raw.match(/src=["']([^"']+)["']/i);
+        candidate = srcMatch?.[1]?.trim() || "";
+      }
+
+      if (!candidate) return "";
+
+      let url;
+      try {
+        url = new URL(candidate);
+      } catch {
+        return "";
+      }
+
+      const host = url.hostname.replace(/^www\./, "");
+      let videoId = "";
+      let startSeconds = 0;
+
+      if (host === "youtube.com" || host === "m.youtube.com") {
+        if (url.pathname === "/watch") {
+          videoId = url.searchParams.get("v") || "";
+          startSeconds = parseYouTubeTimeToSeconds(url.searchParams.get("t") || "");
+        } else if (url.pathname.startsWith("/embed/")) {
+          videoId = url.pathname.split("/embed/")[1]?.split("/")[0] || "";
+          startSeconds = parseYouTubeTimeToSeconds(url.searchParams.get("start") || "");
+        } else if (url.pathname.startsWith("/shorts/")) {
+          videoId = url.pathname.split("/shorts/")[1]?.split("/")[0] || "";
+        } else if (url.pathname.startsWith("/live/")) {
+          videoId = url.pathname.split("/live/")[1]?.split("/")[0] || "";
+        }
+      } else if (host === "youtu.be") {
+        videoId = url.pathname.replace(/^\/+/, "").split("/")[0] || "";
+        startSeconds = parseYouTubeTimeToSeconds(url.searchParams.get("t") || "");
+      }
+
+      if (!videoId) return "";
+
+      const embedUrl = new URL(`https://www.youtube.com/embed/${videoId}`);
+      if (startSeconds > 0) {
+        embedUrl.searchParams.set("start", String(startSeconds));
+      }
+
+      return embedUrl.toString();
+    }
+
     function normalizeYogaItem(item) {
       return {
         id: item?.id || `yoga-${Date.now()}-${Math.random().toString(16).slice(2)}`,
         title: item?.title || "Untitled Exercise",
-        video: item?.video || "",
+        video: normalizeYouTubeEmbed(item?.video || ""),
         stats: {
           weight: item?.stats?.weight || "",
           sets: item?.stats?.sets || "",
@@ -260,15 +334,6 @@ const defaultMindData = JSON.stringify({
     let hiddenDefaultYogaIds = [];
     let hiddenDefaultTechniqueIds = [];
 
-    function escapeHtml(value) {
-      return String(value)
-        .replaceAll("&", "&amp;")
-        .replaceAll("<", "&lt;")
-        .replaceAll(">", "&gt;")
-        .replaceAll('"', "&quot;")
-        .replaceAll("'", "&#039;");
-    }
-
     function getVisibleYogaItems() {
       return [
         ...defaultYogaItems.filter((item) => !hiddenDefaultYogaIds.includes(item.id)),
@@ -285,11 +350,15 @@ const defaultMindData = JSON.stringify({
 
     function renderYogaItems() {
       const yogaList = document.getElementById("yoga-list");
+      if (!yogaList) return;
+
       const allYogaItems = getVisibleYogaItems();
 
       yogaList.innerHTML = allYogaItems
-        .map(
-          (item) => `
+        .map((item) => {
+          const safeVideo = normalizeYouTubeEmbed(item.video || "");
+
+          return `
             <details class="mind-dropdown">
               <summary class="mind-summary">
                 <div>
@@ -305,32 +374,39 @@ const defaultMindData = JSON.stringify({
                 <div class="metric-grid yoga-metrics">
                   <article class="metric">
                     <p class="metric-label">Weight</p>
-                    <p class="big-number">${escapeHtml(item.stats.weight || "--")}</p>
+                    <p class="big-number">${escapeHtml(item.stats?.weight || "--")}</p>
                   </article>
                   <article class="metric">
                     <p class="metric-label">Sets</p>
-                    <p class="big-number">${escapeHtml(item.stats.sets)}</p>
+                    <p class="big-number">${escapeHtml(item.stats?.sets || "--")}</p>
                   </article>
                   <article class="metric">
                     <p class="metric-label">Reps</p>
-                    <p class="big-number">${escapeHtml(item.stats.reps)}</p>
+                    <p class="big-number">${escapeHtml(item.stats?.reps || "--")}</p>
                   </article>
                   <article class="metric">
                     <p class="metric-label">Weeks</p>
-                    <p class="big-number">${escapeHtml(item.stats.weeks)}</p>
+                    <p class="big-number">${escapeHtml(item.stats?.weeks || "--")}</p>
                   </article>
                 </div>
 
-                <div class="video-wrap">
-                  <iframe
-                    src="${escapeHtml(item.video)}"
-                    title="${escapeHtml(item.title)}"
-                    frameborder="0"
-                    allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share"
-                    referrerpolicy="strict-origin-when-cross-origin"
-                    allowfullscreen
-                  ></iframe>
-                </div>
+                ${
+                  safeVideo
+                    ? `
+                  <div class="video-wrap">
+                    <iframe
+                      src="${safeVideo}"
+                      title="${escapeHtml(item.title)}"
+                      frameborder="0"
+                      allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share"
+                      referrerpolicy="strict-origin-when-cross-origin"
+                      allowfullscreen
+                      loading="lazy"
+                    ></iframe>
+                  </div>
+                `
+                    : ""
+                }
 
                 <div class="mind-item-actions">
                   <button
@@ -344,8 +420,8 @@ const defaultMindData = JSON.stringify({
                 </div>
               </div>
             </details>
-          `
-        )
+          `;
+        })
         .join("");
     }
 
@@ -391,28 +467,56 @@ const defaultMindData = JSON.stringify({
 
     function setupYogaForm() {
       const form = document.getElementById("yoga-form");
+      if (!(form instanceof HTMLFormElement)) return;
 
       form.addEventListener("submit", async (event) => {
         event.preventDefault();
 
-        const formData = new FormData(form);
-        const newItem = normalizeYogaItem({
-          id: crypto.randomUUID(),
-          title: String(formData.get("title") || "").trim(),
-          video: String(formData.get("video") || "").trim(),
-          stats: {
-            weight: String(formData.get("weight") || "").trim(),
-            sets: String(formData.get("sets") || "").trim(),
-            reps: String(formData.get("reps") || "").trim(),
-            weeks: String(formData.get("weeks") || "").trim(),
-          },
-          isDefault: false,
-        });
+        try {
+          const formData = new FormData(form);
 
-        customYogaItems.push({ ...newItem, isDefault: false });
-        form.reset();
-        renderYogaItems();
-        await saveState();
+          const title = String(formData.get("title") || "").trim();
+          const rawVideo = String(formData.get("video") || "").trim();
+          const weight = String(formData.get("weight") || "").trim();
+          const sets = String(formData.get("sets") || "").trim();
+          const reps = String(formData.get("reps") || "").trim();
+          const weeks = String(formData.get("weeks") || "").trim();
+
+          if (!title) {
+            window.alert("Please enter an exercise title.");
+            return;
+          }
+
+          if (!sets || !reps || !weeks) {
+            window.alert("Please fill out sets, reps, and weeks.");
+            return;
+          }
+
+          const newItem = normalizeYogaItem({
+            id:
+              typeof crypto !== "undefined" && crypto.randomUUID
+                ? crypto.randomUUID()
+                : `yoga-${Date.now()}-${Math.random().toString(16).slice(2)}`,
+            title,
+            video: rawVideo,
+            stats: {
+              weight,
+              sets,
+              reps,
+              weeks,
+            },
+            isDefault: false,
+          });
+
+          customYogaItems = [...customYogaItems, { ...newItem, isDefault: false }];
+
+          form.reset();
+          renderYogaItems();
+          await saveState();
+        } catch (error) {
+          console.error("Failed to add yoga exercise:", error);
+          window.alert("Could not add exercise. Check console for the exact error.");
+        }
       });
     }
 
@@ -426,7 +530,10 @@ const defaultMindData = JSON.stringify({
         const rawPoints = String(formData.get("points") || "").trim();
 
         const newItem = normalizeTechnique({
-          id: crypto.randomUUID(),
+          id:
+            typeof crypto !== "undefined" && crypto.randomUUID
+              ? crypto.randomUUID()
+              : `technique-${Date.now()}-${Math.random().toString(16).slice(2)}`,
           title: String(formData.get("title") || "").trim(),
           points: rawPoints
             .split("\n")

@@ -123,6 +123,81 @@ const defaultWeightliftingData = JSON.stringify({
         .replace(/^-+|-+$/g, "");
     }
 
+    function escapeHtml(value) {
+      return String(value ?? "")
+        .replace(/&/g, "&amp;")
+        .replace(/</g, "&lt;")
+        .replace(/>/g, "&gt;")
+        .replace(/"/g, "&quot;")
+        .replace(/'/g, "&#39;");
+    }
+
+    function parseYouTubeTimeToSeconds(value) {
+      if (!value) return 0;
+
+      if (/^\d+$/.test(value)) return Number(value);
+
+      const match = value.match(/(?:(\d+)h)?(?:(\d+)m)?(?:(\d+)s)?/i);
+      if (!match) return 0;
+
+      const hours = Number(match[1] || 0);
+      const minutes = Number(match[2] || 0);
+      const seconds = Number(match[3] || 0);
+
+      return hours * 3600 + minutes * 60 + seconds;
+    }
+
+    function normalizeYouTubeEmbed(input) {
+      if (!input) return "";
+
+      const raw = String(input).trim();
+      let candidate = raw;
+
+      if (raw.includes("<iframe")) {
+        const srcMatch = raw.match(/src=["']([^"']+)["']/i);
+        candidate = srcMatch?.[1]?.trim() || "";
+      }
+
+      if (!candidate) return "";
+
+      let url;
+      try {
+        url = new URL(candidate);
+      } catch {
+        return "";
+      }
+
+      const host = url.hostname.replace(/^www\./, "");
+      let videoId = "";
+      let startSeconds = 0;
+
+      if (host === "youtube.com" || host === "m.youtube.com") {
+        if (url.pathname === "/watch") {
+          videoId = url.searchParams.get("v") || "";
+          startSeconds = parseYouTubeTimeToSeconds(url.searchParams.get("t") || "");
+        } else if (url.pathname.startsWith("/embed/")) {
+          videoId = url.pathname.split("/embed/")[1]?.split("/")[0] || "";
+          startSeconds = parseYouTubeTimeToSeconds(url.searchParams.get("start") || "");
+        } else if (url.pathname.startsWith("/shorts/")) {
+          videoId = url.pathname.split("/shorts/")[1]?.split("/")[0] || "";
+        } else if (url.pathname.startsWith("/live/")) {
+          videoId = url.pathname.split("/live/")[1]?.split("/")[0] || "";
+        }
+      } else if (host === "youtu.be") {
+        videoId = url.pathname.replace(/^\/+/, "").split("/")[0] || "";
+        startSeconds = parseYouTubeTimeToSeconds(url.searchParams.get("t") || "");
+      }
+
+      if (!videoId) return "";
+
+      const embedUrl = new URL(`https://www.youtube.com/embed/${videoId}`);
+      if (startSeconds > 0) {
+        embedUrl.searchParams.set("start", String(startSeconds));
+      }
+
+      return embedUrl.toString();
+    }
+
     function normalizeExercise(exercise) {
       return {
         name: exercise?.name || "Untitled Exercise",
@@ -130,7 +205,7 @@ const defaultWeightliftingData = JSON.stringify({
         sets: exercise?.sets || "",
         reps: exercise?.reps || "",
         weeksSinceIncrease: exercise?.weeksSinceIncrease || "",
-        video: exercise?.video || "",
+        video: normalizeYouTubeEmbed(exercise?.video || ""),
       };
     }
 
@@ -308,14 +383,14 @@ const defaultWeightliftingData = JSON.stringify({
           <div class="lift-group-summary">
             <div>
               <p class="kicker">Muscle Group</p>
-              <h2 class="section-title">${group.title}</h2>
+              <h2 class="section-title">${escapeHtml(group.title)}</h2>
             </div>
             <label class="group-hit-toggle" onclick="event.stopPropagation();">
               <input
                 type="checkbox"
                 class="group-hit-checkbox"
                 data-group-hit="${group.id}"
-                aria-label="Mark ${group.title} for today"
+                aria-label="Mark ${escapeHtml(group.title)} for today"
               />
               <span>Today</span>
             </label>
@@ -366,14 +441,14 @@ const defaultWeightliftingData = JSON.stringify({
       grid.innerHTML = "";
 
       exercises.forEach((exercise, index) => {
-        const safeVideo = exercise.video || "";
+        const safeVideo = normalizeYouTubeEmbed(exercise.video || "");
         const article = document.createElement("article");
         article.className = "exercise-card" + (doneMap[index] ? " is-done" : "");
 
         article.innerHTML = `
           <div class="exercise-header">
             <div>
-              <h3 class="card-title">${exercise.name}</h3>
+              <h3 class="card-title">${escapeHtml(exercise.name)}</h3>
             </div>
             <label class="exercise-check">
               <input type="checkbox" ${doneMap[index] ? "checked" : ""} data-exercise-check="${groupId}" data-index="${index}" />
@@ -382,10 +457,10 @@ const defaultWeightliftingData = JSON.stringify({
           </div>
 
           <div class="exercise-metrics">
-            ${makeMetric("Weight", exercise.weight)}
-            ${makeMetric("Sets", exercise.sets)}
-            ${makeMetric("Reps", exercise.reps)}
-            ${makeMetric("Weeks since increase", exercise.weeksSinceIncrease)}
+            ${makeMetric("Weight", escapeHtml(exercise.weight))}
+            ${makeMetric("Sets", escapeHtml(exercise.sets))}
+            ${makeMetric("Reps", escapeHtml(exercise.reps))}
+            ${makeMetric("Weeks since increase", escapeHtml(exercise.weeksSinceIncrease))}
           </div>
 
           ${
@@ -394,7 +469,7 @@ const defaultWeightliftingData = JSON.stringify({
             <div class="exercise-video-shell">
               <iframe
                 src="${safeVideo}"
-                title="${exercise.name}"
+                title="${escapeHtml(exercise.name)}"
                 frameborder="0"
                 allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share"
                 referrerpolicy="strict-origin-when-cross-origin"
@@ -481,7 +556,7 @@ const defaultWeightliftingData = JSON.stringify({
         const sets = window.prompt("Sets:", "3-4") ?? "";
         const reps = window.prompt("Reps:", "8-12") ?? "";
         const weeksSinceIncrease = window.prompt("Weeks since increase:", "") ?? "";
-        const video = window.prompt("YouTube embed URL:", "") ?? "";
+        const video = window.prompt("YouTube link or embed code:", "") ?? "";
 
         exercises.push(
           normalizeExercise({
