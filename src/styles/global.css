@@ -2841,28 +2841,29 @@ img {
   grid-template-columns: 1fr auto;
 }
 
-.dropdown-card {
-  overflow: hidden;
-}
-
-.dropdown-card summary {
+/* Shared accordion styles */
+.dropdown-card > summary {
+  list-style: none;
+  cursor: pointer;
   display: flex;
   align-items: center;
   justify-content: space-between;
-  cursor: pointer;
-  list-style: none;
+  gap: 1rem;
+  padding: 1rem 1.1rem;
   margin: 0;
+  background: linear-gradient(180deg, #fffdfa 0%, #f5ede4 100%);
 }
 
-.dropdown-card summary::-webkit-details-marker {
+.dropdown-card > summary::-webkit-details-marker {
   display: none;
 }
 
-.dropdown-card .dropdown-content {
-  padding-top: 1rem;
+.dropdown-card > .dropdown-content {
+  padding: 1rem;
+  border-top: 1px solid var(--line);
 }
 
-.dropdown-card:not([open]) .dropdown-content {
+.dropdown-card:not([open]) > .dropdown-content {
   display: none;
 }
 

@@ -23,15 +23,28 @@ const {
     <link rel="preconnect" href="https://fonts.googleapis.com" />
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
     <link
-    href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap"
-    rel="stylesheet"
+      href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap"
+      rel="stylesheet"
     />
-
   </head>
+
   <body>
     <Navbar />
     <main class="site-shell">
       <slot />
     </main>
+
+    <script>
+      import { App } from '@capacitor/app';
+      import { Browser } from '@capacitor/browser';
+
+      App.addListener('appUrlOpen', async ({ url }: { url: string }) => {
+        if (url.startsWith('com.lifestyle.app://auth/success')) {
+          await Browser.close();
+          window.location.href = '/dashboard';
+        }
+      });
+    </script>
+
   </body>
 </html>
