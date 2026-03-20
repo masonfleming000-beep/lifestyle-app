@@ -131,7 +131,7 @@ import BaseLayout from "../../layouts/BaseLayout.astro";
                 ${items
                   .map(
                     (item) => `
-                    <article class="card soft">
+                    <article class="card">
                       <h3 class="card-title">${escapeHtml(item.title || "")}</h3>
                       ${item.subtitle ? `<p class="meta">${escapeHtml(item.subtitle)}</p>` : ""}
                       ${item.body ? `<p>${escapeHtml(item.body)}</p>` : ""}
@@ -281,7 +281,7 @@ import BaseLayout from "../../layouts/BaseLayout.astro";
                 ${items
                   .map(
                     (item) => `
-                    <article class="card soft">
+                    <article class="card">
                       <h3 class="card-title">${escapeHtml(item.title || "Contact Info")}</h3>
                       ${item.github ? `<p><strong>GitHub:</strong> ${escapeHtml(item.github)}</p>` : ""}
                       ${item.email ? `<p><strong>Email:</strong> ${escapeHtml(item.email)}</p>` : ""}
@@ -320,7 +320,7 @@ import BaseLayout from "../../layouts/BaseLayout.astro";
                       (item.fileName || "").toLowerCase().endsWith(".pdf");
 
                     return `
-                      <article class="card soft">
+                      <article class="card">
                         <h3 class="card-title">${escapeHtml(item.title || "Resume")}</h3>
                         ${item.fileName ? `<p><strong>File:</strong> ${escapeHtml(item.fileName)}</p>` : ""}
 
@@ -427,7 +427,7 @@ import BaseLayout from "../../layouts/BaseLayout.astro";
                 ${items
                   .map(
                     (item) => `
-                    <article class="card quote-card soft">
+                    <article class="card quote-card">
                       <p class="quote-text">“${escapeHtml(item.body || item.title || "")}”</p>
                       <span class="quote-author">${escapeHtml(item.owner || "Recommendation")}</span>
                     </article>

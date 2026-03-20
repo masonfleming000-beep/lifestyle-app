@@ -190,7 +190,7 @@ img {
 }
 
 .hero-card {
-  background: linear-gradient(135deg, rgba(47, 93, 98, 0.12), rgba(255,255,255,0.92));
+  background: rgba(255,255,255,0.92);
   border: 1px solid rgba(47, 93, 98, 0.12);
   border-radius: 28px;
   padding: 1.25rem;
@@ -356,7 +356,7 @@ img {
   display: block;
   padding: 1rem;
   border-radius: var(--radius);
-  background: linear-gradient(160deg, #234245, #436d71);
+  background: #305b94; /* solid color instead of gradient */
   color: white;
   min-height: 145px;
   box-shadow: var(--shadow);
@@ -669,7 +669,7 @@ img {
 }
 
 .dropdown-card[open] {
-  background: linear-gradient(180deg, #fffdfa 0%, #f6efe6 100%);
+  background: linear-gradient(180deg, #fffdfa 0%, #fffdfa 0%);
 }
 
 .dropdown-card summary {

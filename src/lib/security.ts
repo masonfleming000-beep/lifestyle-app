@@ -59,7 +59,8 @@ export function isTrustedOrigin(request: Request) {
   }
 
   if (HOST) {
-    const hostValue = HOST.startsWith("http://") || HOST.startsWith("https://") ? HOST : `https://${HOST}`;
+    const hostValue =
+      HOST.startsWith("http://") || HOST.startsWith("https://") ? HOST : `https://${HOST}`;
     try {
       allowedOrigins.add(new URL(hostValue).origin);
     } catch {}
@@ -117,6 +118,7 @@ export function consumeRateLimit(options: {
 
 export function buildSecurityHeaders(request: Request) {
   const url = new URL(request.url);
+
   const connectSrc = new Set<string>(["'self'"]);
   connectSrc.add(url.origin);
   connectSrc.add("https://accounts.google.com");
@@ -128,33 +130,49 @@ export function buildSecurityHeaders(request: Request) {
   const imgSrc = [
     "'self'",
     "data:",
+    "blob:",
     "https:",
     "https://cdn.inchcalculator.com",
+    "https://www.inchcalculator.com",
   ];
-  const styleSrc = ["'self'", "'unsafe-inline'", "https://fonts.googleapis.com"];
+
+  const styleSrc = [
+    "'self'",
+    "'unsafe-inline'",
+    "https://fonts.googleapis.com",
+    "https://cdn.inchcalculator.com",
+    "https://www.inchcalculator.com",
+  ];
+
   const scriptSrc = [
     "'self'",
     "'unsafe-inline'",
     "https://accounts.google.com",
     "https://*.gstatic.com",
     "https://cdn.inchcalculator.com",
+    "https://www.inchcalculator.com",
   ];
+
   const fontSrc = ["'self'", "https://fonts.gstatic.com", "data:"];
 
   const frameSrc = [
     "'self'",
+    "blob:",
+    "data:",
     "https://accounts.google.com",
     "https://www.youtube.com",
     "https://www.youtube-nocookie.com",
     "https://calendar.google.com",
     "https://www.google.com",
     "https://www.strava.com",
+    "https://www.inchcalculator.com",
+    "https://cdn.inchcalculator.com",
   ];
 
   const csp = [
     `default-src 'self'`,
     `base-uri 'self'`,
-    `object-src 'none'`,
+    `object-src 'self' blob: data:`,
     `frame-ancestors 'none'`,
     `form-action 'self' https://accounts.google.com`,
     `img-src ${imgSrc.join(" ")}`,
@@ -163,6 +181,8 @@ export function buildSecurityHeaders(request: Request) {
     `font-src ${fontSrc.join(" ")}`,
     `connect-src ${Array.from(connectSrc).join(" ")}`,
     `frame-src ${frameSrc.join(" ")}`,
+    `worker-src 'self' blob:`,
+    `media-src 'self' blob: data: https:`,
     `upgrade-insecure-requests`,
   ].join("; ");
 
@@ -173,7 +193,7 @@ export function buildSecurityHeaders(request: Request) {
     "X-Frame-Options": "DENY",
     "Permissions-Policy": "camera=(), microphone=(), geolocation=(), payment=(), usb=()",
     "Cross-Origin-Opener-Policy": "same-origin",
-    "Cross-Origin-Resource-Policy": "same-origin",
+    "Cross-Origin-Resource-Policy": "cross-origin",
     "X-Robots-Tag": "noindex, nofollow, noarchive",
   } as const;
 }
