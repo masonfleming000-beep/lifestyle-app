@@ -1,6 +1,7 @@
 import type { APIRoute } from "astro";
 import { getCurrentUser } from "../../lib/auth";
 import { getSql } from "../../lib/db";
+import { isReasonableJsonSize, isSafePageKey } from "../../lib/security";
 
 export const prerender = false;
 
@@ -25,9 +26,6 @@ function normalizeState(value: unknown) {
   return value;
 }
 
-// --------------------
-// GET: load saved state
-// --------------------
 export const GET: APIRoute = async ({ cookies, url }) => {
   try {
     const user = await getCurrentUser(cookies);
@@ -38,8 +36,8 @@ export const GET: APIRoute = async ({ cookies, url }) => {
 
     const pageKey = url.searchParams.get("pageKey");
 
-    if (!pageKey || typeof pageKey !== "string") {
-      return json({ ok: false, error: "pageKey is required" }, 400);
+    if (!isSafePageKey(pageKey)) {
+      return json({ ok: false, error: "Valid pageKey is required" }, 400);
     }
 
     const sql = getSql();
@@ -67,15 +65,11 @@ export const GET: APIRoute = async ({ cookies, url }) => {
     } finally {
       await sql.end();
     }
-  } catch (error) {
-    console.error("/api/state GET error:", error);
+  } catch {
     return json({ ok: false, error: "Failed to fetch state." }, 500);
   }
 };
 
-// --------------------
-// POST: save state
-// --------------------
 export const POST: APIRoute = async ({ cookies, request }) => {
   try {
     const user = await getCurrentUser(cookies);
@@ -89,12 +83,16 @@ export const POST: APIRoute = async ({ cookies, request }) => {
     const pageKey = body?.pageKey;
     const state = body?.state;
 
-    if (!pageKey || typeof pageKey !== "string") {
-      return json({ ok: false, error: "pageKey is required" }, 400);
+    if (!isSafePageKey(pageKey)) {
+      return json({ ok: false, error: "Valid pageKey is required" }, 400);
     }
 
     if (state === undefined) {
       return json({ ok: false, error: "state is required" }, 400);
+    }
+
+    if (!isReasonableJsonSize(state)) {
+      return json({ ok: false, error: "state payload is too large" }, 413);
     }
 
     const sql = getSql();
@@ -123,8 +121,7 @@ export const POST: APIRoute = async ({ cookies, request }) => {
     } finally {
       await sql.end();
     }
-  } catch (error) {
-    console.error("/api/state POST error:", error);
+  } catch {
     return json({ ok: false, error: "Failed to save state." }, 500);
   }
 };

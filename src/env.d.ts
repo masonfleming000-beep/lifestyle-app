@@ -1,7 +1,14 @@
 interface ImportMetaEnv {
-  readonly SUPABASE_URL: string;
-  readonly SUPABASE_ANON_KEY: string;
-  readonly PUBLIC_SITE_URL: string;
+  readonly DATABASE_URL: string;
+  readonly HOST?: string;
+  readonly SESSION_COOKIE_NAME?: string;
+  readonly SESSION_TTL_DAYS?: string;
+  readonly PUBLIC_GOOGLE_CLIENT_ID?: string;
+  readonly PUBLIC_APP_URL?: string;
+  readonly APP_URL?: string;
+  readonly INVITE_ONLY?: string;
+  readonly ALLOWED_SIGNUP_EMAILS?: string;
+  readonly ALLOWED_ORIGINS?: string;
 }
 
 interface ImportMeta {

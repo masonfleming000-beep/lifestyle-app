@@ -19,13 +19,13 @@ export const POST: APIRoute = async ({ cookies }) => {
 
     return new Response(JSON.stringify({ ok: true }), {
       status: 200,
-      headers: { "Content-Type": "application/json" },
+      headers: { "Content-Type": "application/json", "Cache-Control": "no-store" },
     });
   } catch (error) {
-    console.error("logout error", error);
+    console.error("logout error", error instanceof Error ? error.message : error);
     return new Response(JSON.stringify({ error: "Failed to log out." }), {
       status: 500,
-      headers: { "Content-Type": "application/json" },
+      headers: { "Content-Type": "application/json", "Cache-Control": "no-store" },
     });
   }
 };

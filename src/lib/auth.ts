@@ -1,11 +1,11 @@
 import bcrypt from "bcryptjs";
-import crypto from "node:crypto";
 import { getSql } from "./db";
+import { assertAllowedSignupEmail, normalizeEmail } from "./security";
 
 const SESSION_COOKIE_NAME =
   import.meta.env.SESSION_COOKIE_NAME || "session_id";
 
-const SESSION_TTL_DAYS = Number(import.meta.env.SESSION_TTL_DAYS || "30");
+const SESSION_TTL_DAYS = Number(import.meta.env.SESSION_TTL_DAYS || "14");
 
 export type SafeUser = {
   id: string;
@@ -26,11 +26,15 @@ export async function verifyPassword(password: string, hash: string) {
 }
 
 export function validateEmail(email: string) {
-  return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email);
+  return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(normalizeEmail(email));
 }
 
-export function validatePassword(password: string) {
-  return password.length >= 8;
+export function validatePassword(password: string, email = "") {
+  if (typeof password !== "string") return false;
+  if (password.length < 12 || password.length > 128) return false;
+  if (/\s/.test(password)) return false;
+  if (email && password.toLowerCase().includes(normalizeEmail(email))) return false;
+  return true;
 }
 
 export function getSessionExpiryDate() {
@@ -95,7 +99,7 @@ export async function getUserByEmail(email: string) {
     >`
       select id, email, password_hash, created_at
       from users
-      where email = ${email.toLowerCase()}
+      where email = ${normalizeEmail(email)}
       limit 1
     `;
 
@@ -106,6 +110,8 @@ export async function getUserByEmail(email: string) {
 }
 
 export async function createUser(email: string, password: string) {
+  assertAllowedSignupEmail(email);
+
   const sql = getSql();
   try {
     const passwordHash = await hashPassword(password);
@@ -114,7 +120,7 @@ export async function createUser(email: string, password: string) {
       { id: string; email: string; created_at: string }[]
     >`
       insert into users (email, password_hash)
-      values (${email.toLowerCase()}, ${passwordHash})
+      values (${normalizeEmail(email)}, ${passwordHash})
       returning id, email, created_at
     `;
 
@@ -123,18 +129,11 @@ export async function createUser(email: string, password: string) {
     await sql.end();
   }
 }
-export async function getUserFromSessionId(sessionId: string) {
-  console.log("[auth] getUserFromSessionId start", {
-    hasSessionId: !!sessionId,
-    sessionIdPreview: sessionId ? sessionId.slice(0, 8) + "..." : null,
-  });
 
+export async function getUserFromSessionId(sessionId: string) {
   const sql = getSql();
-  console.log("[auth] sql client created");
 
   try {
-    console.log("[auth] running session lookup query");
-
     const rows = await sql<
       {
         id: string;
@@ -157,18 +156,9 @@ export async function getUserFromSessionId(sessionId: string) {
       limit 1
     `;
 
-    console.log("[auth] session lookup query finished", {
-      rowCount: rows.length,
-    });
-
     return rows[0] ?? null;
-  } catch (error) {
-    console.error("[auth] getUserFromSessionId query error:", error);
-    throw error;
   } finally {
-    console.log("[auth] closing sql client");
     await sql.end();
-    console.log("[auth] sql client closed");
   }
 }
 
@@ -194,8 +184,7 @@ export async function getCurrentUser(cookies: {
       created_at: user.created_at,
       session_id: user.session_id,
     };
-  } catch (error) {
-    console.error("[auth] getCurrentUser failed:", error);
+  } catch {
     return null;
   }
 }
@@ -222,8 +211,4 @@ export function buildExpiredCookieOptions() {
     path: "/",
     expires: new Date(0),
   };
-}
-
-export function generateRequestId() {
-  return crypto.randomUUID();
 }

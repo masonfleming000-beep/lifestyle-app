@@ -9,73 +9,78 @@ import {
   validateEmail,
   validatePassword,
 } from "../../../lib/auth";
+import { consumeRateLimit, isAllowedSignupEmail, normalizeEmail } from "../../../lib/security";
 
 export const prerender = false;
 
+function json(data: unknown, status = 200) {
+  return new Response(JSON.stringify(data), {
+    status,
+    headers: { "Content-Type": "application/json", "Cache-Control": "no-store" },
+  });
+}
+
 export const POST: APIRoute = async ({ request, cookies }) => {
+  const rateLimit = consumeRateLimit({
+    bucket: "auth-signup",
+    request,
+    max: 5,
+    windowMs: 10 * 60 * 1000,
+  });
+
+  if (!rateLimit.allowed) {
+    return json({ error: "Too many signup attempts. Try again later." }, 429);
+  }
+
   try {
     const body = await request.json().catch(() => null);
-    const email = body?.email?.trim();
-    const password = body?.password;
+    const email = normalizeEmail(String(body?.email || ""));
+    const password = String(body?.password || "");
 
     if (!email || !password) {
-      return new Response(
-        JSON.stringify({ error: "Email and password are required." }),
-        { status: 400, headers: { "Content-Type": "application/json" } }
-      );
+      return json({ error: "Email and password are required." }, 400);
     }
 
     if (!validateEmail(email)) {
-      return new Response(JSON.stringify({ error: "Invalid email address." }), {
-        status: 400,
-        headers: { "Content-Type": "application/json" },
-      });
+      return json({ error: "Invalid email address." }, 400);
     }
 
-    if (!validatePassword(password)) {
-      return new Response(
-        JSON.stringify({ error: "Password must be at least 8 characters." }),
-        { status: 400, headers: { "Content-Type": "application/json" } }
+    if (!isAllowedSignupEmail(email)) {
+      return json({ error: "This account is not approved for private access yet." }, 403);
+    }
+
+    if (!validatePassword(password, email)) {
+      return json(
+        { error: "Password must be 12-128 characters, contain no spaces, and must not include your email." },
+        400
       );
     }
 
     const existingUser = await getUserByEmail(email);
     if (existingUser) {
-      return new Response(JSON.stringify({ error: "User already exists." }), {
-        status: 409,
-        headers: { "Content-Type": "application/json" },
-      });
+      return json({ error: "User already exists." }, 409);
     }
 
     const user = await createUser(email, password);
     const session = await createSession(user.id);
     const expires = getSessionExpiryDate();
 
-    cookies.set(
-      getSessionCookieName(),
-      session.id,
-      buildSessionCookieOptions(expires)
-    );
+    cookies.set(getSessionCookieName(), session.id, buildSessionCookieOptions(expires));
 
-    return new Response(
-      JSON.stringify({
-        ok: true,
-        user: {
-          id: user.id,
-          email: user.email,
-          created_at: user.created_at,
-        },
-      }),
-      {
-        status: 201,
-        headers: { "Content-Type": "application/json" },
-      }
-    );
+    return json({
+      ok: true,
+      user: {
+        id: user.id,
+        email: user.email,
+        created_at: user.created_at,
+      },
+    }, 201);
   } catch (error) {
-    console.error("signup error full:", error);
-    return new Response(JSON.stringify({ error: "Failed to sign up." }), {
-      status: 500,
-      headers: { "Content-Type": "application/json" },
-    });
+    const message = error instanceof Error ? error.message : "Failed to sign up.";
+    const status = message.includes("not approved") ? 403 : 500;
+    if (status === 500) {
+      console.error("signup error:", message);
+    }
+    return json({ error: message }, status);
   }
 };

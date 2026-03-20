@@ -6,7 +6,6 @@ export const prerender = false;
 export const GET: APIRoute = async ({ cookies }) => {
   try {
     const user = await getCurrentUser(cookies);
-    console.log("/api/me user:", user);
 
     return new Response(
       JSON.stringify({
@@ -21,14 +20,13 @@ export const GET: APIRoute = async ({ cookies }) => {
       }),
       {
         status: 200,
-        headers: { "Content-Type": "application/json" },
+        headers: { "Content-Type": "application/json", "Cache-Control": "no-store" },
       }
     );
-  } catch (error) {
-    console.error("/api/me error full:", error);
+  } catch {
     return new Response(JSON.stringify({ error: "Failed to fetch user." }), {
       status: 500,
-      headers: { "Content-Type": "application/json" },
+      headers: { "Content-Type": "application/json", "Cache-Control": "no-store" },
     });
   }
 };
