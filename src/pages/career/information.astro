@@ -195,6 +195,11 @@ const defaultCareerData = JSON.stringify({
         return Array.isArray(value) ? value : [];
       }
 
+      function isPdfResume(item) {
+        return String(item?.fileType || "").toLowerCase().includes("pdf") ||
+          String(item?.fileName || "").toLowerCase().endsWith(".pdf");
+      }
+
       function normalizeData(raw) {
         const defaults = cloneDefaults();
         const parsed = raw && typeof raw === "object" ? raw : {};
@@ -289,6 +294,7 @@ const defaultCareerData = JSON.stringify({
             fileName: item?.fileName || "",
             fileType: item?.fileType || "",
             fileSize: Number(item?.fileSize || 0),
+            fileUrl: item?.fileUrl || "",
             note: item?.note || "",
             visible: normalizeBoolean(item?.visible, true),
           })),
@@ -327,6 +333,7 @@ const defaultCareerData = JSON.stringify({
           fileName: item?.fileName || "",
           fileType: item?.fileType || "",
           fileSize: Number(item?.fileSize || 0),
+          fileUrl: item?.fileUrl || "",
           note: item?.note || "",
           visible: normalizeBoolean(item?.visible, true),
         }));
@@ -385,6 +392,25 @@ const defaultCareerData = JSON.stringify({
           console.error("Failed to load state:", error);
           return null;
         }
+      }
+
+      async function uploadResumeFile(file) {
+        const formData = new FormData();
+        formData.append("file", file);
+
+        const res = await fetch("/api/upload-resume", {
+          method: "POST",
+          credentials: "include",
+          body: formData,
+        });
+
+        const payload = await res.json().catch(() => null);
+
+        if (!res.ok) {
+          throw new Error(payload?.error || `Upload failed (${res.status})`);
+        }
+
+        return payload;
       }
 
       let data = cloneDefaults();
@@ -797,7 +823,7 @@ const defaultCareerData = JSON.stringify({
         return `
           <div class="dynamic-form-card">
             <p class="section-helper">
-              Resume metadata is saved here safely. The actual file itself is not stored in page state because large file payloads cause save failures.
+              Upload a resume file. PDF resumes can be previewed on both the Information and Portfolio pages.
             </p>
 
             <div class="dynamic-form-grid one">
@@ -827,7 +853,7 @@ const defaultCareerData = JSON.stringify({
               </label>
             </div>
 
-            <button class="edu-button" id="dynamic-save-resume-btn" type="button">Save Resume Metadata</button>
+            <button class="edu-button" id="dynamic-save-resume-btn" type="button">Upload + Save Resume</button>
           </div>
         `;
       }
@@ -1116,23 +1142,60 @@ const defaultCareerData = JSON.stringify({
           const file = fileInput?.files?.[0];
           const title = getValue("dynamic-resume-title") || "Resume";
           const note = getValue("dynamic-resume-note");
+          const visible = getChecked("dynamic-resume-visible");
 
-          if (!file && !note) return;
+          if (!file && !data.resume?.[0]) {
+            if (!note) return;
+          }
 
-          data.resume = [
-            {
-              id: makeId("resume"),
-              title,
-              fileName: file?.name || "",
-              fileType: file?.type || "",
-              fileSize: Number(file?.size || 0),
-              note,
-              visible: getChecked("dynamic-resume-visible"),
-            },
-          ];
+          try {
+            setSaveStatus(file ? "Uploading resume..." : "Saving...", "neutral");
 
-          await persistAndRefresh();
-          renderDynamicForm();
+            let nextResume = data.resume?.[0]
+              ? { ...data.resume[0] }
+              : {
+                  id: makeId("resume"),
+                  title: "Resume",
+                  fileName: "",
+                  fileType: "",
+                  fileSize: 0,
+                  fileUrl: "",
+                  note: "",
+                  visible: true,
+                };
+
+            if (file) {
+              const uploaded = await uploadResumeFile(file);
+
+              nextResume = {
+                ...nextResume,
+                id: nextResume.id || makeId("resume"),
+                title,
+                fileName: uploaded.fileName || file.name,
+                fileType: uploaded.fileType || file.type || "",
+                fileSize: Number(uploaded.fileSize || file.size || 0),
+                fileUrl: uploaded.fileUrl || "",
+                note,
+                visible,
+              };
+            } else {
+              nextResume = {
+                ...nextResume,
+                title,
+                note,
+                visible,
+              };
+            }
+
+            data.resume = [nextResume];
+
+            await persistAndRefresh();
+            renderDynamicForm();
+          } catch (error) {
+            console.error("Resume upload failed:", error);
+            setSaveStatus(error?.message || "Resume upload failed", "error");
+            window.alert(error?.message || "Resume upload failed");
+          }
         });
 
         document.getElementById("dynamic-save-timeline-btn")?.addEventListener("click", async () => {
@@ -1184,6 +1247,46 @@ const defaultCareerData = JSON.stringify({
           await persistAndRefresh();
           renderDynamicForm();
         });
+      }
+
+      function buildResumeActions(item) {
+        if (!item?.fileUrl) {
+          return `<p><strong>File:</strong> Not uploaded yet</p>`;
+        }
+
+        const previewButton = isPdfResume(item)
+          ? `
+            <a class="edu-button mini secondary-button" href="${escapeHtml(item.fileUrl)}#toolbar=1" target="_blank" rel="noreferrer">
+              View PDF
+            </a>
+          `
+          : "";
+
+        return `
+          <div class="resume-link-row">
+            ${previewButton}
+            <a class="edu-button mini" href="${escapeHtml(item.fileUrl)}" target="_blank" rel="noreferrer">
+              Open
+            </a>
+            <a class="edu-button mini resume-download-btn" href="${escapeHtml(item.fileUrl)}" download>
+              Download
+            </a>
+          </div>
+        `;
+      }
+
+      function buildResumePreview(item) {
+        if (!item?.fileUrl || !isPdfResume(item)) return "";
+
+        return `
+          <div class="resume-preview-wrap">
+            <iframe
+              src="${escapeHtml(item.fileUrl)}"
+              title="${escapeHtml(item.title || "Resume Preview")}"
+              class="resume-preview-frame"
+            ></iframe>
+          </div>
+        `;
       }
 
       function buildSavedCard(group, item) {
@@ -1282,6 +1385,8 @@ const defaultCareerData = JSON.stringify({
             <p><strong>File type:</strong> ${escapeHtml(item.fileType || "—")}</p>
             <p><strong>File size:</strong> ${item.fileSize ? `${Math.round(item.fileSize / 1024)} KB` : "—"}</p>
             <p><strong>Note:</strong> ${escapeHtml(item.note || "—")}</p>
+            ${buildResumeActions(item)}
+            ${buildResumePreview(item)}
           `;
         }
 
@@ -1368,7 +1473,7 @@ const defaultCareerData = JSON.stringify({
         renderGroup("info-pitch", "count-pitch", "pitch", data.pitch, "No saved pitch entries yet.");
         renderGroup("info-stats", "count-stats", "stats", data.stats, "No saved stats yet.");
         renderGroup("info-contact", "count-contact", "contact", data.contact, "No saved contact info yet.");
-        renderGroup("info-resume", "count-resume", "resume", data.resume, "No saved resume metadata yet.");
+        renderGroup("info-resume", "count-resume", "resume", data.resume, "No saved resume yet.");
 
         const timelineSorted = [...data.timelineItems].sort((a, b) => {
           const aDate = a.date || "9999-12-31";
@@ -1485,6 +1590,11 @@ const defaultCareerData = JSON.stringify({
     .edu-button.mini {
       padding: 0.6rem 0.9rem;
       font-size: 0.92rem;
+    }
+
+    .secondary-button {
+      background: rgba(47, 93, 98, 0.12);
+      color: #2f5d62;
     }
 
     .delete-mini-button {
@@ -1639,6 +1749,35 @@ const defaultCareerData = JSON.stringify({
       color: #b91c1c;
     }
 
+    .resume-link-row {
+      display: flex;
+      gap: 0.6rem;
+      flex-wrap: wrap;
+      margin-top: 0.85rem;
+      margin-bottom: 0.85rem;
+    }
+
+    .resume-download-btn {
+      background: rgba(47, 93, 98, 0.12);
+      color: #2f5d62;
+    }
+
+    .resume-preview-wrap {
+      margin-top: 0.9rem;
+      border: 1px solid rgba(47, 93, 98, 0.12);
+      border-radius: 1rem;
+      overflow: hidden;
+      background: #f8fafc;
+    }
+
+    .resume-preview-frame {
+      width: 100%;
+      min-height: 640px;
+      border: 0;
+      display: block;
+      background: white;
+    }
+
     @media (max-width: 900px) {
       .assignment-card {
         flex-direction: column;
@@ -1647,6 +1786,10 @@ const defaultCareerData = JSON.stringify({
       .assignment-actions {
         width: 100%;
         justify-content: flex-start;
+      }
+
+      .resume-preview-frame {
+        min-height: 480px;
       }
     }
 

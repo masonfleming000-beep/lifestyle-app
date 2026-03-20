@@ -37,11 +37,20 @@ import BaseLayout from "../../layouts/BaseLayout.astro";
       return JSON.parse(JSON.stringify(defaultData));
     }
 
+    function normalizeBoolean(value, fallback = true) {
+      return typeof value === "boolean" ? value : fallback;
+    }
+
     function normalizeData(raw) {
       const parsed = raw && typeof raw === "object" ? raw : {};
+      const timelineSource = Array.isArray(parsed.timelineItems)
+        ? parsed.timelineItems
+        : Array.isArray(parsed.timeline)
+        ? parsed.timeline
+        : [];
+
       return {
         ...cloneDefaults(),
-        ...parsed,
         projects: Array.isArray(parsed.projects) ? parsed.projects : [],
         school: Array.isArray(parsed.school) ? parsed.school : [],
         experience: Array.isArray(parsed.experience) ? parsed.experience : [],
@@ -50,8 +59,19 @@ import BaseLayout from "../../layouts/BaseLayout.astro";
         pitch: Array.isArray(parsed.pitch) ? parsed.pitch : [],
         stats: Array.isArray(parsed.stats) ? parsed.stats : [],
         contact: Array.isArray(parsed.contact) ? parsed.contact : [],
-        resume: Array.isArray(parsed.resume) ? parsed.resume : [],
-        timelineItems: Array.isArray(parsed.timelineItems) ? parsed.timelineItems : [],
+        resume: Array.isArray(parsed.resume)
+          ? parsed.resume.map((item) => ({
+              id: item?.id || "",
+              title: item?.title || "Resume",
+              fileName: item?.fileName || "",
+              fileType: item?.fileType || "",
+              fileSize: Number(item?.fileSize || 0),
+              fileUrl: item?.fileUrl || "",
+              note: item?.note || "",
+              visible: normalizeBoolean(item?.visible, true),
+            }))
+          : [],
+        timelineItems: Array.isArray(timelineSource) ? timelineSource : [],
         recommendations: Array.isArray(parsed.recommendations) ? parsed.recommendations : [],
         star: Array.isArray(parsed.star) ? parsed.star : [],
       };
@@ -114,6 +134,11 @@ import BaseLayout from "../../layouts/BaseLayout.astro";
         day: "numeric",
         year: "numeric",
       });
+    }
+
+    function isPdfResume(item) {
+      return String(item?.fileType || "").toLowerCase().includes("pdf") ||
+        String(item?.fileName || "").toLowerCase().endsWith(".pdf");
     }
 
     function renderTextSection(title, items) {
@@ -315,56 +340,39 @@ import BaseLayout from "../../layouts/BaseLayout.astro";
               <div class="grid one">
                 ${items
                   .map((item) => {
-                    const isPdf =
-                      item.fileType === "application/pdf" ||
-                      (item.fileName || "").toLowerCase().endsWith(".pdf");
+                    const isPdf = isPdfResume(item);
+
+                    const actionRow = item.fileUrl
+                      ? `
+                        <div class="resume-actions">
+                          ${isPdf ? `<a href="${escapeHtml(item.fileUrl)}#toolbar=1" target="_blank" rel="noreferrer" class="edu-button secondary-button">View PDF</a>` : ""}
+                          <a href="${escapeHtml(item.fileUrl)}" target="_blank" rel="noreferrer" class="edu-button">Open</a>
+                          <a href="${escapeHtml(item.fileUrl)}" download="${escapeHtml(item.fileName || "resume")}" class="edu-button secondary-button">Download</a>
+                        </div>
+                      `
+                      : "";
+
+                    const preview = isPdf && item.fileUrl
+                      ? `
+                        <div class="resume-preview-wrap">
+                          <iframe
+                            src="${escapeHtml(item.fileUrl)}"
+                            title="${escapeHtml(item.title || "Resume Preview")}"
+                            class="resume-preview-frame"
+                          ></iframe>
+                        </div>
+                      `
+                      : item.fileUrl
+                      ? `<p class="section-subtitle">Inline preview is available for PDF resumes. Use Open or Download for this file.</p>`
+                      : `<p class="section-subtitle">No resume file available.</p>`;
 
                     return `
                       <article class="card">
                         <h3 class="card-title">${escapeHtml(item.title || "Resume")}</h3>
                         ${item.fileName ? `<p><strong>File:</strong> ${escapeHtml(item.fileName)}</p>` : ""}
-
-                        ${
-                          isPdf && item.fileDataUrl
-                            ? `
-                              <div class="resume-preview-wrap">
-                                <iframe
-                                  src="${item.fileDataUrl}"
-                                  title="${escapeHtml(item.title || "Resume Preview")}"
-                                  class="resume-preview-frame"
-                                ></iframe>
-                              </div>
-                            `
-                            : `
-                              <p class="section-subtitle">
-                                Preview is available for PDF resumes. For this file type, use the button below to open or download it.
-                              </p>
-                            `
-                        }
-
-                        ${
-                          item.fileDataUrl
-                            ? `
-                              <div class="resume-actions">
-                                <a
-                                  href="${item.fileDataUrl}"
-                                  target="_blank"
-                                  rel="noreferrer"
-                                  class="edu-button"
-                                >
-                                  Open Resume
-                                </a>
-                                <a
-                                  href="${item.fileDataUrl}"
-                                  download="${escapeHtml(item.fileName || "resume")}"
-                                  class="edu-button secondary-button"
-                                >
-                                  Download Resume
-                                </a>
-                              </div>
-                            `
-                            : ""
-                        }
+                        ${item.note ? `<p><strong>Note:</strong> ${escapeHtml(item.note)}</p>` : ""}
+                        ${preview}
+                        ${actionRow}
                       </article>
                     `;
                   })
@@ -375,6 +383,7 @@ import BaseLayout from "../../layouts/BaseLayout.astro";
         </section>
       `;
     }
+
     function renderTimelineSection(title, items) {
       const sorted = [...items].sort((a, b) => {
         const aDate = a.date || "9999-12-31";
@@ -518,11 +527,9 @@ import BaseLayout from "../../layouts/BaseLayout.astro";
       if (about.length) html += renderTextSection(titleMap("about"), about);
       if (looking.length) html += renderTextSection(titleMap("looking"), looking);
       if (pitch.length) html += renderTextSection(titleMap("pitch"), pitch);
-
       if (projects.length) html += renderProjectLikeSection(titleMap("projects"), projects, "projects");
       if (school.length) html += renderProjectLikeSection(titleMap("school"), school, "school");
       if (experience.length) html += renderProjectLikeSection(titleMap("experience"), experience, "experience");
-
       if (stats.length) html += renderStatsSection(titleMap("stats"), stats);
       if (timelineItems.length) html += renderTimelineSection(titleMap("timelineItems"), timelineItems);
       if (recommendations.length) html += renderRecommendationsSection(titleMap("recommendations"), recommendations);
@@ -541,4 +548,133 @@ import BaseLayout from "../../layouts/BaseLayout.astro";
 
     init();
   </script>
+
+  <style>
+    .dropdown-card {
+      overflow: hidden;
+    }
+
+    .dropdown-summary {
+      cursor: pointer;
+      list-style: none;
+      padding: 1rem 1.25rem;
+    }
+
+    .dropdown-summary::-webkit-details-marker {
+      display: none;
+    }
+
+    .dropdown-body {
+      padding: 0 1.25rem 1.25rem;
+    }
+
+    .entry-meta-grid,
+    .star-grid,
+    .metric-grid {
+      display: grid;
+      gap: 1rem;
+    }
+
+    .entry-meta-grid {
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+      margin-top: 1rem;
+    }
+
+    .metric-grid {
+      grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+    }
+
+    .timeline-list {
+      display: grid;
+      gap: 1rem;
+    }
+
+    .timeline-item {
+      display: grid;
+      grid-template-columns: auto 1fr;
+      gap: 0.85rem;
+      align-items: start;
+    }
+
+    .timeline-dot {
+      width: 0.8rem;
+      height: 0.8rem;
+      border-radius: 999px;
+      background: #2f5d62;
+      margin-top: 0.4rem;
+    }
+
+    .timeline-date {
+      font-weight: 700;
+      margin-bottom: 0.4rem;
+    }
+
+    .quote-card {
+      border-left: 4px solid #2f5d62;
+    }
+
+    .quote-text {
+      font-size: 1.05rem;
+      margin-bottom: 0.6rem;
+    }
+
+    .quote-author {
+      color: #6b7280;
+      font-weight: 600;
+    }
+
+    .resume-actions {
+      display: flex;
+      gap: 0.75rem;
+      flex-wrap: wrap;
+      margin-top: 1rem;
+    }
+
+    .resume-preview-wrap {
+      margin-top: 1rem;
+      border: 1px solid rgba(47, 93, 98, 0.12);
+      border-radius: 1rem;
+      overflow: hidden;
+      background: #f8fafc;
+    }
+
+    .resume-preview-frame {
+      width: 100%;
+      min-height: 720px;
+      border: 0;
+      display: block;
+      background: white;
+    }
+
+    .edu-button {
+      appearance: none;
+      border: 0;
+      border-radius: 999px;
+      padding: 0.8rem 1rem;
+      font-weight: 700;
+      cursor: pointer;
+      background: #2f5d62;
+      color: white;
+      text-decoration: none;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+    }
+
+    .secondary-button {
+      background: rgba(47, 93, 98, 0.12);
+      color: #2f5d62;
+    }
+
+    @media (max-width: 800px) {
+      .entry-meta-grid,
+      .star-grid {
+        grid-template-columns: 1fr;
+      }
+
+      .resume-preview-frame {
+        min-height: 520px;
+      }
+    }
+  </style>
 </BaseLayout>
