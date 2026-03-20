@@ -672,14 +672,14 @@ img {
   background: linear-gradient(180deg, #fffdfa 0%, #fffdfa 0%);
 }
 
-.dropdown-card summary {
-  list-style: none;
-  cursor: pointer;
-  padding: 1rem;
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: 1rem;
+.dropdown-card summary,
+.dropdown-summary {
+    background: transparent;   /* removes gray shading */
+    border: none;
+    outline: none;
+    box-shadow: none;
+    appearance: none;          /* removes default UI styling */
+    -webkit-appearance: none;  /* Safari */
 }
 
 .dropdown-card summary::-webkit-details-marker {
@@ -3026,3 +3026,4 @@ img {
   background: rgba(47, 93, 98, 0.12);
   color: #2f5d62;
 }
+
