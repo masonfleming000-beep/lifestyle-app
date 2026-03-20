@@ -23,17 +23,25 @@ import BaseLayout from "../../layouts/BaseLayout.astro";
         <div>
           <h2 class="section-title">Choose Workout Type</h2>
           <p class="section-subtitle">
-            Build HIIT, intervals, recovery runs, or long runs.
+            Build HIIT, intervals, recovery runs, tempo runs, fartlek sessions, hill workouts, power workouts, or long runs.
           </p>
         </div>
       </div>
 
-      <div class="workout-type-grid">
-        <button class="workout-type-button is-active" type="button" data-type="hiit">HIIT</button>
-        <button class="workout-type-button" type="button" data-type="intervals">Intervals</button>
-        <button class="workout-type-button" type="button" data-type="recovery">Recovery Run</button>
-        <button class="workout-type-button" type="button" data-type="longrun">Long Run</button>
+      <div class="editor-toolbar">
+        <button id="edit-workout-types-button" class="button-secondary" type="button">
+          Edit
+        </button>
       </div>
+
+      <div class="workout-type-select-wrap">
+        <label class="workout-field">
+          <span>Workout Type</span>
+          <select id="workout-type-select" class="workout-type-select"></select>
+        </label>
+      </div>
+
+      <div id="workout-type-edit-panel" class="workout-type-edit-panel" hidden></div>
     </article>
   </section>
 
@@ -79,7 +87,9 @@ import BaseLayout from "../../layouts/BaseLayout.astro";
   </section>
 
   <script is:inline>
-    const workoutTypes = {
+    const pageKey = "cardio-workout-builder";
+
+    const defaultWorkoutTypes = {
       hiit: {
         label: "HIIT",
         fields: [
@@ -95,6 +105,50 @@ import BaseLayout from "../../layouts/BaseLayout.astro";
           { name: "sprintDistance", label: "Sprint Distance", type: "text", value: "200m" },
           { name: "sprintTargetTime", label: "Sprint Target Time", type: "text", value: "0:35" },
           { name: "restDistance", label: "Jog Rest Distance", type: "text", value: "100m" },
+        ],
+      },
+      steady: {
+        label: "Steady State",
+        fields: [
+          { name: "pace", label: "Target Pace", type: "text", value: "8:45 / mile" },
+          { name: "distance", label: "Distance (miles)", type: "number", min: 1, step: "0.5", value: 5 },
+        ],
+      },
+      tempo: {
+        label: "Tempo Run",
+        fields: [
+          { name: "warmupDistance", label: "Warmup Distance (miles)", type: "number", min: 0, step: "0.5", value: 1 },
+          { name: "tempoDistance", label: "Tempo Distance (miles)", type: "number", min: 0.5, step: "0.5", value: 3 },
+          { name: "tempoPace", label: "Tempo Pace", type: "text", value: "7:15 / mile" },
+          { name: "cooldownDistance", label: "Cooldown Distance (miles)", type: "number", min: 0, step: "0.5", value: 1 },
+        ],
+      },
+      fartlek: {
+        label: "Fartlek",
+        fields: [
+          { name: "cycles", label: "Hard / Easy Cycles", type: "number", min: 1, value: 6 },
+          { name: "hardMinutes", label: "Hard Effort (minutes)", type: "number", min: 1, value: 2 },
+          { name: "easyMinutes", label: "Easy Effort (minutes)", type: "number", min: 1, value: 2 },
+          { name: "hardEffort", label: "Hard Effort Target", type: "text", value: "5K effort" },
+          { name: "easyEffort", label: "Easy Effort Target", type: "text", value: "Easy jog" },
+        ],
+      },
+      hill: {
+        label: "Hill Repeats",
+        fields: [
+          { name: "repeatCount", label: "Hill Repeats", type: "number", min: 1, value: 6 },
+          { name: "hillDistance", label: "Hill Distance", type: "text", value: "200m" },
+          { name: "hillTarget", label: "Uphill Target", type: "text", value: "Hard effort" },
+          { name: "recoveryType", label: "Recovery", type: "text", value: "Walk/jog back down" },
+        ],
+      },
+      power: {
+        label: "Power Workout",
+        fields: [
+          { name: "intervalCount", label: "Power Intervals", type: "number", min: 1, value: 5 },
+          { name: "workMinutes", label: "Work Interval (minutes)", type: "number", min: 1, value: 3 },
+          { name: "targetWatts", label: "Target Watts", type: "number", min: 50, value: 250 },
+          { name: "recoveryMinutes", label: "Recovery (minutes)", type: "number", min: 1, value: 2 },
         ],
       },
       recovery: {
@@ -113,10 +167,17 @@ import BaseLayout from "../../layouts/BaseLayout.astro";
       },
     };
 
+    let workoutTypes = cloneWorkoutTypes(defaultWorkoutTypes);
     let selectedType = "hiit";
     let activeWorkout = null;
+    let isEditingWorkoutTypes = false;
+    let hasLoadedInitialState = false;
+    let isSaving = false;
+    let pendingSave = false;
 
-    const typeButtons = document.querySelectorAll(".workout-type-button");
+    const workoutTypeSelect = document.getElementById("workout-type-select");
+    const workoutTypeEditPanel = document.getElementById("workout-type-edit-panel");
+    const editWorkoutTypesButton = document.getElementById("edit-workout-types-button");
     const formFields = document.getElementById("workout-form-fields");
     const form = document.getElementById("workout-builder-form");
     const liveWorkoutCard = document.getElementById("live-workout-card");
@@ -124,26 +185,323 @@ import BaseLayout from "../../layouts/BaseLayout.astro";
     const liveWorkoutSteps = document.getElementById("live-workout-steps");
     const resetWorkoutButton = document.getElementById("reset-workout-button");
 
-    function renderTypeButtons() {
-      typeButtons.forEach((button) => {
-        button.classList.toggle("is-active", button.dataset.type === selectedType);
+    function cloneWorkoutTypes(types) {
+      return JSON.parse(JSON.stringify(types));
+    }
+
+    function slugify(value) {
+      return String(value || "")
+        .toLowerCase()
+        .trim()
+        .replace(/[^a-z0-9]+/g, "-")
+        .replace(/^-+|-+$/g, "");
+    }
+
+    function getWorkoutTypeEntries() {
+      return Object.entries(workoutTypes);
+    }
+
+    function getFirstWorkoutTypeKey() {
+      return getWorkoutTypeEntries()[0]?.[0] || "";
+    }
+
+    function ensureSelectedTypeExists() {
+      if (!workoutTypes[selectedType]) {
+        selectedType = getFirstWorkoutTypeKey();
+      }
+    }
+
+    function createDefaultFieldSetForType(typeKey) {
+      if (typeKey === "hiit") {
+        return [
+          { name: "rounds", label: "Intervals", type: "number", min: 1, value: 8 },
+          { name: "workSeconds", label: "Work Time (seconds)", type: "number", min: 5, value: 30 },
+          { name: "restSeconds", label: "Rest Time (seconds)", type: "number", min: 5, value: 30 },
+        ];
+      }
+
+      if (typeKey === "intervals") {
+        return [
+          { name: "sprintCount", label: "Number of Sprints", type: "number", min: 1, value: 4 },
+          { name: "sprintDistance", label: "Sprint Distance", type: "text", value: "200m" },
+          { name: "sprintTargetTime", label: "Sprint Target Time", type: "text", value: "0:35" },
+          { name: "restDistance", label: "Jog Rest Distance", type: "text", value: "100m" },
+        ];
+      }
+
+      if (typeKey === "tempo") {
+        return [
+          { name: "warmupDistance", label: "Warmup Distance (miles)", type: "number", min: 0, step: "0.5", value: 1 },
+          { name: "tempoDistance", label: "Tempo Distance (miles)", type: "number", min: 0.5, step: "0.5", value: 3 },
+          { name: "tempoPace", label: "Tempo Pace", type: "text", value: "7:15 / mile" },
+          { name: "cooldownDistance", label: "Cooldown Distance (miles)", type: "number", min: 0, step: "0.5", value: 1 },
+        ];
+      }
+
+      if (typeKey === "fartlek") {
+        return [
+          { name: "cycles", label: "Hard / Easy Cycles", type: "number", min: 1, value: 6 },
+          { name: "hardMinutes", label: "Hard Effort (minutes)", type: "number", min: 1, value: 2 },
+          { name: "easyMinutes", label: "Easy Effort (minutes)", type: "number", min: 1, value: 2 },
+          { name: "hardEffort", label: "Hard Effort Target", type: "text", value: "5K effort" },
+          { name: "easyEffort", label: "Easy Effort Target", type: "text", value: "Easy jog" },
+        ];
+      }
+
+      if (typeKey === "hill") {
+        return [
+          { name: "repeatCount", label: "Hill Repeats", type: "number", min: 1, value: 6 },
+          { name: "hillDistance", label: "Hill Distance", type: "text", value: "200m" },
+          { name: "hillTarget", label: "Uphill Target", type: "text", value: "Hard effort" },
+          { name: "recoveryType", label: "Recovery", type: "text", value: "Walk/jog back down" },
+        ];
+      }
+
+      if (typeKey === "power") {
+        return [
+          { name: "intervalCount", label: "Power Intervals", type: "number", min: 1, value: 5 },
+          { name: "workMinutes", label: "Work Interval (minutes)", type: "number", min: 1, value: 3 },
+          { name: "targetWatts", label: "Target Watts", type: "number", min: 50, value: 250 },
+          { name: "recoveryMinutes", label: "Recovery (minutes)", type: "number", min: 1, value: 2 },
+        ];
+      }
+
+      return [
+        { name: "pace", label: "Target Pace", type: "text", value: "9:00 / mile" },
+        { name: "distance", label: "Distance (miles)", type: "number", min: 1, step: "0.5", value: 3 },
+      ];
+    }
+
+    function normalizeSavedWorkoutTypes(savedTypes) {
+      if (!savedTypes || typeof savedTypes !== "object") {
+        return cloneWorkoutTypes(defaultWorkoutTypes);
+      }
+
+      const normalized = {};
+
+      Object.entries(savedTypes).forEach(([key, config]) => {
+        if (!config || typeof config !== "object") return;
+
+        const safeKey = slugify(key);
+        if (!safeKey) return;
+
+        const label = String(config.label || safeKey).trim() || safeKey;
+        const fields = Array.isArray(config.fields) && config.fields.length
+          ? config.fields.map((field, index) => ({
+              name: String(field.name || `field-${index + 1}`).trim() || `field-${index + 1}`,
+              label: String(field.label || `Field ${index + 1}`).trim() || `Field ${index + 1}`,
+              type: field.type === "number" ? "number" : "text",
+              min: field.min ?? "",
+              step: field.step ?? "",
+              value: field.value ?? "",
+            }))
+          : createDefaultFieldSetForType(safeKey);
+
+        normalized[safeKey] = { label, fields };
+      });
+
+      if (!Object.keys(normalized).length) {
+        return cloneWorkoutTypes(defaultWorkoutTypes);
+      }
+
+      return normalized;
+    }
+
+    async function loadState() {
+      try {
+        const res = await fetch(`/api/state?pageKey=${encodeURIComponent(pageKey)}`, {
+          credentials: "include",
+          cache: "no-store",
+        });
+
+        if (!res.ok) return null;
+        const data = await res.json();
+        return data?.state ?? null;
+      } catch (error) {
+        console.error("Failed to load workout builder state:", error);
+        return null;
+      }
+    }
+
+    async function saveState() {
+      if (!hasLoadedInitialState) return;
+
+      if (isSaving) {
+        pendingSave = true;
+        return;
+      }
+
+      isSaving = true;
+
+      try {
+        await fetch("/api/state", {
+          method: "POST",
+          credentials: "include",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            pageKey,
+            state: {
+              workoutTypes,
+              selectedType,
+            },
+          }),
+        });
+      } catch (error) {
+        console.error("Failed to save workout builder state:", error);
+      } finally {
+        isSaving = false;
+
+        if (pendingSave) {
+          pendingSave = false;
+          await saveState();
+        }
+      }
+    }
+
+    function renderTypeSelect() {
+      workoutTypeSelect.innerHTML = "";
+
+      getWorkoutTypeEntries().forEach(([key, config]) => {
+        const option = document.createElement("option");
+        option.value = key;
+        option.textContent = config.label;
+        option.selected = key === selectedType;
+        workoutTypeSelect.appendChild(option);
       });
     }
 
+    function renderWorkoutTypeEditor() {
+      workoutTypeEditPanel.innerHTML = "";
+      workoutTypeEditPanel.hidden = !isEditingWorkoutTypes;
+
+      editWorkoutTypesButton.textContent = isEditingWorkoutTypes ? "Done" : "Edit";
+
+      if (!isEditingWorkoutTypes) return;
+
+      getWorkoutTypeEntries().forEach(([key, config]) => {
+        const card = document.createElement("div");
+        card.className = "workout-type-edit-card";
+
+        const row = document.createElement("div");
+        row.className = "workout-type-edit-row";
+
+        const input = document.createElement("input");
+        input.type = "text";
+        input.className = "workout-type-inline-input";
+        input.value = config.label;
+        input.placeholder = "Workout type name";
+
+        input.addEventListener("change", async () => {
+          const nextLabel = input.value.trim() || config.label;
+          workoutTypes[key].label = nextLabel;
+          renderTypeSelect();
+          renderWorkoutTypeEditor();
+          renderFormFields();
+          await saveState();
+        });
+
+        const deleteButton = document.createElement("button");
+        deleteButton.type = "button";
+        deleteButton.className = "routine-action-button";
+        deleteButton.textContent = "Delete";
+
+        deleteButton.addEventListener("click", async () => {
+          if (Object.keys(workoutTypes).length <= 1) return;
+
+          delete workoutTypes[key];
+          ensureSelectedTypeExists();
+          renderTypeSelect();
+          renderWorkoutTypeEditor();
+          renderFormFields();
+          await saveState();
+        });
+
+        row.appendChild(input);
+        row.appendChild(deleteButton);
+        card.appendChild(row);
+        workoutTypeEditPanel.appendChild(card);
+      });
+
+      const actions = document.createElement("div");
+      actions.className = "workout-type-edit-actions";
+
+      const addButton = document.createElement("button");
+      addButton.type = "button";
+      addButton.className = "routine-action-button";
+      addButton.textContent = "Add Workout Type";
+
+      addButton.addEventListener("click", async () => {
+        let baseKey = "new-workout";
+        let counter = 1;
+        let newKey = baseKey;
+
+        while (workoutTypes[newKey]) {
+          counter += 1;
+          newKey = `${baseKey}-${counter}`;
+        }
+
+        workoutTypes[newKey] = {
+          label: "New Workout",
+          fields: createDefaultFieldSetForType(newKey),
+        };
+
+        selectedType = newKey;
+        renderTypeSelect();
+        renderWorkoutTypeEditor();
+        renderFormFields();
+        await saveState();
+
+        const inputs = workoutTypeEditPanel.querySelectorAll(".workout-type-inline-input");
+        const lastInput = inputs[inputs.length - 1];
+        if (lastInput) lastInput.focus();
+      });
+
+      const restoreButton = document.createElement("button");
+      restoreButton.type = "button";
+      restoreButton.className = "routine-action-button";
+      restoreButton.textContent = "Restore Defaults";
+
+      restoreButton.addEventListener("click", async () => {
+        workoutTypes = cloneWorkoutTypes(defaultWorkoutTypes);
+        selectedType = "hiit";
+        renderTypeSelect();
+        renderWorkoutTypeEditor();
+        renderFormFields();
+        await saveState();
+      });
+
+      actions.appendChild(addButton);
+      actions.appendChild(restoreButton);
+      workoutTypeEditPanel.appendChild(actions);
+    }
+
     function renderFormFields() {
+      ensureSelectedTypeExists();
+
       const config = workoutTypes[selectedType];
+      if (!config) {
+        formFields.innerHTML = "";
+        return;
+      }
 
       formFields.innerHTML = config.fields
         .map((field) => {
+          const safeName = field.name || "field";
+          const safeLabel = field.label || "Field";
+          const safeType = field.type === "number" ? "number" : "text";
+          const safeValue = field.value ?? "";
+          const safeMin = safeType === "number" ? (field.min ?? "") : "";
+          const safeStep = safeType === "number" ? (field.step ?? "") : "";
+
           return `
             <label class="workout-field">
-              <span>${field.label}</span>
+              <span>${safeLabel}</span>
               <input
-                name="${field.name}"
-                type="${field.type}"
-                value="${field.value ?? ""}"
-                min="${field.min ?? ""}"
-                step="${field.step ?? ""}"
+                name="${safeName}"
+                type="${safeType}"
+                value="${safeValue}"
+                min="${safeMin}"
+                step="${safeStep}"
                 required
               />
             </label>
@@ -171,6 +529,33 @@ import BaseLayout from "../../layouts/BaseLayout.astro";
         actualLabel,
         actualPlaceholder,
       };
+    }
+
+    function addDistanceSteps(steps, label, distance, pace, splitLabel = "Actual Mile Split") {
+      const wholeMiles = Math.floor(distance);
+      const remainder = distance - wholeMiles;
+
+      for (let i = 1; i <= wholeMiles; i++) {
+        steps.push(
+          createStep({
+            text: `${label} Mile ${i}`,
+            target: pace,
+            actualLabel: splitLabel,
+            actualPlaceholder: "Example: 8:32\nFelt controlled",
+          })
+        );
+      }
+
+      if (remainder > 0) {
+        steps.push(
+          createStep({
+            text: `${label} Final ${remainder.toFixed(1)} mile segment`,
+            target: pace,
+            actualLabel: "Actual Split / Notes",
+            actualPlaceholder: "Example: 4:08\nStayed smooth",
+          })
+        );
+      }
     }
 
     function buildWorkout(type, values) {
@@ -256,39 +641,165 @@ import BaseLayout from "../../layouts/BaseLayout.astro";
         };
       }
 
-      if (type === "recovery" || type === "longrun") {
-        const pace = values.pace;
-        const distance = Number(values.distance);
-        const wholeMiles = Math.floor(distance);
-        const remainder = distance - wholeMiles;
-
+      if (type === "tempo") {
+        const warmupDistance = Number(values.warmupDistance || 0);
+        const tempoDistance = Number(values.tempoDistance || 0);
+        const tempoPace = values.tempoPace || "Tempo pace";
+        const cooldownDistance = Number(values.cooldownDistance || 0);
         const steps = [];
 
-        for (let i = 1; i <= wholeMiles; i++) {
-          steps.push(
-            createStep({
-              text: `Mile ${i}`,
-              target: pace,
-              actualLabel: "Actual Mile Split",
-              actualPlaceholder: "Example: 8:57\nBreathing controlled",
-            })
-          );
+        if (warmupDistance > 0) {
+          addDistanceSteps(steps, "Warmup", warmupDistance, "Easy pace");
         }
 
-        if (remainder > 0) {
-          steps.push(
-            createStep({
-              text: `Final ${remainder.toFixed(1)} mile segment`,
-              target: pace,
-              actualLabel: "Actual Split / Notes",
-              actualPlaceholder: "Example: 4:12\nFinished smooth",
-            })
-          );
+        if (tempoDistance > 0) {
+          addDistanceSteps(steps, "Tempo", tempoDistance, tempoPace, "Actual Tempo Split");
+        }
+
+        if (cooldownDistance > 0) {
+          addDistanceSteps(steps, "Cooldown", cooldownDistance, "Easy pace");
         }
 
         steps.push(
           createStep({
-            text: `Finish ${distance} mile ${type === "recovery" ? "recovery run" : "long run"}`,
+            text: "Finish tempo workout",
+            target: `${warmupDistance + tempoDistance + cooldownDistance} miles total`,
+            actualLabel: "Overall Time / Notes",
+            actualPlaceholder: "Example: 38:42\nTempo felt controlled throughout",
+          })
+        );
+
+        return {
+          type,
+          title: workoutTypes[type].label,
+          summary: `${warmupDistance} mi warmup · ${tempoDistance} mi tempo at ${tempoPace} · ${cooldownDistance} mi cooldown`,
+          steps,
+        };
+      }
+
+      if (type === "fartlek") {
+        const cycles = Number(values.cycles);
+        const hardMinutes = Number(values.hardMinutes);
+        const easyMinutes = Number(values.easyMinutes);
+        const hardEffort = values.hardEffort || "Hard";
+        const easyEffort = values.easyEffort || "Easy";
+        const steps = [];
+
+        for (let i = 1; i <= cycles; i++) {
+          steps.push(
+            createStep({
+              text: `Cycle ${i}: Hard`,
+              target: `${hardMinutes} min · ${hardEffort}`,
+              actualLabel: "Actual Hard Segment / Notes",
+              actualPlaceholder: "Example: 2:00\nStrong effort",
+            })
+          );
+
+          steps.push(
+            createStep({
+              text: `Cycle ${i}: Easy`,
+              target: `${easyMinutes} min · ${easyEffort}`,
+              actualLabel: "Actual Easy Segment / Notes",
+              actualPlaceholder: "Example: 2:10\nRecovered well",
+            })
+          );
+        }
+
+        return {
+          type,
+          title: workoutTypes[type].label,
+          summary: `${cycles} cycles · ${hardMinutes} min hard / ${easyMinutes} min easy`,
+          steps,
+        };
+      }
+
+      if (type === "hill") {
+        const repeatCount = Number(values.repeatCount);
+        const hillDistance = values.hillDistance;
+        const hillTarget = values.hillTarget;
+        const recoveryType = values.recoveryType;
+        const steps = [];
+
+        for (let i = 1; i <= repeatCount; i++) {
+          steps.push(
+            createStep({
+              text: `Hill Repeat ${i}: Uphill`,
+              target: `${hillDistance} · ${hillTarget}`,
+              actualLabel: "Actual Uphill Time / Notes",
+              actualPlaceholder: "Example: 0:46\nStayed tall",
+            })
+          );
+
+          steps.push(
+            createStep({
+              text: `Hill Repeat ${i}: Recovery`,
+              target: recoveryType,
+              actualLabel: "Actual Recovery / Notes",
+              actualPlaceholder: "Example: Jog down\nBreathing recovered",
+            })
+          );
+        }
+
+        return {
+          type,
+          title: workoutTypes[type].label,
+          summary: `${repeatCount} repeats · ${hillDistance} uphill · ${recoveryType}`,
+          steps,
+        };
+      }
+
+      if (type === "power") {
+        const intervalCount = Number(values.intervalCount);
+        const workMinutes = Number(values.workMinutes);
+        const targetWatts = Number(values.targetWatts);
+        const recoveryMinutes = Number(values.recoveryMinutes);
+        const steps = [];
+
+        for (let i = 1; i <= intervalCount; i++) {
+          steps.push(
+            createStep({
+              text: `Power Interval ${i}`,
+              target: `${workMinutes} min @ ${targetWatts} watts`,
+              actualLabel: "Actual Watts / Notes",
+              actualPlaceholder: "Example: 248 avg watts\nCadence steady",
+            })
+          );
+
+          if (i < intervalCount) {
+            steps.push(
+              createStep({
+                text: `Recovery ${i}`,
+                target: `${recoveryMinutes} min easy`,
+                actualLabel: "Actual Recovery / Notes",
+                actualPlaceholder: "Example: 2:00\nEasy spin",
+              })
+            );
+          }
+        }
+
+        return {
+          type,
+          title: workoutTypes[type].label,
+          summary: `${intervalCount} intervals · ${workMinutes} min @ ${targetWatts}W · ${recoveryMinutes} min recovery`,
+          steps,
+        };
+      }
+
+      if (
+        type === "steady" ||
+        type === "recovery" ||
+        type === "longrun" ||
+        workoutTypes[type]?.fields?.some((field) => field.name === "distance")
+      ) {
+        const pace = values.pace ?? "Easy pace";
+        const distance = Number(values.distance);
+        const steps = [];
+
+        addDistanceSteps(steps, "", distance, pace);
+
+        steps.push(
+          createStep({
+            text: `Finish ${distance} mile ${workoutTypes[type].label.toLowerCase()}`,
             target: `${distance} miles total`,
             actualLabel: "Overall Time / Notes",
             actualPlaceholder: "Example: 27:41\nLegs felt good overall",
@@ -303,11 +814,23 @@ import BaseLayout from "../../layouts/BaseLayout.astro";
         };
       }
 
+      const genericFields = workoutTypes[type]?.fields || [];
+      const genericSummary = genericFields
+        .map((field) => `${field.label}: ${values[field.name] ?? field.value ?? ""}`)
+        .join(" · ");
+
       return {
         type,
-        title: "",
-        summary: "",
-        steps: [],
+        title: workoutTypes[type]?.label || "Workout",
+        summary: genericSummary,
+        steps: [
+          createStep({
+            text: workoutTypes[type]?.label || "Workout",
+            target: genericSummary,
+            actualLabel: "Actual Result / Notes",
+            actualPlaceholder: "Enter your actual result",
+          }),
+        ],
       };
     }
 
@@ -380,12 +903,16 @@ import BaseLayout from "../../layouts/BaseLayout.astro";
       });
     }
 
-    typeButtons.forEach((button) => {
-      button.addEventListener("click", () => {
-        selectedType = button.dataset.type;
-        renderTypeButtons();
-        renderFormFields();
-      });
+    editWorkoutTypesButton.addEventListener("click", () => {
+      isEditingWorkoutTypes = !isEditingWorkoutTypes;
+      renderWorkoutTypeEditor();
+    });
+
+    workoutTypeSelect.addEventListener("change", () => {
+      selectedType = workoutTypeSelect.value;
+      renderTypeSelect();
+      renderFormFields();
+      saveState();
     });
 
     form.addEventListener("submit", (event) => {
@@ -403,32 +930,101 @@ import BaseLayout from "../../layouts/BaseLayout.astro";
       renderFormFields();
     });
 
-    renderTypeButtons();
-    renderFormFields();
-    typeButtons.forEach((button) => {
-      button.addEventListener("click", () => {
-        selectedType = button.dataset.type;
-        renderTypeButtons();
-        renderFormFields();
-      });
-    });
+    async function init() {
+      const saved = await loadState();
 
-    form.addEventListener("submit", (event) => {
-      event.preventDefault();
-      const values = getFormValues();
-      const workout = buildWorkout(selectedType, values);
-      renderLiveWorkout(workout);
-    });
+      workoutTypes = normalizeSavedWorkoutTypes(saved?.workoutTypes);
 
-    resetWorkoutButton.addEventListener("click", () => {
-      activeWorkout = null;
-      liveWorkoutCard.hidden = true;
-      liveWorkoutSteps.innerHTML = "";
-      liveWorkoutSummary.innerHTML = "";
+      selectedType =
+        typeof saved?.selectedType === "string" && workoutTypes[saved.selectedType]
+          ? saved.selectedType
+          : getFirstWorkoutTypeKey();
+
+      ensureSelectedTypeExists();
+
+      hasLoadedInitialState = true;
+
+      renderTypeSelect();
+      renderWorkoutTypeEditor();
       renderFormFields();
-    });
+    }
 
-    renderTypeButtons();
-    renderFormFields();
+    init();
   </script>
+
+  <style>
+    .editor-toolbar {
+      display: flex;
+      justify-content: flex-end;
+      margin-bottom: 0.75rem;
+    }
+
+    .workout-type-select-wrap {
+      margin-bottom: 1rem;
+    }
+
+    .workout-type-select {
+      width: 100%;
+      border: 1px solid var(--border-color, rgba(0, 0, 0, 0.12));
+      border-radius: 0.9rem;
+      padding: 0.8rem 1rem;
+      background: transparent;
+      color: inherit;
+      font: inherit;
+    }
+
+    .workout-type-edit-panel {
+      display: grid;
+      gap: 0.85rem;
+      margin-top: 1rem;
+    }
+
+    .workout-type-edit-card {
+      border: 1px solid var(--border-color, rgba(0, 0, 0, 0.12));
+      border-radius: 1rem;
+      padding: 0.9rem 1rem;
+      background: transparent;
+    }
+
+    .workout-type-edit-row {
+      display: flex;
+      align-items: center;
+      gap: 0.75rem;
+      width: 100%;
+    }
+
+    .workout-type-inline-input {
+      flex: 1;
+      min-width: 0;
+      width: 100%;
+      border: none;
+      background: transparent;
+      color: inherit;
+      font: inherit;
+      font-size: 1rem;
+      padding: 0;
+      margin: 0;
+      outline: none;
+    }
+
+    .workout-type-edit-actions {
+      display: flex;
+      gap: 0.5rem;
+      flex-wrap: wrap;
+      justify-content: flex-end;
+    }
+
+    .routine-action-button {
+      border: 1px solid var(--border-color, rgba(0,0,0,0.12));
+      background: transparent;
+      color: inherit;
+      border-radius: 999px;
+      padding: 0.45rem 0.8rem;
+      font: inherit;
+      font-size: 0.9rem;
+      cursor: pointer;
+      white-space: nowrap;
+      flex-shrink: 0;
+    }
+  </style>
 </BaseLayout>

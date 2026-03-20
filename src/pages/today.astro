@@ -30,8 +30,7 @@ const starterTodos = [
   { text: "Exercise", done: false },
 ];
 
-const defaultCalendarEmbed =
-  "";
+const defaultCalendarEmbed = "";
 
 const defaultTodos = JSON.stringify(starterTodos);
 const defaultMorningItems = JSON.stringify(defaultMorning);
@@ -56,15 +55,18 @@ const defaultCalendar = JSON.stringify(defaultCalendarEmbed);
       </form>
 
       <div style="display:flex; gap:.75rem; flex-wrap:wrap; margin-bottom:1rem;">
-         
         <button id="calendar-delete-btn" type="button" class="todo-add-btn">
           Remove Calendar
         </button>
       </div>
 
-      <p class="muted" style="margin-bottom: 1rem;">
-        For now this uses a saved Google Calendar embed link. Real Google sign-in
-        requires OAuth and backend API integration.
+      <p
+        id="calendar-instructions"
+        class="muted"
+        style="margin-bottom: 1rem; display: none;"
+      >
+        Login into Google Calendar, click Settings -> Settings for my calendar ->
+        your calendar name and copy public URL code into this place.
       </p>
 
       <div id="calendar-container" class="calendar-embed"></div>
@@ -152,7 +154,7 @@ const defaultCalendar = JSON.stringify(defaultCalendarEmbed);
     const calendarForm = document.getElementById("calendar-form");
     const calendarInput = document.getElementById("calendar-input");
     const calendarContainer = document.getElementById("calendar-container");
-    const calendarResetBtn = document.getElementById("calendar-reset-btn");
+    const calendarInstructions = document.getElementById("calendar-instructions");
     const calendarDeleteBtn = document.getElementById("calendar-delete-btn");
 
     const defaultTodoItems = JSON.parse(defaultTodos);
@@ -232,11 +234,18 @@ const defaultCalendar = JSON.stringify(defaultCalendarEmbed);
 
       calendarContainer.innerHTML = "";
 
-      if (!state.calendarEmbed) {
+      const hasEmbed = !!state.calendarEmbed?.trim();
+
+      if (calendarInstructions) {
+        calendarInstructions.style.display = hasEmbed ? "none" : "block";
+      }
+
+      if (!hasEmbed) {
         const empty = document.createElement("div");
         empty.className = "card";
         empty.style.padding = "1rem";
-        empty.textContent = "No calendar added. Paste a Google Calendar embed URL above or leave hidden.";
+        empty.textContent =
+          "No calendar added yet. Paste a Google Calendar embed URL above.";
         calendarContainer.appendChild(empty);
         return;
       }
@@ -390,8 +399,6 @@ const defaultCalendar = JSON.stringify(defaultCalendarEmbed);
       renderCalendar();
       await saveState();
     });
-
-    
 
     calendarDeleteBtn?.addEventListener("click", async () => {
       state.calendarEmbed = "";

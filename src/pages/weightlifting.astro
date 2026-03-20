@@ -1,6 +1,15 @@
 ---
 import BaseLayout from "../layouts/BaseLayout.astro";
 import { liftingGroups } from "../data/weightlifting";
+
+const defaultWeightliftingData = JSON.stringify({
+  groups: liftingGroups,
+  hiddenGroupIds: [],
+  customGroups: [],
+  groupDone: {},
+  exerciseData: {},
+  exerciseDone: {},
+});
 ---
 
 <BaseLayout title="Weight Training | Lifestyle App" description="Weight training dashboard">
@@ -99,17 +108,12 @@ import { liftingGroups } from "../data/weightlifting";
     </div>
   </section>
 
-  <script
-    is:inline
-    define:vars={{
-      defaultGroups: liftingGroups,
-    }}
-  >
-    const GROUP_DONE_KEY = "lift-group-done-v3";
-    const EXERCISE_DATA_PREFIX = "lift-exercises-";
-    const EXERCISE_DONE_PREFIX = "lift-exercise-done-";
-    const CUSTOM_GROUPS_KEY = "lift-custom-groups-v1";
-    const HIDDEN_GROUPS_KEY = "lift-hidden-groups-v1";
+  <script define:vars={{ defaultWeightliftingData }}>
+    const pageKey = "weightlifting";
+
+    function cloneDefaults() {
+      return JSON.parse(defaultWeightliftingData);
+    }
 
     function slugify(value) {
       return value
@@ -119,79 +123,168 @@ import { liftingGroups } from "../data/weightlifting";
         .replace(/^-+|-+$/g, "");
     }
 
-    function readJSON(key, fallback) {
+    function normalizeExercise(exercise) {
+      return {
+        name: exercise?.name || "Untitled Exercise",
+        weight: exercise?.weight || "",
+        sets: exercise?.sets || "",
+        reps: exercise?.reps || "",
+        weeksSinceIncrease: exercise?.weeksSinceIncrease || "",
+        video: exercise?.video || "",
+      };
+    }
+
+    function normalizeGroup(group) {
+      return {
+        id: group?.id || `group-${Date.now()}-${Math.random().toString(16).slice(2)}`,
+        title: group?.title || "Untitled Group",
+        exercises: Array.isArray(group?.exercises) ? group.exercises.map(normalizeExercise) : [],
+      };
+    }
+
+    function normalizeData(raw) {
+      const defaults = cloneDefaults();
+      const parsed = raw && typeof raw === "object" ? raw : {};
+
+      const defaultGroups = Array.isArray(defaults.groups) ? defaults.groups.map(normalizeGroup) : [];
+
+      return {
+        groups: Array.isArray(parsed.groups) ? parsed.groups.map(normalizeGroup) : defaultGroups,
+        hiddenGroupIds: Array.isArray(parsed.hiddenGroupIds) ? parsed.hiddenGroupIds : [],
+        customGroups: Array.isArray(parsed.customGroups) ? parsed.customGroups.map(normalizeGroup) : [],
+        groupDone: parsed.groupDone && typeof parsed.groupDone === "object" ? parsed.groupDone : {},
+        exerciseData: parsed.exerciseData && typeof parsed.exerciseData === "object" ? parsed.exerciseData : {},
+        exerciseDone: parsed.exerciseDone && typeof parsed.exerciseDone === "object" ? parsed.exerciseDone : {},
+      };
+    }
+
+    async function loadState() {
       try {
-        const raw = localStorage.getItem(key);
-        return raw ? JSON.parse(raw) : fallback;
-      } catch {
-        return fallback;
+        const res = await fetch(`/api/state?pageKey=${encodeURIComponent(pageKey)}`, {
+          credentials: "include",
+          cache: "no-store",
+        });
+
+        if (!res.ok) return null;
+
+        const data = await res.json();
+        return data?.state ?? null;
+      } catch (error) {
+        console.error("Failed to load weightlifting state:", error);
+        return null;
       }
     }
 
-    function writeJSON(key, value) {
-      localStorage.setItem(key, JSON.stringify(value));
+    let isSaving = false;
+    let pendingSave = false;
+    let hasLoadedInitialState = false;
+
+    async function saveState() {
+      if (!hasLoadedInitialState) return;
+
+      if (isSaving) {
+        pendingSave = true;
+        return;
+      }
+
+      isSaving = true;
+
+      try {
+        await fetch("/api/state", {
+          method: "POST",
+          credentials: "include",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            pageKey,
+            state: {
+              groups: defaultGroups,
+              hiddenGroupIds,
+              customGroups,
+              groupDone,
+              exerciseData,
+              exerciseDone,
+            },
+          }),
+        });
+      } catch (error) {
+        console.error("Failed to save weightlifting state:", error);
+      } finally {
+        isSaving = false;
+
+        if (pendingSave) {
+          pendingSave = false;
+          await saveState();
+        }
+      }
     }
 
-    function loadGroupDone() {
-      return readJSON(GROUP_DONE_KEY, {});
-    }
-
-    function saveGroupDone(value) {
-      writeJSON(GROUP_DONE_KEY, value);
-    }
+    let defaultGroups = cloneDefaults().groups.map(normalizeGroup);
+    let hiddenGroupIds = [];
+    let customGroups = [];
+    let groupDone = {};
+    let exerciseData = {};
+    let exerciseDone = {};
 
     function getExercises(groupId, defaults) {
-      return readJSON(EXERCISE_DATA_PREFIX + groupId, defaults);
+      const saved = exerciseData[groupId];
+      return Array.isArray(saved) ? saved.map(normalizeExercise) : defaults.map(normalizeExercise);
     }
 
     function saveExercises(groupId, exercises) {
-      writeJSON(EXERCISE_DATA_PREFIX + groupId, exercises);
+      exerciseData[groupId] = exercises.map(normalizeExercise);
     }
 
     function getExerciseDone(groupId) {
-      return readJSON(EXERCISE_DONE_PREFIX + groupId, {});
+      const saved = exerciseDone[groupId];
+      return saved && typeof saved === "object" ? saved : {};
     }
 
     function saveExerciseDone(groupId, value) {
-      writeJSON(EXERCISE_DONE_PREFIX + groupId, value);
+      exerciseDone[groupId] = value;
     }
 
     function getCustomGroups() {
-      return readJSON(CUSTOM_GROUPS_KEY, []);
+      return customGroups;
     }
 
     function saveCustomGroups(groups) {
-      writeJSON(CUSTOM_GROUPS_KEY, groups);
+      customGroups = groups.map(normalizeGroup);
     }
 
     function getHiddenGroups() {
-      return readJSON(HIDDEN_GROUPS_KEY, []);
+      return hiddenGroupIds;
     }
 
     function saveHiddenGroups(groupIds) {
-      writeJSON(HIDDEN_GROUPS_KEY, groupIds);
+      hiddenGroupIds = [...groupIds];
+    }
+
+    function loadGroupDone() {
+      return groupDone;
+    }
+
+    function saveGroupDone(value) {
+      groupDone = { ...value };
     }
 
     function hideGroup(groupId) {
       const hidden = getHiddenGroups();
       if (!hidden.includes(groupId)) {
-        hidden.push(groupId);
-        saveHiddenGroups(hidden);
+        saveHiddenGroups([...hidden, groupId]);
       }
     }
 
     function unhideGroup(groupId) {
-      const next = getHiddenGroups().filter((id) => id !== groupId);
-      saveHiddenGroups(next);
+      saveHiddenGroups(getHiddenGroups().filter((id) => id !== groupId));
     }
 
     function removeStorageForGroup(groupId) {
-      localStorage.removeItem(EXERCISE_DATA_PREFIX + groupId);
-      localStorage.removeItem(EXERCISE_DONE_PREFIX + groupId);
+      delete exerciseData[groupId];
+      delete exerciseDone[groupId];
 
-      const groupDone = loadGroupDone();
-      delete groupDone[groupId];
-      saveGroupDone(groupDone);
+      const nextGroupDone = { ...loadGroupDone() };
+      delete nextGroupDone[groupId];
+      saveGroupDone(nextGroupDone);
     }
 
     function makeMetric(label, value) {
@@ -244,7 +337,7 @@ import { liftingGroups } from "../data/weightlifting";
             class="exercise-grid"
             id="group-${group.id}"
             data-group-id="${group.id}"
-            data-default-exercises='${JSON.stringify(group.exercises)}'
+            data-default-exercises='${JSON.stringify(group.exercises || [])}'
           ></div>
 
           <div class="group-bottom-actions">
@@ -266,7 +359,7 @@ import { liftingGroups } from "../data/weightlifting";
     function renderGroup(groupEl) {
       const groupId = groupEl.dataset.groupId;
       const grid = document.getElementById(`group-${groupId}`);
-      const defaults = JSON.parse(grid.dataset.defaultExercises || "[]");
+      const defaults = JSON.parse(grid.dataset.defaultExercises || "[]").map(normalizeExercise);
       const exercises = getExercises(groupId, defaults);
       const doneMap = getExerciseDone(groupId);
 
@@ -324,18 +417,19 @@ import { liftingGroups } from "../data/weightlifting";
       });
 
       grid.querySelectorAll("[data-exercise-check]").forEach((checkbox) => {
-        checkbox.addEventListener("change", (e) => {
+        checkbox.addEventListener("change", async (e) => {
           const target = e.currentTarget;
           const idx = Number(target.dataset.index);
-          const next = getExerciseDone(groupId);
+          const next = { ...getExerciseDone(groupId) };
           next[idx] = target.checked;
           saveExerciseDone(groupId, next);
           renderGroup(groupEl);
+          await saveState();
         });
       });
 
       grid.querySelectorAll("[data-delete-group]").forEach((btn) => {
-        btn.addEventListener("click", (e) => {
+        btn.addEventListener("click", async (e) => {
           const idx = Number(e.currentTarget.dataset.index);
           const nextExercises = getExercises(groupId, defaults).filter((_, i) => i !== idx);
           saveExercises(groupId, nextExercises);
@@ -349,22 +443,24 @@ import { liftingGroups } from "../data/weightlifting";
           saveExerciseDone(groupId, nextDone);
 
           renderGroup(groupEl);
+          await saveState();
         });
       });
     }
 
     function wireGroupDoneCheckbox(groupEl) {
-      const groupDone = loadGroupDone();
+      const groupDoneMap = loadGroupDone();
       const checkbox = groupEl.querySelector("[data-group-hit]");
       if (!checkbox) return;
 
       const groupId = checkbox.dataset.groupHit;
-      checkbox.checked = !!groupDone[groupId];
+      checkbox.checked = !!groupDoneMap[groupId];
 
-      checkbox.addEventListener("change", () => {
-        const next = loadGroupDone();
+      checkbox.addEventListener("change", async () => {
+        const next = { ...loadGroupDone() };
         next[groupId] = checkbox.checked;
         saveGroupDone(next);
+        await saveState();
       });
     }
 
@@ -372,10 +468,10 @@ import { liftingGroups } from "../data/weightlifting";
       const btn = groupEl.querySelector("[data-add-group]");
       if (!btn) return;
 
-      btn.addEventListener("click", () => {
+      btn.addEventListener("click", async () => {
         const groupId = btn.dataset.addGroup;
         const grid = document.getElementById(`group-${groupId}`);
-        const defaults = JSON.parse(grid.dataset.defaultExercises || "[]");
+        const defaults = JSON.parse(grid.dataset.defaultExercises || "[]").map(normalizeExercise);
         const exercises = getExercises(groupId, defaults);
 
         const name = window.prompt("Exercise name:");
@@ -387,17 +483,20 @@ import { liftingGroups } from "../data/weightlifting";
         const weeksSinceIncrease = window.prompt("Weeks since increase:", "") ?? "";
         const video = window.prompt("YouTube embed URL:", "") ?? "";
 
-        exercises.push({
-          name,
-          weight,
-          sets,
-          reps,
-          weeksSinceIncrease,
-          video,
-        });
+        exercises.push(
+          normalizeExercise({
+            name,
+            weight,
+            sets,
+            reps,
+            weeksSinceIncrease,
+            video,
+          })
+        );
 
         saveExercises(groupId, exercises);
         renderGroup(groupEl);
+        await saveState();
       });
     }
 
@@ -405,7 +504,7 @@ import { liftingGroups } from "../data/weightlifting";
       const btn = groupEl.querySelector("[data-delete-section]");
       if (!btn) return;
 
-      btn.addEventListener("click", () => {
+      btn.addEventListener("click", async () => {
         const groupId = btn.dataset.deleteSection;
         const isCustom = btn.dataset.isCustom === "true";
         const confirmed = window.confirm("Delete this entire section?");
@@ -420,6 +519,7 @@ import { liftingGroups } from "../data/weightlifting";
         }
 
         groupEl.remove();
+        await saveState();
       });
     }
 
@@ -440,10 +540,10 @@ import { liftingGroups } from "../data/weightlifting";
 
     function renderCustomGroups() {
       const container = document.getElementById("weightlifting-groups");
-      const customGroups = getCustomGroups();
+      const custom = getCustomGroups();
       const hidden = getHiddenGroups();
 
-      customGroups.forEach((group) => {
+      custom.forEach((group) => {
         if (hidden.includes(group.id)) return;
         if (container.querySelector(`[data-group-id="${group.id}"]`)) return;
         const groupEl = makeGroupMarkup(group, true);
@@ -456,7 +556,7 @@ import { liftingGroups } from "../data/weightlifting";
       const btn = document.getElementById("create-group-btn");
       const input = document.getElementById("new-group-title");
 
-      btn.addEventListener("click", () => {
+      btn.addEventListener("click", async () => {
         const rawTitle = input.value.trim();
         if (!rawTitle) return;
 
@@ -474,14 +574,13 @@ import { liftingGroups } from "../data/weightlifting";
           counter += 1;
         }
 
-        const newGroup = {
+        const newGroup = normalizeGroup({
           id: nextId,
           title: rawTitle,
           exercises: [],
-        };
+        });
 
-        const nextGroups = [...getCustomGroups(), newGroup];
-        saveCustomGroups(nextGroups);
+        saveCustomGroups([...getCustomGroups(), newGroup]);
         unhideGroup(nextId);
 
         const container = document.getElementById("weightlifting-groups");
@@ -491,6 +590,7 @@ import { liftingGroups } from "../data/weightlifting";
         groupEl.open = true;
 
         input.value = "";
+        await saveState();
       });
     }
 
@@ -505,6 +605,24 @@ import { liftingGroups } from "../data/weightlifting";
       setupCreateGroup();
     }
 
-    setupWeightTraining();
+    async function init() {
+      const saved = normalizeData(await loadState());
+
+      defaultGroups =
+        Array.isArray(saved.groups) && saved.groups.length
+          ? saved.groups.map(normalizeGroup)
+          : cloneDefaults().groups.map(normalizeGroup);
+
+      hiddenGroupIds = Array.isArray(saved.hiddenGroupIds) ? saved.hiddenGroupIds : [];
+      customGroups = Array.isArray(saved.customGroups) ? saved.customGroups.map(normalizeGroup) : [];
+      groupDone = saved.groupDone && typeof saved.groupDone === "object" ? saved.groupDone : {};
+      exerciseData = saved.exerciseData && typeof saved.exerciseData === "object" ? saved.exerciseData : {};
+      exerciseDone = saved.exerciseDone && typeof saved.exerciseDone === "object" ? saved.exerciseDone : {};
+
+      hasLoadedInitialState = true;
+      setupWeightTraining();
+    }
+
+    init();
   </script>
 </BaseLayout>

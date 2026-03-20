@@ -1,6 +1,23 @@
 ---
 import BaseLayout from "../layouts/BaseLayout.astro";
 import { yogaItems, soothingTechniques } from "../data/mind";
+
+const defaultMindData = JSON.stringify({
+  defaultYogaItems: yogaItems.map((item, index) => ({
+    ...item,
+    id: `default-yoga-${index}`,
+    isDefault: true,
+  })),
+  defaultSoothingTechniques: soothingTechniques.map((item, index) => ({
+    ...item,
+    id: `default-technique-${index}`,
+    isDefault: true,
+  })),
+  customYogaItems: [],
+  customTechniques: [],
+  hiddenDefaultYogaIds: [],
+  hiddenDefaultTechniqueIds: [],
+});
 ---
 
 <BaseLayout title="Mind | Lifestyle App" description="Mind and recovery page">
@@ -121,65 +138,127 @@ import { yogaItems, soothingTechniques } from "../data/mind";
     </article>
   </section>
 
-  <script
-    is:inline
-    define:vars={{
-      defaultYogaItems: yogaItems,
-      defaultSoothingTechniques: soothingTechniques,
-    }}
-  >
-    const YOGA_STORAGE_KEY = "mind-custom-yoga-items";
-    const TECHNIQUE_STORAGE_KEY = "mind-custom-soothing-techniques";
-    const HIDDEN_DEFAULT_YOGA_KEY = "mind-hidden-default-yoga-items";
-    const HIDDEN_DEFAULT_TECHNIQUE_KEY = "mind-hidden-default-techniques";
+  <script define:vars={{ defaultMindData }}>
+    const pageKey = "mind";
 
-    function getCustomYogaItems() {
+    function cloneDefaults() {
+      return JSON.parse(defaultMindData);
+    }
+
+    function normalizeYogaItem(item) {
+      return {
+        id: item?.id || `yoga-${Date.now()}-${Math.random().toString(16).slice(2)}`,
+        title: item?.title || "Untitled Exercise",
+        video: item?.video || "",
+        stats: {
+          weight: item?.stats?.weight || "",
+          sets: item?.stats?.sets || "",
+          reps: item?.stats?.reps || "",
+          weeks: item?.stats?.weeks || "",
+        },
+        isDefault: !!item?.isDefault,
+      };
+    }
+
+    function normalizeTechnique(item) {
+      return {
+        id: item?.id || `technique-${Date.now()}-${Math.random().toString(16).slice(2)}`,
+        title: item?.title || "Untitled Technique",
+        points: Array.isArray(item?.points) ? item.points.map((p) => String(p || "")) : [],
+        isDefault: !!item?.isDefault,
+      };
+    }
+
+    function normalizeData(raw) {
+      const defaults = cloneDefaults();
+      const parsed = raw && typeof raw === "object" ? raw : {};
+
+      return {
+        defaultYogaItems: Array.isArray(parsed.defaultYogaItems)
+          ? parsed.defaultYogaItems.map(normalizeYogaItem)
+          : defaults.defaultYogaItems.map(normalizeYogaItem),
+        defaultSoothingTechniques: Array.isArray(parsed.defaultSoothingTechniques)
+          ? parsed.defaultSoothingTechniques.map(normalizeTechnique)
+          : defaults.defaultSoothingTechniques.map(normalizeTechnique),
+        customYogaItems: Array.isArray(parsed.customYogaItems)
+          ? parsed.customYogaItems.map(normalizeYogaItem).map((item) => ({ ...item, isDefault: false }))
+          : [],
+        customTechniques: Array.isArray(parsed.customTechniques)
+          ? parsed.customTechniques.map(normalizeTechnique).map((item) => ({ ...item, isDefault: false }))
+          : [],
+        hiddenDefaultYogaIds: Array.isArray(parsed.hiddenDefaultYogaIds) ? parsed.hiddenDefaultYogaIds : [],
+        hiddenDefaultTechniqueIds: Array.isArray(parsed.hiddenDefaultTechniqueIds)
+          ? parsed.hiddenDefaultTechniqueIds
+          : [],
+      };
+    }
+
+    async function loadState() {
       try {
-        return JSON.parse(localStorage.getItem(YOGA_STORAGE_KEY) || "[]");
-      } catch {
-        return [];
+        const res = await fetch(`/api/state?pageKey=${encodeURIComponent(pageKey)}`, {
+          credentials: "include",
+          cache: "no-store",
+        });
+
+        if (!res.ok) return null;
+
+        const data = await res.json();
+        return data?.state ?? null;
+      } catch (error) {
+        console.error("Failed to load mind state:", error);
+        return null;
       }
     }
 
-    function saveCustomYogaItems(items) {
-      localStorage.setItem(YOGA_STORAGE_KEY, JSON.stringify(items));
-    }
+    let isSaving = false;
+    let pendingSave = false;
+    let hasLoadedInitialState = false;
 
-    function getCustomTechniques() {
+    async function saveState() {
+      if (!hasLoadedInitialState) return;
+
+      if (isSaving) {
+        pendingSave = true;
+        return;
+      }
+
+      isSaving = true;
+
       try {
-        return JSON.parse(localStorage.getItem(TECHNIQUE_STORAGE_KEY) || "[]");
-      } catch {
-        return [];
+        await fetch("/api/state", {
+          method: "POST",
+          credentials: "include",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            pageKey,
+            state: {
+              defaultYogaItems,
+              defaultSoothingTechniques,
+              customYogaItems,
+              customTechniques,
+              hiddenDefaultYogaIds,
+              hiddenDefaultTechniqueIds,
+            },
+          }),
+        });
+      } catch (error) {
+        console.error("Failed to save mind state:", error);
+      } finally {
+        isSaving = false;
+
+        if (pendingSave) {
+          pendingSave = false;
+          await saveState();
+        }
       }
     }
 
-    function saveCustomTechniques(items) {
-      localStorage.setItem(TECHNIQUE_STORAGE_KEY, JSON.stringify(items));
-    }
-
-    function getHiddenDefaultYogaIds() {
-      try {
-        return JSON.parse(localStorage.getItem(HIDDEN_DEFAULT_YOGA_KEY) || "[]");
-      } catch {
-        return [];
-      }
-    }
-
-    function saveHiddenDefaultYogaIds(ids) {
-      localStorage.setItem(HIDDEN_DEFAULT_YOGA_KEY, JSON.stringify(ids));
-    }
-
-    function getHiddenDefaultTechniqueIds() {
-      try {
-        return JSON.parse(localStorage.getItem(HIDDEN_DEFAULT_TECHNIQUE_KEY) || "[]");
-      } catch {
-        return [];
-      }
-    }
-
-    function saveHiddenDefaultTechniqueIds(ids) {
-      localStorage.setItem(HIDDEN_DEFAULT_TECHNIQUE_KEY, JSON.stringify(ids));
-    }
+    let defaultYogaItems = cloneDefaults().defaultYogaItems.map(normalizeYogaItem);
+    let defaultSoothingTechniques = cloneDefaults().defaultSoothingTechniques.map(normalizeTechnique);
+    let customYogaItems = [];
+    let customTechniques = [];
+    let hiddenDefaultYogaIds = [];
+    let hiddenDefaultTechniqueIds = [];
 
     function escapeHtml(value) {
       return String(value)
@@ -190,24 +269,23 @@ import { yogaItems, soothingTechniques } from "../data/mind";
         .replaceAll("'", "&#039;");
     }
 
+    function getVisibleYogaItems() {
+      return [
+        ...defaultYogaItems.filter((item) => !hiddenDefaultYogaIds.includes(item.id)),
+        ...customYogaItems.map((item) => ({ ...item, isDefault: false })),
+      ];
+    }
+
+    function getVisibleTechniques() {
+      return [
+        ...defaultSoothingTechniques.filter((item) => !hiddenDefaultTechniqueIds.includes(item.id)),
+        ...customTechniques.map((item) => ({ ...item, isDefault: false })),
+      ];
+    }
+
     function renderYogaItems() {
       const yogaList = document.getElementById("yoga-list");
-      const customYogaItems = getCustomYogaItems();
-      const hiddenDefaultYogaIds = getHiddenDefaultYogaIds();
-
-      const allYogaItems = [
-        ...defaultYogaItems
-          .map((item, index) => ({
-            ...item,
-            id: `default-yoga-${index}`,
-            isDefault: true,
-          }))
-          .filter((item) => !hiddenDefaultYogaIds.includes(item.id)),
-        ...customYogaItems.map((item) => ({
-          ...item,
-          isDefault: false,
-        })),
-      ];
+      const allYogaItems = getVisibleYogaItems();
 
       yogaList.innerHTML = allYogaItems
         .map(
@@ -273,22 +351,7 @@ import { yogaItems, soothingTechniques } from "../data/mind";
 
     function renderTechniques() {
       const techniqueList = document.getElementById("technique-list");
-      const customTechniques = getCustomTechniques();
-      const hiddenDefaultTechniqueIds = getHiddenDefaultTechniqueIds();
-
-      const allTechniques = [
-        ...defaultSoothingTechniques
-          .map((item, index) => ({
-            ...item,
-            id: `default-technique-${index}`,
-            isDefault: true,
-          }))
-          .filter((item) => !hiddenDefaultTechniqueIds.includes(item.id)),
-        ...customTechniques.map((item) => ({
-          ...item,
-          isDefault: false,
-        })),
-      ];
+      const allTechniques = getVisibleTechniques();
 
       techniqueList.innerHTML = allTechniques
         .map(
@@ -329,11 +392,11 @@ import { yogaItems, soothingTechniques } from "../data/mind";
     function setupYogaForm() {
       const form = document.getElementById("yoga-form");
 
-      form.addEventListener("submit", (event) => {
+      form.addEventListener("submit", async (event) => {
         event.preventDefault();
 
         const formData = new FormData(form);
-        const newItem = {
+        const newItem = normalizeYogaItem({
           id: crypto.randomUUID(),
           title: String(formData.get("title") || "").trim(),
           video: String(formData.get("video") || "").trim(),
@@ -343,44 +406,44 @@ import { yogaItems, soothingTechniques } from "../data/mind";
             reps: String(formData.get("reps") || "").trim(),
             weeks: String(formData.get("weeks") || "").trim(),
           },
-        };
+          isDefault: false,
+        });
 
-        const items = getCustomYogaItems();
-        items.push(newItem);
-        saveCustomYogaItems(items);
+        customYogaItems.push({ ...newItem, isDefault: false });
         form.reset();
         renderYogaItems();
+        await saveState();
       });
     }
 
     function setupTechniqueForm() {
       const form = document.getElementById("technique-form");
 
-      form.addEventListener("submit", (event) => {
+      form.addEventListener("submit", async (event) => {
         event.preventDefault();
 
         const formData = new FormData(form);
         const rawPoints = String(formData.get("points") || "").trim();
 
-        const newItem = {
+        const newItem = normalizeTechnique({
           id: crypto.randomUUID(),
           title: String(formData.get("title") || "").trim(),
           points: rawPoints
             .split("\n")
             .map((point) => point.trim())
             .filter(Boolean),
-        };
+          isDefault: false,
+        });
 
-        const items = getCustomTechniques();
-        items.push(newItem);
-        saveCustomTechniques(items);
+        customTechniques.push({ ...newItem, isDefault: false });
         form.reset();
         renderTechniques();
+        await saveState();
       });
     }
 
     function setupDeleteHandlers() {
-      document.addEventListener("click", (event) => {
+      document.addEventListener("click", async (event) => {
         const target = event.target;
         if (!(target instanceof HTMLElement)) return;
 
@@ -392,17 +455,15 @@ import { yogaItems, soothingTechniques } from "../data/mind";
           const isDefault = target.getAttribute("data-yoga-default") === "true";
 
           if (isDefault) {
-            const hiddenIds = getHiddenDefaultYogaIds();
-            if (!hiddenIds.includes(yogaId)) {
-              hiddenIds.push(yogaId);
-              saveHiddenDefaultYogaIds(hiddenIds);
+            if (!hiddenDefaultYogaIds.includes(yogaId)) {
+              hiddenDefaultYogaIds = [...hiddenDefaultYogaIds, yogaId];
             }
           } else {
-            const items = getCustomYogaItems().filter((item) => item.id !== yogaId);
-            saveCustomYogaItems(items);
+            customYogaItems = customYogaItems.filter((item) => item.id !== yogaId);
           }
 
           renderYogaItems();
+          await saveState();
           return;
         }
 
@@ -414,17 +475,15 @@ import { yogaItems, soothingTechniques } from "../data/mind";
           const isDefault = target.getAttribute("data-technique-default") === "true";
 
           if (isDefault) {
-            const hiddenIds = getHiddenDefaultTechniqueIds();
-            if (!hiddenIds.includes(techniqueId)) {
-              hiddenIds.push(techniqueId);
-              saveHiddenDefaultTechniqueIds(hiddenIds);
+            if (!hiddenDefaultTechniqueIds.includes(techniqueId)) {
+              hiddenDefaultTechniqueIds = [...hiddenDefaultTechniqueIds, techniqueId];
             }
           } else {
-            const items = getCustomTechniques().filter((item) => item.id !== techniqueId);
-            saveCustomTechniques(items);
+            customTechniques = customTechniques.filter((item) => item.id !== techniqueId);
           }
 
           renderTechniques();
+          await saveState();
         }
       });
     }
@@ -434,25 +493,58 @@ import { yogaItems, soothingTechniques } from "../data/mind";
       const restoreTechniqueBtn = document.getElementById("restore-technique-defaults");
 
       if (restoreYogaBtn) {
-        restoreYogaBtn.addEventListener("click", () => {
-          saveHiddenDefaultYogaIds([]);
+        restoreYogaBtn.addEventListener("click", async () => {
+          hiddenDefaultYogaIds = [];
           renderYogaItems();
+          await saveState();
         });
       }
 
       if (restoreTechniqueBtn) {
-        restoreTechniqueBtn.addEventListener("click", () => {
-          saveHiddenDefaultTechniqueIds([]);
+        restoreTechniqueBtn.addEventListener("click", async () => {
+          hiddenDefaultTechniqueIds = [];
           renderTechniques();
+          await saveState();
         });
       }
     }
 
-    renderYogaItems();
-    renderTechniques();
-    setupYogaForm();
-    setupTechniqueForm();
-    setupDeleteHandlers();
-    setupRestoreButtons();
+    async function init() {
+      const saved = normalizeData(await loadState());
+
+      defaultYogaItems =
+        Array.isArray(saved.defaultYogaItems) && saved.defaultYogaItems.length
+          ? saved.defaultYogaItems.map(normalizeYogaItem)
+          : cloneDefaults().defaultYogaItems.map(normalizeYogaItem);
+
+      defaultSoothingTechniques =
+        Array.isArray(saved.defaultSoothingTechniques) && saved.defaultSoothingTechniques.length
+          ? saved.defaultSoothingTechniques.map(normalizeTechnique)
+          : cloneDefaults().defaultSoothingTechniques.map(normalizeTechnique);
+
+      customYogaItems = Array.isArray(saved.customYogaItems)
+        ? saved.customYogaItems.map(normalizeYogaItem).map((item) => ({ ...item, isDefault: false }))
+        : [];
+
+      customTechniques = Array.isArray(saved.customTechniques)
+        ? saved.customTechniques.map(normalizeTechnique).map((item) => ({ ...item, isDefault: false }))
+        : [];
+
+      hiddenDefaultYogaIds = Array.isArray(saved.hiddenDefaultYogaIds) ? saved.hiddenDefaultYogaIds : [];
+      hiddenDefaultTechniqueIds = Array.isArray(saved.hiddenDefaultTechniqueIds)
+        ? saved.hiddenDefaultTechniqueIds
+        : [];
+
+      hasLoadedInitialState = true;
+
+      renderYogaItems();
+      renderTechniques();
+      setupYogaForm();
+      setupTechniqueForm();
+      setupDeleteHandlers();
+      setupRestoreButtons();
+    }
+
+    init();
   </script>
 </BaseLayout>

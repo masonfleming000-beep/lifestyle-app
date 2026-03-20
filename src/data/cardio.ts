@@ -37,3 +37,5 @@ export const recentSessions = [
   { title: "Incline Walk", detail: "Low-impact endurance session" },
   { title: "Interval Session", detail: "Higher intensity cardio work" },
 ];
+
+export const defaultStravaEmbed = "";

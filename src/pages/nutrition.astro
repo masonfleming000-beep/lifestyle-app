@@ -26,27 +26,27 @@ import { goodFoods, badFoods, optionalMicronutrientTargets } from "../data/nutri
           <form id="macro-form" class="nutrition-grid">
             <label class="nutrition-field">
               <span>Calories</span>
-              <input id="target-calories" type="number" min="0" />
+              <input id="target-calories" type="number" min="0" step="0.0001" />
             </label>
 
             <label class="nutrition-field">
               <span>Protein (g)</span>
-              <input id="target-protein" type="number" min="0" />
+              <input id="target-protein" type="number" min="0" step="0.0001" />
             </label>
 
             <label class="nutrition-field">
               <span>Carbs (g)</span>
-              <input id="target-carbs" type="number" min="0" />
+              <input id="target-carbs" type="number" min="0" step="0.0001" />
             </label>
 
             <label class="nutrition-field">
               <span>Fat (g)</span>
-              <input id="target-fat" type="number" min="0" />
+              <input id="target-fat" type="number" min="0" step="0.0001" />
             </label>
 
             <label class="nutrition-field">
               <span>Water Target (oz)</span>
-              <input id="target-water" type="number" min="0" />
+              <input id="target-water" type="number" min="0" step="0.0001" />
             </label>
 
             <div class="nutrition-actions">
@@ -164,72 +164,72 @@ import { goodFoods, badFoods, optionalMicronutrientTargets } from "../data/nutri
 
             <label class="nutrition-field">
               <span>Calories</span>
-              <input id="food-calories" type="number" min="0" step="0.1" />
+              <input id="food-calories" type="number" min="0" step="0.0001" />
             </label>
 
             <label class="nutrition-field">
               <span>Protein (g)</span>
-              <input id="food-protein" type="number" min="0" step="0.1" />
+              <input id="food-protein" type="number" min="0" step="0.0001" />
             </label>
 
             <label class="nutrition-field">
               <span>Carbs (g)</span>
-              <input id="food-carbs" type="number" min="0" step="0.1" />
+              <input id="food-carbs" type="number" min="0" step="0.0001" />
             </label>
 
             <label class="nutrition-field">
               <span>Fat (g)</span>
-              <input id="food-fat" type="number" min="0" step="0.1" />
+              <input id="food-fat" type="number" min="0" step="0.0001" />
             </label>
 
             <label class="nutrition-field">
               <span>Fiber (g)</span>
-              <input id="food-fiber" type="number" min="0" step="0.1" />
+              <input id="food-fiber" type="number" min="0" step="0.0001" />
             </label>
 
             <label class="nutrition-field">
               <span>Sugars (g)</span>
-              <input id="food-sugars" type="number" min="0" step="0.1" />
+              <input id="food-sugars" type="number" min="0" step="0.0001" />
             </label>
 
             <label class="nutrition-field">
               <span>Sodium (mg)</span>
-              <input id="food-sodium" type="number" min="0" step="0.1" />
+              <input id="food-sodium" type="number" min="0" step="0.0001" />
             </label>
 
             <label class="nutrition-field">
               <span>Potassium (mg)</span>
-              <input id="food-potassium" type="number" min="0" step="0.1" />
+              <input id="food-potassium" type="number" min="0" step="0.0001" />
             </label>
 
             <label class="nutrition-field">
               <span>Calcium (mg)</span>
-              <input id="food-calcium" type="number" min="0" step="0.1" />
+              <input id="food-calcium" type="number" min="0" step="0.0001" />
             </label>
 
             <label class="nutrition-field">
               <span>Iron (mg)</span>
-              <input id="food-iron" type="number" min="0" step="0.1" />
+              <input id="food-iron" type="number" min="0" step="0.0001" />
             </label>
 
             <label class="nutrition-field">
               <span>Magnesium (mg)</span>
-              <input id="food-magnesium" type="number" min="0" step="0.1" />
+              <input id="food-magnesium" type="number" min="0" step="0.0001" />
             </label>
 
             <label class="nutrition-field">
               <span>Zinc (mg)</span>
-              <input id="food-zinc" type="number" min="0" step="0.1" />
+              <input id="food-zinc" type="number" min="0" step="0.0001" />
             </label>
 
             <label class="nutrition-field">
               <span>Copper (mg)</span>
-              <input id="food-copper" type="number" min="0" step="0.1" />
+              <input id="food-copper" type="number" min="0" step="0.0001" />
             </label>
 
             <label class="nutrition-field">
               <span>Niacin (mg)</span>
-              <input id="food-niacin" type="number" min="0" step="0.1" />
+              <input id="food-niacin" type="number" min="0" step="0.0001" />
             </label>
 
             <div class="nutrition-actions">
@@ -252,7 +252,7 @@ import { goodFoods, badFoods, optionalMicronutrientTargets } from "../data/nutri
               type="number"
               class="todo-input"
               min="0"
-              step="1"
+              step="0.0001"
               placeholder="Add water in ounces"
             />
             <button type="submit" class="todo-add-btn">Add Water</button>
@@ -350,27 +350,27 @@ import { goodFoods, badFoods, optionalMicronutrientTargets } from "../data/nutri
           <form id="calculator-apply-form" class="nutrition-grid">
             <label class="nutrition-field">
               <span>Calories</span>
-              <input id="calc-calories" type="number" min="0" />
+              <input id="calc-calories" type="number" min="0" step="0.0001" />
             </label>
 
             <label class="nutrition-field">
               <span>Protein (g)</span>
-              <input id="calc-protein" type="number" min="0" />
+              <input id="calc-protein" type="number" min="0" step="0.0001" />
             </label>
 
             <label class="nutrition-field">
               <span>Carbs (g)</span>
-              <input id="calc-carbs" type="number" min="0" />
+              <input id="calc-carbs" type="number" min="0" step="0.0001" />
             </label>
 
             <label class="nutrition-field">
               <span>Fat (g)</span>
-              <input id="calc-fat" type="number" min="0" />
+              <input id="calc-fat" type="number" min="0" step="0.0001" />
             </label>
 
             <label class="nutrition-field">
               <span>Water Target (oz)</span>
-              <input id="calc-water" type="number" min="0" />
+              <input id="calc-water" type="number" min="0" step="0.0001" />
             </label>
 
             <div class="nutrition-actions">
@@ -408,6 +408,11 @@ import { goodFoods, badFoods, optionalMicronutrientTargets } from "../data/nutri
       { key: "copper", label: "Copper", unit: "mg" },
       { key: "niacin", label: "Niacin", unit: "mg" },
     ];
+
+    function formatUpTo4(value) {
+      const num = Number(value || 0);
+      return num.toFixed(4).replace(/\.?0+$/, "");
+    }
 
     function getTodayKey() {
       const now = new Date();
@@ -547,10 +552,10 @@ import { goodFoods, badFoods, optionalMicronutrientTargets } from "../data/nutri
         row.innerHTML = `
           <div>
             <p class="food-log-title">${micro.label}</p>
-            <p class="food-log-meta">${current.toFixed(1)} ${micro.unit} / ${target} ${micro.unit}</p>
+            <p class="food-log-meta">${formatUpTo4(current)} ${micro.unit} / ${formatUpTo4(target)} ${micro.unit}</p>
           </div>
           <div class="micro-progress-right">
-            <span class="pill">${Math.max(0, target - current).toFixed(1)} ${micro.unit} left</span>
+            <span class="pill">${formatUpTo4(Math.max(0, target - current))} ${micro.unit} left</span>
           </div>
         `;
 
@@ -563,17 +568,17 @@ import { goodFoods, badFoods, optionalMicronutrientTargets } from "../data/nutri
       const state = loadFoodState();
       const totals = computeTotals(state.items);
 
-      document.getElementById("total-calories").textContent = Math.round(totals.calories);
-      document.getElementById("total-protein").textContent = `${Math.round(totals.protein)}g`;
-      document.getElementById("total-carbs").textContent = `${Math.round(totals.carbs)}g`;
-      document.getElementById("total-fat").textContent = `${Math.round(totals.fat)}g`;
-      document.getElementById("total-water").textContent = `${Math.round(state.waterOz)} oz`;
+      document.getElementById("total-calories").textContent = formatUpTo4(totals.calories);
+      document.getElementById("total-protein").textContent = `${formatUpTo4(totals.protein)}g`;
+      document.getElementById("total-carbs").textContent = `${formatUpTo4(totals.carbs)}g`;
+      document.getElementById("total-fat").textContent = `${formatUpTo4(totals.fat)}g`;
+      document.getElementById("total-water").textContent = `${formatUpTo4(state.waterOz)} oz`;
 
-      document.getElementById("remaining-calories").textContent = `${Math.round(targets.calories - totals.calories)} remaining`;
-      document.getElementById("remaining-protein").textContent = `${Math.round(targets.protein - totals.protein)}g remaining`;
-      document.getElementById("remaining-carbs").textContent = `${Math.round(targets.carbs - totals.carbs)}g remaining`;
-      document.getElementById("remaining-fat").textContent = `${Math.round(targets.fat - totals.fat)}g remaining`;
-      document.getElementById("remaining-water").textContent = `${Math.round(targets.waterOz - state.waterOz)} oz remaining`;
+      document.getElementById("remaining-calories").textContent = `${formatUpTo4(targets.calories - totals.calories)} remaining`;
+      document.getElementById("remaining-protein").textContent = `${formatUpTo4(targets.protein - totals.protein)}g remaining`;
+      document.getElementById("remaining-carbs").textContent = `${formatUpTo4(targets.carbs - totals.carbs)}g remaining`;
+      document.getElementById("remaining-fat").textContent = `${formatUpTo4(targets.fat - totals.fat)}g remaining`;
+      document.getElementById("remaining-water").textContent = `${formatUpTo4(targets.waterOz - state.waterOz)} oz remaining`;
 
       document.getElementById("nutrition-date-label").textContent = getPrettyDate();
 
@@ -600,7 +605,7 @@ import { goodFoods, badFoods, optionalMicronutrientTargets } from "../data/nutri
         waterLi.innerHTML = `
           <div class="food-log-left">
             <h3 class="food-log-title">Water</h3>
-            <p class="food-log-meta">${state.waterOz} oz logged</p>
+            <p class="food-log-meta">${formatUpTo4(state.waterOz)} oz logged</p>
           </div>
         `;
         foodLog.appendChild(waterLi);
@@ -619,7 +624,7 @@ import { goodFoods, badFoods, optionalMicronutrientTargets } from "../data/nutri
 
         const meta = document.createElement("p");
         meta.className = "food-log-meta";
-        meta.textContent = `${item.calories} cal · ${item.protein}P · ${item.carbs}C · ${item.fat}F · ${item.fiber || 0} fiber`;
+        meta.textContent = `${formatUpTo4(item.calories)} cal · ${formatUpTo4(item.protein)}P · ${formatUpTo4(item.carbs)}C · ${formatUpTo4(item.fat)}F · ${formatUpTo4(item.fiber || 0)} fiber`;
 
         left.appendChild(title);
         left.appendChild(meta);
@@ -781,20 +786,20 @@ import { goodFoods, badFoods, optionalMicronutrientTargets } from "../data/nutri
 
       if (!weight) return;
 
-      document.getElementById("target-calories").value = Math.round(weight * caloriesPerLb);
-      document.getElementById("target-protein").value = Math.round(weight * proteinPerLb);
-      document.getElementById("target-carbs").value = Math.round(weight * carbsPerLb);
-      document.getElementById("target-fat").value = Math.round(weight * fatPerLb);
-      document.getElementById("target-water").value = Math.round(weight * waterPerLb);
+      document.getElementById("target-calories").value = (weight * caloriesPerLb).toFixed(4);
+      document.getElementById("target-protein").value = (weight * proteinPerLb).toFixed(4);
+      document.getElementById("target-carbs").value = (weight * carbsPerLb).toFixed(4);
+      document.getElementById("target-fat").value = (weight * fatPerLb).toFixed(4);
+      document.getElementById("target-water").value = (weight * waterPerLb).toFixed(4);
 
       const targets = loadTargets();
       saveTargets({
         ...targets,
-        calories: Math.round(weight * caloriesPerLb),
-        protein: Math.round(weight * proteinPerLb),
-        carbs: Math.round(weight * carbsPerLb),
-        fat: Math.round(weight * fatPerLb),
-        waterOz: Math.round(weight * waterPerLb),
+        calories: Number((weight * caloriesPerLb).toFixed(4)),
+        protein: Number((weight * proteinPerLb).toFixed(4)),
+        carbs: Number((weight * carbsPerLb).toFixed(4)),
+        fat: Number((weight * fatPerLb).toFixed(4)),
+        waterOz: Number((weight * waterPerLb).toFixed(4)),
       });
 
       renderTotals();
