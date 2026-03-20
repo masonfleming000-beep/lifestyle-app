@@ -79,13 +79,17 @@ const defaultWeeklySplit = JSON.stringify(weeklySplit);
     }
 
     function uniqueList(list) {
-      return [...new Set(list)];
+      return [...new Set(normalizeNotesList(list))];
+    }
+
+    function getNormalizedDefaults() {
+      return normalizeNotesList(defaultWeeklyNotesList);
     }
 
     function buildWeeklyNotes(customNotes = [], removedDefaults = [], hasCustomized = false) {
-      const normalizedDefaults = normalizeNotesList(defaultWeeklyNotesList);
-      const normalizedCustom = normalizeNotesList(customNotes);
-      const normalizedRemovedDefaults = uniqueList(normalizeNotesList(removedDefaults));
+      const normalizedDefaults = getNormalizedDefaults();
+      const normalizedCustom = uniqueList(customNotes);
+      const normalizedRemovedDefaults = uniqueList(removedDefaults);
 
       if (!hasCustomized) {
         return [...normalizedDefaults];
@@ -99,8 +103,8 @@ const defaultWeeklySplit = JSON.stringify(weeklySplit);
     }
 
     function splitWeeklyNotesAgainstDefaults(notes) {
-      const normalizedDefaults = normalizeNotesList(defaultWeeklyNotesList);
-      const normalizedNotes = normalizeNotesList(notes);
+      const normalizedDefaults = getNormalizedDefaults();
+      const normalizedNotes = uniqueList(notes);
 
       const removedDefaults = normalizedDefaults.filter(
         (defaultItem) => !normalizedNotes.includes(defaultItem)
@@ -114,6 +118,69 @@ const defaultWeeklySplit = JSON.stringify(weeklySplit);
         customNotes,
         removedDefaults,
       };
+    }
+
+    function normalizeSavedFitnessState(raw) {
+      const defaults = getNormalizedDefaults();
+      const parsed = raw && typeof raw === "object" ? raw : {};
+
+      const savedWeeklyNotes = Array.isArray(parsed.weeklyNotes) ? parsed.weeklyNotes : null;
+      const savedRemovedDefaults = Array.isArray(parsed.removedDefaultWeeklyNotes)
+        ? parsed.removedDefaultWeeklyNotes
+        : [];
+      const savedHasCustomized = Boolean(parsed.hasCustomizedWeeklyNotes);
+
+      if (!savedWeeklyNotes) {
+        return {
+          weeklyNotes: [...defaults],
+          removedDefaultWeeklyNotes: [],
+          hasCustomizedWeeklyNotes: false,
+        };
+      }
+
+      const isNewShape =
+        parsed?.hasCustomizedWeeklyNotes !== undefined ||
+        Array.isArray(parsed?.removedDefaultWeeklyNotes);
+
+      if (isNewShape) {
+        const normalizedSavedNotes = uniqueList(savedWeeklyNotes);
+        const customNotes = normalizedSavedNotes.filter(
+          (item) => !defaults.includes(item)
+        );
+        const normalizedRemovedDefaults = uniqueList(savedRemovedDefaults);
+        const hasCustomNotes = customNotes.length > 0;
+        const hasRemovedDefaults = normalizedRemovedDefaults.length > 0;
+        const hasCustomized = savedHasCustomized || hasCustomNotes || hasRemovedDefaults;
+
+        return {
+          weeklyNotes: buildWeeklyNotes(
+            customNotes,
+            normalizedRemovedDefaults,
+            hasCustomized
+          ),
+          removedDefaultWeeklyNotes: normalizedRemovedDefaults,
+          hasCustomizedWeeklyNotes: hasCustomized,
+        };
+      }
+
+      const normalizedSaved = uniqueList(savedWeeklyNotes);
+      const { customNotes, removedDefaults } =
+        splitWeeklyNotesAgainstDefaults(normalizedSaved);
+
+      return {
+        weeklyNotes: buildWeeklyNotes(customNotes, removedDefaults, true),
+        removedDefaultWeeklyNotes: removedDefaults,
+        hasCustomizedWeeklyNotes: true,
+      };
+    }
+
+    function restoreDefaultWeeklyNotes() {
+      const { customNotes } = splitWeeklyNotesAgainstDefaults(state.weeklyNotes);
+      const hasCustomNotes = customNotes.length > 0;
+
+      state.weeklyNotes = buildWeeklyNotes(customNotes, [], hasCustomNotes);
+      state.removedDefaultWeeklyNotes = [];
+      state.hasCustomizedWeeklyNotes = hasCustomNotes;
     }
 
     async function loadState() {
@@ -154,9 +221,7 @@ const defaultWeeklySplit = JSON.stringify(weeklySplit);
       try {
         const payload = {
           weeklyNotes: normalizeNotesList(state.weeklyNotes),
-          removedDefaultWeeklyNotes: uniqueList(
-            normalizeNotesList(state.removedDefaultWeeklyNotes)
-          ),
+          removedDefaultWeeklyNotes: uniqueList(state.removedDefaultWeeklyNotes),
           hasCustomizedWeeklyNotes: Boolean(state.hasCustomizedWeeklyNotes),
         };
 
@@ -184,10 +249,13 @@ const defaultWeeklySplit = JSON.stringify(weeklySplit);
 
     function syncDerivedWeeklyNotesState() {
       const { customNotes, removedDefaults } = splitWeeklyNotesAgainstDefaults(state.weeklyNotes);
+      const hasCustomNotes = customNotes.length > 0;
+      const hasRemovedDefaults = removedDefaults.length > 0;
+      const hasCustomized = hasCustomNotes || hasRemovedDefaults;
 
-      state.weeklyNotes = buildWeeklyNotes(customNotes, removedDefaults, true);
+      state.weeklyNotes = buildWeeklyNotes(customNotes, removedDefaults, hasCustomized);
       state.removedDefaultWeeklyNotes = removedDefaults;
-      state.hasCustomizedWeeklyNotes = true;
+      state.hasCustomizedWeeklyNotes = hasCustomized;
     }
 
     function createDeleteButton(onClick) {
@@ -304,10 +372,10 @@ const defaultWeeklySplit = JSON.stringify(weeklySplit);
 
         actions.appendChild(
           createRestoreButton(async () => {
-            state.weeklyNotes = [...normalizeNotesList(defaultWeeklyNotesList)];
-            state.removedDefaultWeeklyNotes = [];
-            state.hasCustomizedWeeklyNotes = false;
-            console.log("[fitness] restored defaults:", [...state.weeklyNotes]);
+            restoreDefaultWeeklyNotes();
+            console.log("[fitness] restored defaults while keeping customs:", [
+              ...state.weeklyNotes,
+            ]);
             renderWeeklyNotes();
             await saveState();
           })
@@ -346,49 +414,7 @@ const defaultWeeklySplit = JSON.stringify(weeklySplit);
       console.log("[fitness] saved state from api:", saved);
       console.log("[fitness] defaults from file:", defaultWeeklyNotesList);
 
-      const savedWeeklyNotes = Array.isArray(saved?.weeklyNotes) ? saved.weeklyNotes : null;
-      const savedRemovedDefaults = Array.isArray(saved?.removedDefaultWeeklyNotes)
-        ? saved.removedDefaultWeeklyNotes
-        : [];
-      const savedHasCustomized = Boolean(saved?.hasCustomizedWeeklyNotes);
-
-      if (savedWeeklyNotes) {
-        const migrated =
-          saved?.hasCustomizedWeeklyNotes !== undefined ||
-          Array.isArray(saved?.removedDefaultWeeklyNotes)
-            ? {
-                weeklyNotes: buildWeeklyNotes(
-                  savedWeeklyNotes.filter(
-                    (item) => !normalizeNotesList(defaultWeeklyNotesList).includes(item)
-                  ),
-                  savedRemovedDefaults,
-                  savedHasCustomized
-                ),
-                removedDefaultWeeklyNotes: uniqueList(
-                  normalizeNotesList(savedRemovedDefaults)
-                ),
-                hasCustomizedWeeklyNotes: savedHasCustomized,
-              }
-            : (() => {
-                const normalizedSaved = normalizeNotesList(savedWeeklyNotes);
-                const { customNotes, removedDefaults } =
-                  splitWeeklyNotesAgainstDefaults(normalizedSaved);
-
-                return {
-                  weeklyNotes: buildWeeklyNotes(customNotes, removedDefaults, true),
-                  removedDefaultWeeklyNotes: removedDefaults,
-                  hasCustomizedWeeklyNotes: true,
-                };
-              })();
-
-        state = migrated;
-      } else {
-        state = {
-          weeklyNotes: [...normalizeNotesList(defaultWeeklyNotesList)],
-          removedDefaultWeeklyNotes: [],
-          hasCustomizedWeeklyNotes: false,
-        };
-      }
+      state = normalizeSavedFitnessState(saved);
 
       console.log("[fitness] initialized final state:", state);
 
