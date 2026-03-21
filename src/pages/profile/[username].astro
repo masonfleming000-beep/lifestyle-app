@@ -133,6 +133,7 @@ const username = Astro.params.username ?? "";
 
     function renderSparkline(series, label) {
       const points = safeArray(series).filter((item) => Number.isFinite(Number(item?.y)));
+
       if (!points.length) {
         return `
           <article class="chart-card">
@@ -145,32 +146,76 @@ const username = Astro.params.username ?? "";
       }
 
       const width = 340;
-      const height = 120;
-      const padding = 12;
+      const height = 140;
+      const padding = 18;
       const values = points.map((p) => Number(p.y));
       const min = Math.min(...values);
       const max = Math.max(...values);
       const range = Math.max(max - min, 1);
 
-      const path = points
-        .map((point, index) => {
-          const x = padding + (index * (width - padding * 2)) / Math.max(points.length - 1, 1);
-          const y = height - padding - ((Number(point.y) - min) / range) * (height - padding * 2);
-          return `${index === 0 ? "M" : "L"} ${x} ${y}`;
-        })
+      const normalizedPoints = points.map((point, index) => {
+        const x =
+          points.length === 1
+            ? width / 2
+            : padding + (index * (width - padding * 2)) / Math.max(points.length - 1, 1);
+
+        const y =
+          height -
+          padding -
+          ((Number(point.y) - min) / range) * (height - padding * 2);
+
+        return {
+          x,
+          y,
+          rawX: point.x,
+          rawY: Number(point.y),
+        };
+      });
+
+      const path = normalizedPoints
+        .map((point, index) => `${index === 0 ? "M" : "L"} ${point.x} ${point.y}`)
         .join(" ");
+
+      const firstValue = values[0];
+      const lastValue = values[values.length - 1];
+      const delta = lastValue - firstValue;
+      const deltaText = `${delta > 0 ? "+" : ""}${delta}`;
+
+      const midY = height / 2;
 
       return `
         <article class="chart-card">
           <div class="chart-header">
-            <h4>${escapeHtml(label)}</h4>
-            <p class="meta">${escapeHtml(String(values[values.length - 1] ?? "—"))}</p>
+            <div>
+              <h4>${escapeHtml(label)}</h4>
+              <p class="meta">Latest: ${escapeHtml(String(lastValue))}</p>
+            </div>
+            <p class="meta">Change: ${escapeHtml(deltaText)}</p>
           </div>
+
           <svg viewBox="0 0 ${width} ${height}" class="sparkline" role="img" aria-label="${escapeHtml(label)} trend">
-            <path d="${path}" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"></path>
+            <line x1="${padding}" y1="${midY}" x2="${width - padding}" y2="${midY}" class="chart-grid-line"></line>
+            <line x1="${padding}" y1="${padding}" x2="${padding}" y2="${height - padding}" class="chart-grid-line"></line>
+
+            ${
+              normalizedPoints.length === 1
+                ? `<circle cx="${normalizedPoints[0].x}" cy="${normalizedPoints[0].y}" r="4" class="chart-point"></circle>`
+                : `<path d="${path}" fill="none" class="chart-line"></path>
+                  ${normalizedPoints
+                    .map(
+                      (point) =>
+                        `<circle cx="${point.x}" cy="${point.y}" r="3.5" class="chart-point">
+                            <title>${escapeHtml(String(point.rawX))}: ${escapeHtml(String(point.rawY))}</title>
+                          </circle>`
+                    )
+                    .join("")}`
+            }
           </svg>
+
           <div class="chart-axis-row">
             <span>${escapeHtml(points[0]?.x || "")}</span>
+            <span>min ${escapeHtml(String(min))}</span>
+            <span>max ${escapeHtml(String(max))}</span>
             <span>${escapeHtml(points[points.length - 1]?.x || "")}</span>
           </div>
         </article>
@@ -245,6 +290,9 @@ const username = Astro.params.username ?? "";
             <article class="card summary-card">
               <h3 class="card-title">Workout trend</h3>
               <p><strong>Workout:</strong> ${escapeHtml(workout?.name || "No workout selected")}</p>
+              <p><strong>Weight:</strong> ${escapeHtml(String(workout?.trendSummary?.firstWeight ?? 0))} → ${escapeHtml(String(workout?.trendSummary?.lastWeight ?? 0))}</p>
+              <p><strong>Reps:</strong> ${escapeHtml(String(workout?.trendSummary?.firstReps ?? 0))} → ${escapeHtml(String(workout?.trendSummary?.lastReps ?? 0))}</p>
+              <p><strong>Volume:</strong> ${escapeHtml(String(workout?.trendSummary?.firstVolume ?? 0))} → ${escapeHtml(String(workout?.trendSummary?.lastVolume ?? 0))}</p>
               <p><strong>Weight Change:</strong> ${escapeHtml(String(workout?.trendSummary?.weightChange ?? 0))}</p>
               <p><strong>Rep Change:</strong> ${escapeHtml(String(workout?.trendSummary?.repChange ?? 0))}</p>
               <p><strong>Volume Change:</strong> ${escapeHtml(String(workout?.trendSummary?.volumeChange ?? 0))}</p>

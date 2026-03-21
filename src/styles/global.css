@@ -3264,3 +3264,30 @@ input, select {
   display: none;
 }
 
+.chart-line {
+  stroke: currentColor;
+  stroke-width: 3;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+}
+
+.chart-point {
+  fill: currentColor;
+}
+
+.chart-grid-line {
+  stroke: rgba(15, 23, 42, 0.14);
+  stroke-width: 1;
+}
+
+.session-metrics {
+  margin: 0.75rem 0 1rem;
+  padding: 0.85rem 1rem;
+  border: 1px solid var(--border-color, #d9d9d9);
+  border-radius: 12px;
+  background: rgba(0, 0, 0, 0.03);
+}
+
+.session-metrics p {
+  margin: 0.2rem 0;
+}

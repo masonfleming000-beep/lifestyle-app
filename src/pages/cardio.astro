@@ -14,6 +14,7 @@ const defaultCooldownItems = JSON.stringify(cooldown);
 const defaultRulesItems = JSON.stringify(cardioRules);
 const defaultGoalsItems = JSON.stringify(cardioGoals);
 const defaultStravaValue = JSON.stringify(defaultStravaEmbed);
+const defaultRecentSessions = JSON.stringify(recentSessions);
 ---
 
 <BaseLayout title="Cardio | Lifestyle App" description="Cardio dashboard">
@@ -148,6 +149,7 @@ const defaultStravaValue = JSON.stringify(defaultStravaEmbed);
       defaultRulesItems,
       defaultGoalsItems,
       defaultStravaValue,
+      defaultRecentSessions,
     }}
   >
     const pageKey = "cardio";
@@ -180,6 +182,7 @@ const defaultStravaValue = JSON.stringify(defaultStravaEmbed);
     const defaultCooldownTexts = new Set(defaultCooldownChecklist);
     const defaultRulesTexts = new Set(defaultRulesList);
     const defaultGoalsTexts = new Set(defaultGoalsList);
+    const fallbackRecentSessions = JSON.parse(defaultRecentSessions);
 
     let editMode = {
       rules: false,
@@ -968,10 +971,10 @@ const defaultStravaValue = JSON.stringify(defaultStravaEmbed);
       if (!container) return;
 
       if (!cardioHistory.length) {
-        if (Array.isArray(recentSessions) && recentSessions.length) {
+        if (Array.isArray(fallbackRecentSessions) && fallbackRecentSessions.length) {
           container.innerHTML = `
             <ul class="list-clean">
-              ${recentSessions
+              ${fallbackRecentSessions
                 .map((session) => `<li><strong>${session.title}</strong> — ${session.detail}</li>`)
                 .join("")}
             </ul>
@@ -991,24 +994,37 @@ const defaultStravaValue = JSON.stringify(defaultStravaEmbed);
                 <summary>
                   <div>
                     <p class="kicker">Cardio</p>
-                    <h3 class="card-title">${session.title}</h3>
-                    <p class="section-subtitle">${new Date(session.dateTime).toLocaleString()}</p>
+                    <h3 class="card-title">${escapeHtml(session.title)}</h3>
+                    <p>${escapeHtml(session.summary || "")}</p>
+                    ${session.notes ? `<p><strong>Notes:</strong> ${escapeHtml(session.notes)}</p>` : ""}
                   </div>
                   <span class="dropdown-arrow">⌄</span>
                 </summary>
                 <div class="dropdown-content">
-                  <p>${session.summary || ""}</p>
-                  <ul class="list-clean">
-                    ${(session.steps || [])
-                      .map((step) => `
-                        <li>
-                          <strong>${step.text || ""}</strong><br />
-                          Target: ${step.target || "-"}<br />
-                          Actual: ${step.actual || "-"}<br />
-                          Done: ${step.done ? "Yes" : "No"}
-                        </li>
-                      `)
-                      .join("")}
+                ${session.summary ? `<p>${session.summary}</p>` : ""}
+                ${session.notes ? `<p><strong>Notes:</strong> ${escapeHtml(session.notes)}</p>` : ""}
+
+                ${
+                  session.metrics
+                    ? `
+                      <div class="session-metrics">
+                        ${session.metrics.totalDistance ? `<p><strong>Total Distance:</strong> ${session.metrics.totalDistance} mi</p>` : ""}
+                        ${session.metrics.totalTimeDisplay ? `<p><strong>Total Time:</strong> ${session.metrics.totalTimeDisplay}</p>` : ""}
+                        ${session.metrics.averagePaceDisplay ? `<p><strong>Average Pace:</strong> ${session.metrics.averagePaceDisplay}</p>` : ""}
+                      </div>
+                    `
+                    : ""
+                }
+
+                <ul class="list-clean">
+                  ${(session.steps || [])
+                    .map((step) => `
+                      <li>
+                        <strong>${escapeHtml(step.text || "")}</strong><br />
+                        Actual: ${escapeHtml(step.actual || "-")}
+                      </li>
+                    `)
+                    .join("")}
                   </ul>
                   <div class="mind-item-actions">
                     <button
@@ -1031,12 +1047,23 @@ const defaultStravaValue = JSON.stringify(defaultStravaEmbed);
           const sessionId = btn.getAttribute("data-delete-cardio-session");
           if (!sessionId) return;
 
-          cardioHistory = cardioHistory.filter((x) => x.id !== sessionId);
+          const latestHistory = await loadFitnessHistory();
+          const latestWeightlifting = Array.isArray(latestHistory?.weightliftingSessions)
+            ? latestHistory.weightliftingSessions
+            : [];
+          const latestCardio = Array.isArray(latestHistory?.cardioSessions)
+            ? latestHistory.cardioSessions
+            : [];
+
+          const nextCardioHistory = latestCardio.filter((x) => x.id !== sessionId);
 
           await saveFitnessHistory({
-            weightliftingSessions: weightliftingHistory,
-            cardioSessions: cardioHistory,
+            weightliftingSessions: latestWeightlifting,
+            cardioSessions: nextCardioHistory,
           });
+
+          weightliftingHistory = latestWeightlifting;
+          cardioHistory = nextCardioHistory;
 
           await syncFitnessStats();
           renderSavedCardioSessions();
@@ -1044,12 +1071,21 @@ const defaultStravaValue = JSON.stringify(defaultStravaEmbed);
       });
     }
 
+    function escapeHtml(value) {
+      return String(value ?? "")
+        .replace(/&/g, "&amp;")
+        .replace(/</g, "&lt;")
+        .replace(/>/g, "&gt;")
+        .replace(/"/g, "&quot;")
+        .replace(/'/g, "&#39;");
+    }
     function renderAll() {
       renderChecklist(warmupListEl, "warmup");
       renderChecklist(cooldownListEl, "cooldown");
       renderSimpleEditableList(rulesListEl, "rules");
       renderSimpleEditableList(goalsListEl, "goals");
       renderStrava();
+      renderSavedCardioSessions();
 
       if (rulesEditBtn) {
         rulesEditBtn.textContent = editMode.rules ? "Done" : "Edit";

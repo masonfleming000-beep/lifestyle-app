@@ -31,6 +31,31 @@ function normalizeStoredState(value: unknown) {
   return value;
 }
 
+function buildCardioMetricsFromSession(session: any) {
+  const saved = safeObject(session?.metrics);
+
+  const metrics: Array<{ key: string; label: string; value: number }> = [];
+
+  const addMetric = (key: string, label: string, value: unknown) => {
+    const num = Number(value);
+    if (Number.isFinite(num) && num > 0) {
+      metrics.push({ key, label, value: num });
+    }
+  };
+
+  addMetric("distance", "Distance", saved?.totalDistance);
+  addMetric("duration", "Duration", saved?.totalTimeMinutes);
+  addMetric("pace", "Pace", saved?.averagePaceMinutes);
+
+  if (metrics.length) return metrics;
+
+  for (const step of safeArray(session?.steps)) {
+    metrics.push(...parseCardioMetricsFromStep(step));
+  }
+
+  return metrics;
+}
+
 function normalizeBoolean(value: unknown, fallback = false) {
   return typeof value === "boolean" ? value : fallback;
 }
@@ -155,6 +180,16 @@ function formatDateShort(value: unknown) {
   return date.toLocaleDateString();
 }
 
+function formatWorkoutAxisLabel(index: number, dateValue: unknown) {
+  const dateLabel = formatDateShort(dateValue);
+  return `Workout ${index + 1}${dateLabel ? ` - ${dateLabel}` : ""}`;
+}
+
+function roundToTwo(value: unknown) {
+  const num = Number(value);
+  return Number.isFinite(num) ? Number(num.toFixed(2)) : 0;
+}
+
 function createMetricCard(label: string, value: string, description = "") {
   return { label, value, description };
 }
@@ -219,22 +254,76 @@ function estimateSetCount(value: unknown) {
   return matches.length;
 }
 
-function parseStepMetric(step: any) {
-  const text = `${stringValue(step?.target)} ${stringValue(step?.actual)} ${stringValue(step?.text)}`.toLowerCase();
+function parseCardioMetricsFromStep(step: any) {
+  const text = `${stringValue(step?.text)} ${stringValue(step?.target)} ${stringValue(step?.actual)}`.toLowerCase();
+  const metrics: Array<{ key: string; label: string; value: number }> = [];
 
-  const numberMatch = text.match(/-?\d+(\.\d+)?/);
-  const numericValue = numberMatch ? Number(numberMatch[0]) : 0;
+  const addMetric = (key: string, label: string, value: number) => {
+    if (Number.isFinite(value) && value > 0) {
+      metrics.push({ key, label, value });
+    }
+  };
 
-  if (text.includes("pace")) return { key: "pace", label: "Pace", value: numericValue };
-  if (text.includes("mile")) return { key: "distance", label: "Distance", value: numericValue };
-  if (text.includes("km")) return { key: "distance", label: "Distance", value: numericValue };
-  if (text.includes("minute") || text.includes("duration") || text.includes("time")) {
-    return { key: "duration", label: "Duration", value: numericValue };
+  const decimalMatch = (regex: RegExp) => {
+    const match = text.match(regex);
+    return match ? Number(match[1]) : 0;
+  };
+
+  const paceMinSecMatch =
+    text.match(/(\d+):(\d+)\s*(?:\/\s*(?:mi|mile|km)|per\s*(?:mi|mile|km))/) ||
+    text.match(/pace\s*[:\-]?\s*(\d+):(\d+)/);
+
+  if (paceMinSecMatch) {
+    const mins = Number(paceMinSecMatch[1] || 0);
+    const secs = Number(paceMinSecMatch[2] || 0);
+    addMetric("pace", "Pace", mins + secs / 60);
+  } else {
+    const numericPace = decimalMatch(/pace\s*[:\-]?\s*(\d+(?:\.\d+)?)/);
+    addMetric("pace", "Pace", numericPace);
   }
-  if (text.includes("heart")) return { key: "heartRate", label: "Heart Rate", value: numericValue };
-  if (text.includes("elevation")) return { key: "elevation", label: "Elevation", value: numericValue };
 
-  return { key: "value", label: "Value", value: numericValue };
+  const miles = decimalMatch(/(\d+(?:\.\d+)?)\s*(?:mi|mile|miles)\b/);
+  const km = decimalMatch(/(\d+(?:\.\d+)?)\s*km\b/);
+
+  if (miles) {
+    addMetric("distance", "Distance", miles);
+  } else if (km) {
+    addMetric("distance", "Distance", km);
+  }
+
+  const durationHMS = text.match(/(\d+):(\d{2}):(\d{2})/);
+  const durationMS = text.match(/(\d+):(\d{2})/);
+
+  if (durationHMS) {
+    const hours = Number(durationHMS[1] || 0);
+    const minutes = Number(durationHMS[2] || 0);
+    const seconds = Number(durationHMS[3] || 0);
+    addMetric("duration", "Duration", hours * 60 + minutes + seconds / 60);
+  } else {
+    const explicitMinutes = decimalMatch(/(\d+(?:\.\d+)?)\s*(?:min|mins|minute|minutes)\b/);
+    if (explicitMinutes) {
+      addMetric("duration", "Duration", explicitMinutes);
+    } else if (
+      durationMS &&
+      !text.includes("/mi") &&
+      !text.includes("/mile") &&
+      !text.includes("/km") &&
+      !text.includes("pace")
+    ) {
+      const minutes = Number(durationMS[1] || 0);
+      const seconds = Number(durationMS[2] || 0);
+      addMetric("duration", "Duration", minutes + seconds / 60);
+    }
+  }
+
+  const heartRate = decimalMatch(/(\d+(?:\.\d+)?)\s*(?:bpm)\b/);
+  addMetric("heartRate", "Heart Rate", heartRate);
+ 
+
+  const calories = decimalMatch(/(\d+(?:\.\d+)?)\s*(?:cal|kcal|calories)\b/);
+  addMetric("calories", "Calories", calories);
+
+  return metrics;
 }
 
 function getRangeStart(range: string) {
@@ -376,19 +465,31 @@ function buildFitnessInteractive(fitnessHistory: any, profileStats: any) {
         trendSummary:
           first && last
             ? {
-                weightChange: last.weight - first.weight,
-                repChange: last.reps - first.reps,
-                volumeChange: last.volume - first.volume,
+                weightChange: Number((last.weight - first.weight).toFixed(2)),
+                repChange: Number((last.reps - first.reps).toFixed(2)),
+                volumeChange: Number((last.volume - first.volume).toFixed(2)),
+                firstWeight: first.weight,
+                lastWeight: last.weight,
+                firstReps: first.reps,
+                lastReps: last.reps,
+                firstVolume: first.volume,
+                lastVolume: last.volume,
               }
             : {
                 weightChange: 0,
                 repChange: 0,
                 volumeChange: 0,
+                firstWeight: 0,
+                lastWeight: 0,
+                firstReps: 0,
+                lastReps: 0,
+                firstVolume: 0,
+                lastVolume: 0,
               },
         chartSeries: {
-          weight: points.map((p) => ({ x: formatDateShort(p.date), y: p.weight })),
-          reps: points.map((p) => ({ x: formatDateShort(p.date), y: p.reps })),
-          volume: points.map((p) => ({ x: formatDateShort(p.date), y: p.volume })),
+          weight: points.map((p, index) => ({ x: formatWorkoutAxisLabel(index, p.date), y: roundToTwo(p.weight) })),
+          reps: points.map((p, index) => ({ x: formatWorkoutAxisLabel(index, p.date), y: roundToTwo(p.reps) })),
+          volume: points.map((p, index) => ({ x: formatWorkoutAxisLabel(index, p.date), y: roundToTwo(p.volume) })),
         },
       };
     });
@@ -455,15 +556,19 @@ function buildFitnessInteractive(fitnessHistory: any, profileStats: any) {
     entry.sessions.push(session);
 
     for (const step of safeArray(session?.steps)) {
-      const metric = parseStepMetric(step);
-      if (!entry.metricBuckets.has(metric.key)) {
-        entry.metricBuckets.set(metric.key, []);
+      const metrics = buildCardioMetricsFromSession(session);
+
+      for (const metric of metrics) {
+        if (!entry.metricBuckets.has(metric.key)) {
+          entry.metricBuckets.set(metric.key, []);
+        }
+
+        entry.metricBuckets.get(metric.key)!.push({
+          date: session?.dateTime || "",
+          value: metric.value,
+          label: metric.label,
+        });
       }
-      entry.metricBuckets.get(metric.key)!.push({
-        date: session?.dateTime || "",
-        value: metric.value,
-        label: metric.label,
-      });
     }
   }
 
@@ -522,8 +627,8 @@ function buildFitnessInteractive(fitnessHistory: any, profileStats: any) {
 
   return {
     overviewCards: [
-      createMetricCard("Total Workouts", String(weightliftingSessions.length), "Saved lifting sessions"),
-      createMetricCard("Total Cardio", String(cardioSessions.length), "Saved cardio sessions"),
+      createMetricCard("Total Workouts", String(roundToTwo(weightliftingSessions.length)), "Saved lifting sessions"),
+      createMetricCard("Total Cardio", String(roundToTwo(cardioSessions.length)), "Saved cardio sessions"),
       createMetricCard(
         "Last Workout",
         fitnessStats?.lastWorkoutAt ? formatDateShort(fitnessStats.lastWorkoutAt) : "—",
@@ -723,3 +828,4 @@ export const GET: APIRoute = async ({ url, cookies }) => {
     await sql.end();
   }
 };
+

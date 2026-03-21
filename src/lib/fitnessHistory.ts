@@ -32,12 +32,24 @@ export type CardioSession = {
   workoutType: string;
   title: string;
   summary: string;
+  notes?: string;
   steps: Array<{
     text: string;
-    target?: string;
     actual?: string;
     done?: boolean;
   }>;
+  metrics?: {
+    totalDistance?: number;
+    totalTimeMinutes?: number;
+    averagePaceMinutes?: number;
+    averagePaceDisplay?: string;
+    totalTimeDisplay?: string;
+    calories?: number;
+    heartRate?: number;
+    elevationGain?: number;
+    cadence?: number;
+  };
+  calculationMode?: "manual" | "auto" | "";
 };
 
 export type FitnessHistoryState = {

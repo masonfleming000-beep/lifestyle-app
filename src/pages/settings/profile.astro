@@ -85,7 +85,7 @@ import {
     <div class="grid one">
       <SectionCard title="Public Profile" subtitle="What people see on your profile" open={true}>
         <div class="form-stack">
-          <div class="grid two">
+          <div class="grid two profile-field-grid">
             <label class="field-group">
               <span class="field-label">Display Name</span>
               <input id="displayName" class="ui-input" type="text" placeholder="Mason Fleming" />
@@ -120,36 +120,138 @@ import {
       </SectionCard>
 
       <SectionCard title="Privacy & Visibility" subtitle="Control what the public profile shows">
-        <div class="toggle-card-grid">
-          <label class="toggle-card"><input id="visibility-profile" type="checkbox" /><span>Public profile enabled</span></label>
-          <label class="toggle-card"><input id="visibility-bio" type="checkbox" /><span>Show bio</span></label>
-          <label class="toggle-card"><input id="visibility-stats" type="checkbox" /><span>Show stats</span></label>
-          <label class="toggle-card"><input id="visibility-portfolio" type="checkbox" /><span>Show portfolio button</span></label>
-          <label class="toggle-card"><input id="visibility-activity" type="checkbox" /><span>Show recent activity</span></label>
-          <label class="toggle-card"><input id="visibility-achievements" type="checkbox" /><span>Show achievements</span></label>
-          <label class="toggle-card"><input id="visibility-contact" type="checkbox" /><span>Show contact section</span></label>
+        <div class="settings-toggle-list">
+          <label class="settings-toggle-card" for="visibility-profile">
+            <div class="settings-toggle-copy">
+              <span class="settings-toggle-title">Public profile enabled</span>
+              <span class="settings-toggle-description">Allow your public profile page to be visible.</span>
+            </div>
+            <input id="visibility-profile" class="settings-checkbox" type="checkbox" />
+          </label>
+
+          <label class="settings-toggle-card" for="visibility-bio">
+            <div class="settings-toggle-copy">
+              <span class="settings-toggle-title">Show bio</span>
+              <span class="settings-toggle-description">Display your written intro on the public profile.</span>
+            </div>
+            <input id="visibility-bio" class="settings-checkbox" type="checkbox" />
+          </label>
+
+          <label class="settings-toggle-card" for="visibility-stats">
+            <div class="settings-toggle-copy">
+              <span class="settings-toggle-title">Show stats</span>
+              <span class="settings-toggle-description">Include interactive stats and progress data.</span>
+            </div>
+            <input id="visibility-stats" class="settings-checkbox" type="checkbox" />
+          </label>
+
+          <label class="settings-toggle-card" for="visibility-portfolio">
+            <div class="settings-toggle-copy">
+              <span class="settings-toggle-title">Show portfolio button</span>
+              <span class="settings-toggle-description">Expose your portfolio link or portfolio area.</span>
+            </div>
+            <input id="visibility-portfolio" class="settings-checkbox" type="checkbox" />
+          </label>
+
+          <label class="settings-toggle-card" for="visibility-activity">
+            <div class="settings-toggle-copy">
+              <span class="settings-toggle-title">Show recent activity</span>
+              <span class="settings-toggle-description">Let others see your latest visible activity.</span>
+            </div>
+            <input id="visibility-activity" class="settings-checkbox" type="checkbox" />
+          </label>
+
+          <label class="settings-toggle-card" for="visibility-achievements">
+            <div class="settings-toggle-copy">
+              <span class="settings-toggle-title">Show achievements</span>
+              <span class="settings-toggle-description">Display badges, milestones, and accomplishments.</span>
+            </div>
+            <input id="visibility-achievements" class="settings-checkbox" type="checkbox" />
+          </label>
+
+          <label class="settings-toggle-card" for="visibility-contact">
+            <div class="settings-toggle-copy">
+              <span class="settings-toggle-title">Show contact section</span>
+              <span class="settings-toggle-description">Allow visitors to see your contact area.</span>
+            </div>
+            <input id="visibility-contact" class="settings-checkbox" type="checkbox" />
+          </label>
         </div>
       </SectionCard>
 
       <SectionCard title="Stats Sources" subtitle="Choose which app areas contribute public stats">
-        <div class="toggle-card-grid">
-          <label class="toggle-card"><input id="stats-fitness" type="checkbox" /><span>Fitness</span></label>
-          <label class="toggle-card"><input id="stats-hobbies" type="checkbox" /><span>Hobbies</span></label>
+        <div class="settings-toggle-list compact-toggle-list">
+          <label class="settings-toggle-card" for="stats-fitness">
+            <div class="settings-toggle-copy">
+              <span class="settings-toggle-title">Fitness</span>
+              <span class="settings-toggle-description">Use workout and cardio data in public stats.</span>
+            </div>
+            <input id="stats-fitness" class="settings-checkbox" type="checkbox" />
+          </label>
+
+          <label class="settings-toggle-card" for="stats-hobbies">
+            <div class="settings-toggle-copy">
+              <span class="settings-toggle-title">Hobbies</span>
+              <span class="settings-toggle-description">Include hobbies and learning progress.</span>
+            </div>
+            <input id="stats-hobbies" class="settings-checkbox" type="checkbox" />
+          </label>
         </div>
       </SectionCard>
 
       <SectionCard title="Interactive Stats Display" subtitle="Configure exactly how the public stats view behaves">
         <div class="form-stack">
-          <div class="toggle-card-grid">
-            <label class="toggle-card"><input id="stats-display-auto" type="checkbox" /><span>Use interactive formatted stats</span></label>
-            <label class="toggle-card"><input id="stats-display-overview" type="checkbox" /><span>Show overview cards</span></label>
-            <label class="toggle-card"><input id="stats-display-sections" type="checkbox" /><span>Show lifting section summary</span></label>
-            <label class="toggle-card"><input id="stats-display-workouts" type="checkbox" /><span>Show workout charts</span></label>
-            <label class="toggle-card"><input id="stats-display-cardio" type="checkbox" /><span>Show cardio charts</span></label>
-            <label class="toggle-card"><input id="stats-display-recent" type="checkbox" /><span>Show recent sessions</span></label>
+          <div class="settings-toggle-list">
+            <label class="settings-toggle-card" for="stats-display-auto">
+              <div class="settings-toggle-copy">
+                <span class="settings-toggle-title">Use interactive formatted stats</span>
+                <span class="settings-toggle-description">Show the richer interactive version of public stats.</span>
+              </div>
+              <input id="stats-display-auto" class="settings-checkbox" type="checkbox" />
+            </label>
+
+            <label class="settings-toggle-card" for="stats-display-overview">
+              <div class="settings-toggle-copy">
+                <span class="settings-toggle-title">Show overview cards</span>
+                <span class="settings-toggle-description">Display top-level summary cards first.</span>
+              </div>
+              <input id="stats-display-overview" class="settings-checkbox" type="checkbox" />
+            </label>
+
+            <label class="settings-toggle-card" for="stats-display-sections">
+              <div class="settings-toggle-copy">
+                <span class="settings-toggle-title">Show lifting section summary</span>
+                <span class="settings-toggle-description">Include grouped weightlifting summaries.</span>
+              </div>
+              <input id="stats-display-sections" class="settings-checkbox" type="checkbox" />
+            </label>
+
+            <label class="settings-toggle-card" for="stats-display-workouts">
+              <div class="settings-toggle-copy">
+                <span class="settings-toggle-title">Show workout charts</span>
+                <span class="settings-toggle-description">Display strength workout charts when available.</span>
+              </div>
+              <input id="stats-display-workouts" class="settings-checkbox" type="checkbox" />
+            </label>
+
+            <label class="settings-toggle-card" for="stats-display-cardio">
+              <div class="settings-toggle-copy">
+                <span class="settings-toggle-title">Show cardio charts</span>
+                <span class="settings-toggle-description">Display cardio data and chart sections.</span>
+              </div>
+              <input id="stats-display-cardio" class="settings-checkbox" type="checkbox" />
+            </label>
+
+            <label class="settings-toggle-card" for="stats-display-recent">
+              <div class="settings-toggle-copy">
+                <span class="settings-toggle-title">Show recent sessions</span>
+                <span class="settings-toggle-description">Highlight your latest visible sessions.</span>
+              </div>
+              <input id="stats-display-recent" class="settings-checkbox" type="checkbox" />
+            </label>
           </div>
 
-          <div class="grid three">
+          <div class="grid three profile-select-grid">
             <label class="field-group">
               <span class="field-label">Default Time Range</span>
               <select id="stats-default-range" class="ui-select">
@@ -188,7 +290,7 @@ import {
             </label>
           </div>
 
-          <div class="grid three">
+          <div class="grid three profile-select-grid">
             <label class="field-group">
               <span class="field-label">Default Cardio Type</span>
               <select id="stats-default-cardio-type" class="ui-select">
@@ -219,7 +321,7 @@ import {
             </label>
           </div>
 
-          <div class="grid three">
+          <div class="grid three profile-select-grid">
             <label class="field-group">
               <span class="field-label">Portfolio Mode</span>
               <select id="stats-portfolio-mode" class="ui-select">
@@ -232,17 +334,51 @@ import {
       </SectionCard>
 
       <SectionCard title="Notifications" subtitle="Choose how profile-related updates reach you">
-        <div class="toggle-card-grid">
-          <label class="toggle-card"><input id="notifications-email" type="checkbox" /><span>Email</span></label>
-          <label class="toggle-card"><input id="notifications-push" type="checkbox" /><span>Push</span></label>
-          <label class="toggle-card"><input id="notifications-product" type="checkbox" /><span>Product updates</span></label>
-          <label class="toggle-card"><input id="notifications-reminders" type="checkbox" /><span>Reminders</span></label>
-          <label class="toggle-card"><input id="notifications-marketing" type="checkbox" /><span>Marketing</span></label>
+        <div class="settings-toggle-list compact-toggle-list">
+          <label class="settings-toggle-card" for="notifications-email">
+            <div class="settings-toggle-copy">
+              <span class="settings-toggle-title">Email</span>
+              <span class="settings-toggle-description">Send updates to your inbox.</span>
+            </div>
+            <input id="notifications-email" class="settings-checkbox" type="checkbox" />
+          </label>
+
+          <label class="settings-toggle-card" for="notifications-push">
+            <div class="settings-toggle-copy">
+              <span class="settings-toggle-title">Push</span>
+              <span class="settings-toggle-description">Send device push alerts.</span>
+            </div>
+            <input id="notifications-push" class="settings-checkbox" type="checkbox" />
+          </label>
+
+          <label class="settings-toggle-card" for="notifications-product">
+            <div class="settings-toggle-copy">
+              <span class="settings-toggle-title">Product updates</span>
+              <span class="settings-toggle-description">Hear about new features and improvements.</span>
+            </div>
+            <input id="notifications-product" class="settings-checkbox" type="checkbox" />
+          </label>
+
+          <label class="settings-toggle-card" for="notifications-reminders">
+            <div class="settings-toggle-copy">
+              <span class="settings-toggle-title">Reminders</span>
+              <span class="settings-toggle-description">Receive profile-related reminder notifications.</span>
+            </div>
+            <input id="notifications-reminders" class="settings-checkbox" type="checkbox" />
+          </label>
+
+          <label class="settings-toggle-card" for="notifications-marketing">
+            <div class="settings-toggle-copy">
+              <span class="settings-toggle-title">Marketing</span>
+              <span class="settings-toggle-description">Allow promotional updates and campaigns.</span>
+            </div>
+            <input id="notifications-marketing" class="settings-checkbox" type="checkbox" />
+          </label>
         </div>
       </SectionCard>
 
       <SectionCard title="Theme" subtitle="Apply profile preferences across the app">
-        <div class="grid three">
+        <div class="grid three profile-select-grid">
           <label class="field-group">
             <span class="field-label">Color Mode</span>
             <select id="theme-mode" class="ui-select">
@@ -299,6 +435,12 @@ import {
       const statusEl = document.getElementById("profile-settings-status");
       const previewRoot = document.getElementById("profile-preview-root");
 
+      let state = null;
+      let hasLoadedInitialState = false;
+      let isSaving = false;
+      let pendingSave = false;
+      let previewRefreshTimer = null;
+
       function setStatus(text, mode = "neutral") {
         if (!statusEl) return;
         statusEl.textContent = text;
@@ -315,10 +457,6 @@ import {
 
       function normalizeBoolean(value, fallback = false) {
         return typeof value === "boolean" ? value : fallback;
-      }
-
-      function normalizeArray(value) {
-        return Array.isArray(value) ? value : [];
       }
 
       function slugifyProfileValue(value) {
@@ -364,6 +502,14 @@ import {
         return !!byId(id)?.checked;
       }
 
+      function formatPreviewValue(value) {
+        const num = Number(value);
+        if (Number.isFinite(num)) {
+          return num.toFixed(2);
+        }
+        return String(value || "—");
+      }
+
       function deriveUsernameCandidate() {
         const explicitUsername = slugifyProfileValue(getValue("username"));
         if (explicitUsername) return explicitUsername;
@@ -387,108 +533,129 @@ import {
         return username ? `@${username}` : "";
       }
 
-      function refreshSnapshot(state) {
+      function refreshSnapshot(nextState) {
         const set = (id, value) => {
           const el = byId(id);
           if (el) el.textContent = value || "—";
         };
 
-        set("snapshot-display-name", state.displayName);
-        set("snapshot-headline", state.headline);
-        set("snapshot-location", state.location);
-        set("snapshot-theme", `${state.theme.mode} / ${state.theme.textSize}`);
+        set("snapshot-display-name", nextState.displayName);
+        set("snapshot-headline", nextState.headline);
+        set("snapshot-location", nextState.location);
+        set("snapshot-theme", `${nextState.theme.mode} / ${nextState.theme.textSize}`);
       }
 
       function normalizeState(raw) {
         const defaults = cloneDefaults();
-        const state = raw && typeof raw === "object" ? raw : {};
+        const source = raw && typeof raw === "object" ? raw : {};
 
         return {
           ...defaults,
-          ...state,
+          ...source,
+          username: normalizeString(source?.username || defaults.username),
+          handle: normalizeString(source?.handle || defaults.handle),
+          displayName: normalizeString(source?.displayName || defaults.displayName),
+          headline: normalizeString(source?.headline || defaults.headline),
+          location: normalizeString(source?.location || defaults.location),
+          bio: normalizeString(source?.bio || defaults.bio),
+          bannerUrl: normalizeString(source?.bannerUrl || defaults.bannerUrl),
+          avatarUrl: normalizeString(source?.avatarUrl || defaults.avatarUrl),
           visibility: {
             ...defaults.visibility,
-            ...(state?.visibility || {}),
+            ...(source?.visibility || {}),
           },
           portfolioFilters: {
             ...defaults.portfolioFilters,
-            ...(state?.portfolioFilters || {}),
+            ...(source?.portfolioFilters || {}),
           },
           statsSources: {
             ...defaults.statsSources,
-            ...(state?.statsSources || {}),
+            ...(source?.statsSources || {}),
           },
           statsDisplay: {
             ...defaults.statsDisplay,
-            ...(state?.statsDisplay || {}),
-            autoFormatted: normalizeBoolean(state?.statsDisplay?.autoFormatted, true),
-            showOverview: normalizeBoolean(state?.statsDisplay?.showOverview, true),
-            showSections: normalizeBoolean(state?.statsDisplay?.showSections, true),
-            showWorkouts: normalizeBoolean(state?.statsDisplay?.showWorkouts, true),
-            showCardio: normalizeBoolean(state?.statsDisplay?.showCardio, true),
-            showRecentSessions: normalizeBoolean(state?.statsDisplay?.showRecentSessions, true),
+            ...(source?.statsDisplay || {}),
+            autoFormatted: normalizeBoolean(source?.statsDisplay?.autoFormatted, defaults.statsDisplay?.autoFormatted ?? true),
+            showOverview: normalizeBoolean(source?.statsDisplay?.showOverview, defaults.statsDisplay?.showOverview ?? true),
+            showSections: normalizeBoolean(source?.statsDisplay?.showSections, defaults.statsDisplay?.showSections ?? true),
+            showWorkouts: normalizeBoolean(source?.statsDisplay?.showWorkouts, defaults.statsDisplay?.showWorkouts ?? true),
+            showCardio: normalizeBoolean(source?.statsDisplay?.showCardio, defaults.statsDisplay?.showCardio ?? true),
+            showRecentSessions: normalizeBoolean(source?.statsDisplay?.showRecentSessions, defaults.statsDisplay?.showRecentSessions ?? true),
+            defaultRange: normalizeString(source?.statsDisplay?.defaultRange || defaults.statsDisplay?.defaultRange || "30d"),
+            defaultSection: normalizeString(source?.statsDisplay?.defaultSection || defaults.statsDisplay?.defaultSection || "all"),
+            defaultWorkout: normalizeString(source?.statsDisplay?.defaultWorkout || defaults.statsDisplay?.defaultWorkout || "all"),
+            defaultCardioType: normalizeString(source?.statsDisplay?.defaultCardioType || defaults.statsDisplay?.defaultCardioType || "all"),
+            defaultHobbyId: normalizeString(source?.statsDisplay?.defaultHobbyId || defaults.statsDisplay?.defaultHobbyId || "all"),
+            defaultHobbyStageId: normalizeString(source?.statsDisplay?.defaultHobbyStageId || defaults.statsDisplay?.defaultHobbyStageId || "all"),
+            portfolioMode: normalizeString(source?.statsDisplay?.portfolioMode || defaults.statsDisplay?.portfolioMode || "link"),
+            featuredFitnessMetrics: defaults.statsDisplay.featuredFitnessMetrics,
+            featuredCardioMetrics: defaults.statsDisplay.featuredCardioMetrics,
+            featuredHobbyMetrics: defaults.statsDisplay.featuredHobbyMetrics,
           },
           notifications: {
             ...defaults.notifications,
-            ...(state?.notifications || {}),
+            ...(source?.notifications || {}),
           },
           theme: {
             ...defaults.theme,
-            ...(state?.theme || {}),
+            ...(source?.theme || {}),
+            mode: normalizeString(source?.theme?.mode || defaults.theme.mode),
+            accent: normalizeString(source?.theme?.accent || defaults.theme.accent),
+            textSize: normalizeString(source?.theme?.textSize || defaults.theme.textSize),
           },
           account: {
-            email: normalizeString(state?.account?.email),
+            email: normalizeString(source?.account?.email || defaults?.account?.email),
           },
         };
       }
 
-      function applyState(state) {
-        setValue("email", state?.account?.email || "");
-        setValue("username", state.username || "");
-        setValue("handle", state.handle || "");
-        setValue("displayName", state.displayName);
-        setValue("headline", state.headline);
-        setValue("location", state.location);
-        setValue("bio", state.bio);
-        setValue("bannerUrl", state.bannerUrl);
-        setValue("avatarUrl", state.avatarUrl);
+      function applyState(nextState) {
+        setValue("email", nextState?.account?.email || "");
+        setValue("username", nextState.username || "");
+        setValue("handle", nextState.handle || "");
+        setValue("displayName", nextState.displayName);
+        setValue("headline", nextState.headline);
+        setValue("location", nextState.location);
+        setValue("bio", nextState.bio);
+        setValue("bannerUrl", nextState.bannerUrl);
+        setValue("avatarUrl", nextState.avatarUrl);
 
-        setChecked("visibility-profile", state.visibility.profile);
-        setChecked("visibility-bio", state.visibility.bio);
-        setChecked("visibility-stats", state.visibility.stats);
-        setChecked("visibility-portfolio", state.visibility.portfolio);
-        setChecked("visibility-activity", state.visibility.activity);
-        setChecked("visibility-achievements", state.visibility.achievements);
-        setChecked("visibility-contact", state.visibility.contact);
+        setChecked("visibility-profile", nextState.visibility.profile);
+        setChecked("visibility-bio", nextState.visibility.bio);
+        setChecked("visibility-stats", nextState.visibility.stats);
+        setChecked("visibility-portfolio", nextState.visibility.portfolio);
+        setChecked("visibility-activity", nextState.visibility.activity);
+        setChecked("visibility-achievements", nextState.visibility.achievements);
+        setChecked("visibility-contact", nextState.visibility.contact);
 
-        setChecked("stats-fitness", state.statsSources.fitness);
-        setChecked("stats-hobbies", state.statsSources.hobbies);
+        setChecked("stats-fitness", nextState.statsSources.fitness);
+        setChecked("stats-hobbies", nextState.statsSources.hobbies);
 
-        setChecked("stats-display-auto", state.statsDisplay.autoFormatted);
-        setChecked("stats-display-overview", state.statsDisplay.showOverview);
-        setChecked("stats-display-sections", state.statsDisplay.showSections);
-        setChecked("stats-display-workouts", state.statsDisplay.showWorkouts);
-        setChecked("stats-display-cardio", state.statsDisplay.showCardio);
-        setChecked("stats-display-recent", state.statsDisplay.showRecentSessions);
-        setValue("stats-default-range", state.statsDisplay.defaultRange);
-        setValue("stats-default-section", state.statsDisplay.defaultSection);
-        setValue("stats-default-workout", state.statsDisplay.defaultWorkout);
-        setValue("stats-default-cardio-type", state.statsDisplay.defaultCardioType);
-        setValue("stats-default-hobby-id", state.statsDisplay.defaultHobbyId);
-        setValue("stats-default-hobby-stage-id", state.statsDisplay.defaultHobbyStageId);
-        setValue("stats-portfolio-mode", state.statsDisplay.portfolioMode);
+        setChecked("stats-display-auto", nextState.statsDisplay.autoFormatted);
+        setChecked("stats-display-overview", nextState.statsDisplay.showOverview);
+        setChecked("stats-display-sections", nextState.statsDisplay.showSections);
+        setChecked("stats-display-workouts", nextState.statsDisplay.showWorkouts);
+        setChecked("stats-display-cardio", nextState.statsDisplay.showCardio);
+        setChecked("stats-display-recent", nextState.statsDisplay.showRecentSessions);
+        setValue("stats-default-range", nextState.statsDisplay.defaultRange);
+        setValue("stats-default-section", nextState.statsDisplay.defaultSection);
+        setValue("stats-default-workout", nextState.statsDisplay.defaultWorkout);
+        setValue("stats-default-cardio-type", nextState.statsDisplay.defaultCardioType);
+        setValue("stats-default-hobby-id", nextState.statsDisplay.defaultHobbyId);
+        setValue("stats-default-hobby-stage-id", nextState.statsDisplay.defaultHobbyStageId);
+        setValue("stats-portfolio-mode", nextState.statsDisplay.portfolioMode);
 
-        setChecked("notifications-email", state.notifications.email);
-        setChecked("notifications-push", state.notifications.push);
-        setChecked("notifications-product", state.notifications.product);
-        setChecked("notifications-reminders", state.notifications.reminders);
-        setChecked("notifications-marketing", state.notifications.marketing);
+        setChecked("notifications-email", nextState.notifications.email);
+        setChecked("notifications-push", nextState.notifications.push);
+        setChecked("notifications-product", nextState.notifications.product);
+        setChecked("notifications-reminders", nextState.notifications.reminders);
+        setChecked("notifications-marketing", nextState.notifications.marketing);
 
-        setValue("theme-mode", state.theme.mode);
-        setValue("theme-accent", state.theme.accent);
-        setValue("theme-text-size", state.theme.textSize);
+        setValue("theme-mode", nextState.theme.mode);
+        setValue("theme-accent", nextState.theme.accent);
+        setValue("theme-text-size", nextState.theme.textSize);
 
-        refreshSnapshot(state);
+        refreshSnapshot(nextState);
       }
 
       function collectState() {
@@ -516,7 +683,7 @@ import {
             contact: getChecked("visibility-contact"),
           },
           statsSources: {
-            fitness: getChecked("stats-fitness"), 
+            fitness: getChecked("stats-fitness"),
             hobbies: getChecked("stats-hobbies"),
           },
           statsDisplay: {
@@ -552,6 +719,9 @@ import {
           account: {
             email: getValue("email"),
           },
+          portfolioFilters: {
+            ...(defaults.portfolioFilters || {}),
+          },
         };
       }
 
@@ -561,7 +731,9 @@ import {
             credentials: "include",
             cache: "no-store",
           });
+
           if (!response.ok) return null;
+
           const payload = await response.json();
           return payload?.state ?? null;
         } catch (error) {
@@ -570,17 +742,71 @@ import {
         }
       }
 
-      async function saveState(state) {
+      async function persistState(nextState) {
         const response = await fetch("/api/state", {
           method: "POST",
           credentials: "include",
           headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ pageKey, state }),
+          body: JSON.stringify({ pageKey, state: nextState }),
         });
 
         if (!response.ok) {
           throw new Error("Failed to save profile settings");
         }
+      }
+
+      async function saveState(nextState = state, options = {}) {
+        const { silent = false } = options;
+
+        if (!hasLoadedInitialState) return;
+
+        if (isSaving) {
+          pendingSave = true;
+          state = normalizeState(nextState);
+          return;
+        }
+
+        isSaving = true;
+        state = normalizeState(nextState);
+
+        if (!silent) {
+          setStatus("Saving...", "neutral");
+        }
+
+        try {
+          await persistState(state);
+          applyTheme(state);
+
+          if (!silent) {
+            setStatus("Saved", "success");
+          }
+        } catch (error) {
+          console.error(error);
+          if (!silent) {
+            setStatus("Unable to save", "error");
+          }
+        } finally {
+          isSaving = false;
+
+          if (pendingSave) {
+            pendingSave = false;
+            await saveState(state, options);
+          }
+        }
+      }
+
+      function applyTheme(nextState) {
+        const mode = nextState?.theme?.mode || "system";
+        const accent = nextState?.theme?.accent || "default";
+        const textSize = nextState?.theme?.textSize || "medium";
+
+        localStorage.setItem("profile-theme-mode", mode);
+        localStorage.setItem("profile-theme-accent", accent);
+        localStorage.setItem("profile-theme-text-size", textSize);
+
+        document.documentElement.dataset.theme = mode;
+        document.documentElement.dataset.textSize = textSize;
+        document.documentElement.dataset.accent = accent;
       }
 
       function escapeHtml(value) {
@@ -602,6 +828,7 @@ import {
 
       function renderPreview(payload) {
         const profile = payload?.profile;
+
         if (!profile) {
           previewRoot.innerHTML = `<p>Preview unavailable.</p>`;
           return;
@@ -623,7 +850,7 @@ import {
               ${safeArray(fitness?.overviewCards).map((item) => `
                 <article class="preview-stat-card">
                   <p class="metric-label">${escapeHtml(item?.label || "")}</p>
-                  <h4>${escapeHtml(item?.value || "")}</h4>
+                  <h4>${escapeHtml(formatPreviewValue(item?.value))}</h4>
                 </article>
               `).join("")}
             </div>
@@ -653,11 +880,13 @@ import {
 
       async function refreshPreview() {
         previewRoot.innerHTML = `<p>Refreshing preview...</p>`;
+
         try {
           const response = await fetch(`/api/profile/public?preview=1`, {
             credentials: "include",
             cache: "no-store",
           });
+
           const payload = await response.json().catch(() => ({}));
           renderPreview(payload);
         } catch (error) {
@@ -666,28 +895,92 @@ import {
         }
       }
 
+      function schedulePreviewRefresh() {
+        if (previewRefreshTimer) {
+          clearTimeout(previewRefreshTimer);
+        }
+
+        previewRefreshTimer = window.setTimeout(async () => {
+          await refreshPreview();
+        }, 350);
+      }
+
+      async function syncFromInputs(options = {}) {
+        state = normalizeState(collectState());
+        refreshSnapshot(state);
+        applyTheme(state);
+        await saveState(state, options);
+        schedulePreviewRefresh();
+      }
+
+      function attachAutoSaveListeners() {
+        const fieldIds = [
+          "email",
+          "username",
+          "handle",
+          "displayName",
+          "headline",
+          "location",
+          "avatarUrl",
+          "bannerUrl",
+          "bio",
+          "visibility-profile",
+          "visibility-bio",
+          "visibility-stats",
+          "visibility-portfolio",
+          "visibility-activity",
+          "visibility-achievements",
+          "visibility-contact",
+          "stats-fitness",
+          "stats-hobbies",
+          "stats-display-auto",
+          "stats-display-overview",
+          "stats-display-sections",
+          "stats-display-workouts",
+          "stats-display-cardio",
+          "stats-display-recent",
+          "stats-default-range",
+          "stats-default-section",
+          "stats-default-workout",
+          "stats-default-cardio-type",
+          "stats-default-hobby-id",
+          "stats-default-hobby-stage-id",
+          "stats-portfolio-mode",
+          "notifications-email",
+          "notifications-push",
+          "notifications-product",
+          "notifications-reminders",
+          "notifications-marketing",
+          "theme-mode",
+          "theme-accent",
+          "theme-text-size",
+        ];
+
+        fieldIds.forEach((id) => {
+          const el = byId(id);
+          if (!el) return;
+
+          const eventName =
+            el.tagName === "SELECT" || el.type === "checkbox" ? "change" : "input";
+
+          el.addEventListener(eventName, async () => {
+            await syncFromInputs({ silent: true });
+          });
+        });
+      }
+
       document.getElementById("save-profile-settings-btn")?.addEventListener("click", async () => {
-        const state = collectState();
+        state = normalizeState(collectState());
+        refreshSnapshot(state);
         setStatus("Saving...", "neutral");
 
-        try {
-          await saveState(state);
-          localStorage.setItem("profile-theme-mode", state.theme.mode);
-          localStorage.setItem("profile-theme-accent", state.theme.accent);
-          localStorage.setItem("profile-theme-text-size", state.theme.textSize);
-          document.documentElement.dataset.theme = state.theme.mode;
-          document.documentElement.dataset.textSize = state.theme.textSize;
-          document.documentElement.dataset.accent = state.theme.accent || "default";
-          refreshSnapshot(state);
-          setStatus("Saved", "success");
-          await refreshPreview();
-        } catch (error) {
-          console.error(error);
-          setStatus("Unable to save", "error");
-        }
+        await saveState(state);
+        await refreshPreview();
       });
 
       document.getElementById("refresh-preview-btn")?.addEventListener("click", async () => {
+        state = normalizeState(collectState());
+        refreshSnapshot(state);
         await refreshPreview();
       });
 
@@ -697,9 +990,16 @@ import {
 
       async function init() {
         setStatus("Loading...", "neutral");
+
         const saved = await loadState();
-        const normalized = normalizeState(saved);
-        applyState(normalized);
+        state = normalizeState(saved);
+
+        applyState(state);
+        applyTheme(state);
+        attachAutoSaveListeners();
+
+        hasLoadedInitialState = true;
+
         await refreshPreview();
         setStatus("Ready", "success");
       }
@@ -720,7 +1020,8 @@ import {
 
     .field-group {
       display: grid;
-      gap: 0.45rem;
+      gap: 0.5rem;
+      min-width: 0;
     }
 
     .field-label {
@@ -733,12 +1034,24 @@ import {
     .ui-select,
     .ui-textarea {
       width: 100%;
+      min-width: 0;
       border-radius: 14px;
       border: 1px solid rgba(15, 23, 42, 0.1);
-      background: rgba(255, 255, 255, 0.9);
-      padding: 0.85rem 1rem;
+      background: rgba(255, 255, 255, 0.92);
+      padding: 0.9rem 1rem;
       font: inherit;
       color: #0f172a;
+      box-sizing: border-box;
+      transition: border-color 0.18s ease, box-shadow 0.18s ease, background 0.18s ease;
+    }
+
+    .ui-input:focus,
+    .ui-select:focus,
+    .ui-textarea:focus {
+      outline: none;
+      border-color: rgba(47, 93, 98, 0.45);
+      box-shadow: 0 0 0 4px rgba(47, 93, 98, 0.1);
+      background: rgba(255, 255, 255, 1);
     }
 
     .ui-textarea {
@@ -749,50 +1062,107 @@ import {
     .ui-button {
       border: none;
       border-radius: 999px;
-      padding: 0.8rem 1.15rem;
+      padding: 0.82rem 1.15rem;
       font: inherit;
       font-weight: 700;
       background: #2f5d62;
       color: white;
       cursor: pointer;
+      transition: transform 0.18s ease, opacity 0.18s ease, box-shadow 0.18s ease;
+    }
+
+    .ui-button:hover {
+      transform: translateY(-1px);
+      box-shadow: 0 12px 24px rgba(47, 93, 98, 0.16);
     }
 
     .ui-button-secondary {
-      background: rgba(255, 255, 255, 0.85);
+      background: rgba(255, 255, 255, 0.88);
       color: #1e293b;
       border: 1px solid rgba(15, 23, 42, 0.1);
+      box-shadow: none;
     }
 
     .button-row {
       display: flex;
       gap: 0.75rem;
       flex-wrap: wrap;
+      align-items: center;
     }
 
-    .toggle-card-grid {
+    .settings-toggle-list {
       display: grid;
-      grid-template-columns: repeat(2, minmax(0, 1fr));
       gap: 0.85rem;
     }
 
-    .toggle-card {
-      display: flex;
-      align-items: center;
-      gap: 0.7rem;
-      padding: 0.95rem 1rem;
-      border-radius: 16px;
-      border: 1px solid rgba(15, 23, 42, 0.08);
-      background: rgba(255, 255, 255, 0.74);
-      transition: transform 0.18s ease, border-color 0.18s ease;
+    .compact-toggle-list {
+      grid-template-columns: repeat(2, minmax(0, 1fr));
     }
 
-    .toggle-card:hover {
+    .settings-toggle-card {
+      display: grid;
+      grid-template-columns: minmax(0, 1fr) auto;
+      align-items: center;
+      gap: 1rem;
+      width: 100%;
+      padding: 1rem 1.05rem;
+      border-radius: 18px;
+      border: 1px solid rgba(15, 23, 42, 0.08);
+      background: rgba(255, 255, 255, 0.78);
+      cursor: pointer;
+      box-sizing: border-box;
+      transition: transform 0.18s ease, border-color 0.18s ease, box-shadow 0.18s ease;
+    }
+
+    .settings-toggle-card:hover {
       transform: translateY(-1px);
-      border-color: rgba(47, 93, 98, 0.35);
+      border-color: rgba(47, 93, 98, 0.28);
+      box-shadow: 0 14px 26px rgba(15, 23, 42, 0.05);
+    }
+
+    .settings-toggle-copy {
+      display: grid;
+      gap: 0.22rem;
+      min-width: 0;
+    }
+
+    .settings-toggle-title {
+      display: block;
+      font-weight: 700;
+      color: #0f172a;
+      line-height: 1.35;
+      word-break: break-word;
+    }
+
+    .settings-toggle-description {
+      display: block;
+      font-size: 0.92rem;
+      line-height: 1.45;
+      color: #64748b;
+      word-break: break-word;
+    }
+
+    .settings-checkbox {
+      width: 1.1rem;
+      height: 1.1rem;
+      flex: 0 0 auto;
+      margin: 0;
+      accent-color: #2f5d62;
+      justify-self: end;
+      align-self: center;
     }
 
     .compact-summary {
       grid-template-columns: repeat(2, minmax(0, 1fr));
+      gap: 0.85rem;
+    }
+
+    .summary-metric {
+      min-width: 0;
+    }
+
+    .summary-value {
+      word-break: break-word;
     }
 
     .profile-settings-actions {
@@ -816,10 +1186,60 @@ import {
       background: rgba(255, 255, 255, 0.82);
     }
 
-    @media (max-width: 720px) {
-      .toggle-card-grid,
+    .profile-field-grid,
+    .profile-select-grid {
+      gap: 1rem;
+    }
+
+    @media (max-width: 900px) {
+      .compact-toggle-list,
       .compact-summary {
         grid-template-columns: 1fr;
+      }
+    }
+
+    @media (max-width: 720px) {
+      .settings-toggle-card {
+        grid-template-columns: minmax(0, 1fr) auto;
+        gap: 0.85rem;
+        padding: 0.95rem;
+      }
+
+      .settings-checkbox {
+        width: 1rem;
+        height: 1rem;
+      }
+
+      .profile-settings-actions {
+        align-items: stretch;
+      }
+
+      .profile-settings-actions .button-row {
+        width: 100%;
+      }
+
+      .profile-settings-actions .ui-button {
+        flex: 1 1 100%;
+      }
+    }
+
+    @media (max-width: 560px) {
+      .settings-toggle-card {
+        padding: 0.9rem;
+      }
+
+      .settings-toggle-title {
+        font-size: 0.98rem;
+      }
+
+      .settings-toggle-description {
+        font-size: 0.88rem;
+      }
+
+      .ui-input,
+      .ui-select,
+      .ui-textarea {
+        padding: 0.85rem 0.95rem;
       }
     }
   </style>

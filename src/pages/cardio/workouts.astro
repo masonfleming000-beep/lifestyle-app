@@ -75,17 +75,45 @@ import BaseLayout from "../../layouts/BaseLayout.astro";
         </div>
       </div>
 
+      <div class="workout-session-notes">
+        <label class="workout-field">
+          <span>Workout Notes</span>
+          <textarea
+            id="cardio-workout-notes"
+            class="workout-actual-textarea"
+            rows="4"
+            placeholder="Overall notes for this cardio workout"
+          ></textarea>
+        </label>
+      </div>
+
       <div id="live-workout-summary" class="live-workout-summary"></div>
       <ul id="live-workout-steps" class="routine-list workout-live-list"></ul>
 
-      <div class="workout-form-actions">
+      <div class="workout-form-actions multi-action-workout-actions">
+        <button id="save-splits-button" type="button" class="button-secondary">
+          Save Splits / Times
+        </button>
+
+        <button id="open-manual-metrics-button" type="button" class="button-secondary">
+          Fill In Metrics Manually
+        </button>
+
+        <button id="auto-calculate-metrics-button" type="button" class="button-secondary">
+          Auto Calculate Metrics
+        </button>
+
         <button id="save-completed-workout-button" type="button" class="button-primary">
           Save Completed Workout
         </button>
+
         <button id="reset-workout-button" type="button" class="button-secondary">
           Reset Workout
         </button>
       </div>
+
+      <div id="manual-metrics-panel" class="cardio-metrics-panel" hidden></div>
+      <div id="visible-calculated-metrics" class="session-metrics"></div>
     </article>
   </section>
 
@@ -182,6 +210,9 @@ import BaseLayout from "../../layouts/BaseLayout.astro";
     let hasLoadedInitialState = false;
     let isSaving = false;
     let pendingSave = false;
+    let savedLiveSteps = [];
+    let visibleMetrics = {};
+    let calculationMode = "";
 
     const workoutTypeSelect = document.getElementById("workout-type-select");
     const workoutTypeEditPanel = document.getElementById("workout-type-edit-panel");
@@ -193,7 +224,158 @@ import BaseLayout from "../../layouts/BaseLayout.astro";
     const liveWorkoutSteps = document.getElementById("live-workout-steps");
     const resetWorkoutButton = document.getElementById("reset-workout-button");
     const saveCompletedWorkoutButton = document.getElementById("save-completed-workout-button");
+    const saveSplitsButton = document.getElementById("save-splits-button");
+    const openManualMetricsButton = document.getElementById("open-manual-metrics-button");
+    const autoCalculateMetricsButton = document.getElementById("auto-calculate-metrics-button");
 
+    function getFormValues() {
+      const formData = new FormData(form);
+      const values = {};
+
+      for (const [key, value] of formData.entries()) {
+        values[key] = typeof value === "string" ? value.trim() : value;
+      }
+
+      return values;
+    }
+    function getCompletedLiveSteps(workout) {
+      return Array.isArray(workout?.steps)
+        ? workout.steps
+            .filter((step) => step?.done)
+            .map((step) => ({
+              text: step.text || "",
+              actual: step.actual || "",
+              done: true,
+            }))
+        : [];
+    }
+
+    function saveCurrentSplits() {
+      if (!activeWorkout) return;
+
+      savedLiveSteps = getCompletedLiveSteps(activeWorkout);
+      renderVisibleMetrics();
+
+      window.alert("Splits and completed step times saved.");
+    }
+    function getManualMetricFieldsForWorkout(type) {
+      if (["steady", "recovery", "longrun", "tempo"].includes(type)) {
+        return [
+          { name: "totalDistance", label: "Total Distance (miles)" },
+          { name: "totalTimeDisplay", label: "Total Time (ex: 42:18)" },
+          { name: "averagePaceDisplay", label: "Average Pace (ex: 8:28 / mile)" },
+          { name: "calories", label: "Calories" },
+          { name: "heartRate", label: "Average Heart Rate (bpm)" },
+        ];
+      }
+
+      if (["intervals", "hiit", "fartlek", "hill", "power"].includes(type)) {
+        return [
+          { name: "totalTimeDisplay", label: "Total Time" },
+          { name: "totalDistance", label: "Total Distance" },
+          { name: "calories", label: "Calories" },
+          { name: "heartRate", label: "Average Heart Rate (bpm)" },
+        ];
+      }
+
+      return [
+        { name: "totalTimeDisplay", label: "Total Time" },
+        { name: "totalDistance", label: "Total Distance" },
+      ];
+    }
+
+    function renderManualMetricsPanel() {
+      const panel = document.getElementById("manual-metrics-panel");
+      if (!panel || !activeWorkout) return;
+
+      const fields = getManualMetricFieldsForWorkout(activeWorkout.type);
+
+      panel.hidden = false;
+      panel.innerHTML = `
+        <div class="section-header">
+          <div>
+            <h3 class="section-title">Manual Metrics</h3>
+            <p class="section-subtitle">Enter any totals or derived values you want saved.</p>
+          </div>
+        </div>
+
+        <div class="workout-form">
+          ${fields.map((field) => `
+            <label class="workout-field">
+              <span>${field.label}</span>
+              <input
+                type="text"
+                name="${field.name}"
+                value="${visibleMetrics[field.name] ?? ""}"
+              />
+            </label>
+          `).join("")}
+        </div>
+
+        <div class="workout-form-actions">
+          <button id="save-manual-metrics-button" type="button" class="button-primary">
+            Save Manual Metrics
+          </button>
+        </div>
+      `;
+
+      document.getElementById("save-manual-metrics-button")?.addEventListener("click", () => {
+        const inputs = panel.querySelectorAll("input[name]");
+        const nextMetrics = { ...visibleMetrics };
+
+        inputs.forEach((input) => {
+          nextMetrics[input.name] = input.value.trim();
+        });
+
+        visibleMetrics = normalizeVisibleMetrics(nextMetrics);
+        calculationMode = "manual";
+        renderVisibleMetrics();
+      });
+    }
+
+    function normalizeVisibleMetrics(metrics) {
+      const normalized = { ...metrics };
+
+      if (normalized.totalDistance !== undefined) {
+        const num = Number(normalized.totalDistance);
+        normalized.totalDistance = Number.isFinite(num) ? Number(num.toFixed(2)) : 0;
+      }
+
+      if (normalized.totalTimeDisplay) {
+        normalized.totalTimeMinutes = roundToTwo(parseTimeToMinutes(normalized.totalTimeDisplay));
+      }
+
+      if (normalized.averagePaceDisplay) {
+        normalized.averagePaceMinutes = roundToTwo(parseTimeToMinutes(normalized.averagePaceDisplay));
+      }
+
+      if (!normalized.averagePaceDisplay && normalized.averagePaceMinutes > 0) {
+        normalized.averagePaceDisplay = formatPaceFromMinutes(normalized.averagePaceMinutes);
+      }
+
+      if (!normalized.totalTimeDisplay && normalized.totalTimeMinutes > 0) {
+        normalized.totalTimeDisplay = formatMinutesAsTime(normalized.totalTimeMinutes);
+      }
+
+      return normalized;
+    }
+    function createStep({
+      text,
+      target = "",
+      actual = "",
+      done = false,
+      actualLabel = "Actual Result / Notes",
+      actualPlaceholder = "Enter actual result",
+    }) {
+      return {
+        text,
+        target,
+        actual,
+        done,
+        actualLabel,
+        actualPlaceholder,
+      };
+    }
     async function loadFitnessHistory() {
       try {
         const res = await fetch(`/api/state?pageKey=${encodeURIComponent(fitnessHistoryPageKey)}`, {
@@ -407,6 +589,242 @@ import BaseLayout from "../../layouts/BaseLayout.astro";
       return normalized;
     }
 
+function parseTimeToMinutes(value) {
+  const text = String(value || "")
+    .trim()
+    .toLowerCase()
+    .replace(/\/\s*mile/g, "")
+    .replace(/\s*per\s*mile/g, "")
+    .trim();
+
+  if (!text) return 0;
+
+  const hms = text.match(/^(\d+):(\d{1,2}):(\d{2})$/);
+  if (hms) {
+    const hours = Number(hms[1] || 0);
+    const minutes = Number(hms[2] || 0);
+    const seconds = Number(hms[3] || 0);
+    return hours * 60 + minutes + seconds / 60;
+  }
+
+  const ms = text.match(/^(\d+):(\d{1,2})$/);
+  if (ms) {
+    const minutes = Number(ms[1] || 0);
+    const seconds = Number(ms[2] || 0);
+    return minutes + seconds / 60;
+  }
+
+  const numeric = Number(text);
+  return Number.isFinite(numeric) ? numeric : 0;
+}
+
+function formatMinutesAsTime(totalMinutes) {
+  if (!Number.isFinite(totalMinutes) || totalMinutes <= 0) return "";
+
+  const totalSeconds = Math.round(totalMinutes * 60);
+  const hours = Math.floor(totalSeconds / 3600);
+  const minutes = Math.floor((totalSeconds % 3600) / 60);
+  const seconds = totalSeconds % 60;
+
+  if (hours > 0) {
+    return `${hours}:${String(minutes).padStart(2, "0")}:${String(seconds).padStart(2, "0")}`;
+  }
+
+  return `${minutes}:${String(seconds).padStart(2, "0")}`;
+}
+
+function formatPaceFromMinutes(minutesPerMile) {
+  if (!Number.isFinite(minutesPerMile) || minutesPerMile <= 0) return "";
+
+  const totalSeconds = Math.round(minutesPerMile * 60);
+  const minutes = Math.floor(totalSeconds / 60);
+  const seconds = totalSeconds % 60;
+  return `${minutes}:${String(seconds).padStart(2, "0")} / mile`;
+}
+
+function isRunWorkoutType(type) {
+  return ["steady", "recovery", "longrun", "tempo"].includes(type);
+}
+
+function roundToTwo(value) {
+  return Number.isFinite(value) ? Number(value.toFixed(2)) : 0;
+}
+
+function getRunDistanceFromValues(type, values) {
+  if (type === "tempo") {
+    return (
+      Number(values.warmupDistance || 0) +
+      Number(values.tempoDistance || 0) +
+      Number(values.cooldownDistance || 0)
+    );
+  }
+
+  return Number(values.distance || 0);
+}
+
+function getPlannedRunMetrics(type, values) {
+  const distance = getRunDistanceFromValues(type, values);
+
+  const totalTimeMinutes = parseTimeToMinutes(values.totalTime);
+  const paceMinutes = parseTimeToMinutes(values.pace);
+
+  let resolvedTotalTimeMinutes = 0;
+  let resolvedPaceMinutes = 0;
+
+  if (distance > 0 && paceMinutes > 0 && totalTimeMinutes <= 0) {
+    resolvedPaceMinutes = paceMinutes;
+    resolvedTotalTimeMinutes = distance * paceMinutes;
+  } else if (distance > 0 && totalTimeMinutes > 0 && paceMinutes <= 0) {
+    resolvedTotalTimeMinutes = totalTimeMinutes;
+    resolvedPaceMinutes = totalTimeMinutes / distance;
+  } else if (distance > 0 && totalTimeMinutes > 0 && paceMinutes > 0) {
+    resolvedTotalTimeMinutes = totalTimeMinutes;
+    resolvedPaceMinutes = paceMinutes;
+  } else {
+    resolvedTotalTimeMinutes = totalTimeMinutes > 0 ? totalTimeMinutes : 0;
+    resolvedPaceMinutes = paceMinutes > 0 ? paceMinutes : 0;
+  }
+
+  return {
+    distance: roundToTwo(distance),
+    totalTimeMinutes: roundToTwo(resolvedTotalTimeMinutes),
+    paceMinutes: roundToTwo(resolvedPaceMinutes),
+    totalTimeDisplay: formatMinutesAsTime(resolvedTotalTimeMinutes),
+    paceDisplay: formatPaceFromMinutes(resolvedPaceMinutes),
+  };
+}
+
+function parseOverallActualTimeFromWorkout(workout) {
+  const steps = Array.isArray(workout?.steps) ? workout.steps : [];
+  const finishStep = [...steps].reverse().find((step) =>
+    String(step?.text || "").toLowerCase().includes("finish")
+  );
+
+  if (!finishStep?.actual) return 0;
+
+  const firstLine = String(finishStep.actual).split("\n")[0].trim();
+  return parseTimeToMinutes(firstLine);
+}
+
+function parseStepDistanceInMiles(step) {
+  const combined = `${step?.text || ""} ${step?.target || ""}`.toLowerCase();
+
+  const finalMileMatch = combined.match(/final\s+(\d+(?:\.\d+)?)\s*mile/);
+  if (finalMileMatch) {
+    const miles = Number(finalMileMatch[1]);
+    return Number.isFinite(miles) ? miles : 0;
+  }
+
+  const standardMileMatch = combined.match(/(\d+(?:\.\d+)?)\s*(?:mi|mile|miles)\b/);
+  if (standardMileMatch) {
+    const miles = Number(standardMileMatch[1]);
+    return Number.isFinite(miles) ? miles : 0;
+  }
+
+  const reversedMileMatch = combined.match(/\bmile\s+(\d+(?:\.\d+)?)\b/);
+  if (reversedMileMatch) {
+    const miles = Number(reversedMileMatch[1]);
+    return Number.isFinite(miles) ? miles : 0;
+  }
+
+  const kmMatch = combined.match(/(\d+(?:\.\d+)?)\s*km\b/);
+  if (kmMatch) {
+    const km = Number(kmMatch[1]);
+    return Number.isFinite(km) ? km * 0.621371 : 0;
+  }
+
+  const meterMatch = combined.match(/(\d+(?:\.\d+)?)\s*m\b/);
+  if (meterMatch) {
+    const meters = Number(meterMatch[1]);
+    return Number.isFinite(meters) ? meters / 1609.34 : 0;
+  }
+
+  return 0;
+}
+
+function isDistanceSplitStep(step) {
+  const combined = `${step?.text || ""} ${step?.target || ""}`.toLowerCase();
+  return (
+    combined.includes("mile") ||
+    combined.includes("mi") ||
+    combined.includes("km") ||
+    combined.includes("m")
+  );
+}
+
+function calculateCardioMetricsFromCompletedSteps(workout) {
+  const steps = Array.isArray(workout?.steps)
+    ? workout.steps.filter((step) => step?.done)
+    : [];
+
+  let totalDistance = 0;
+  let totalTimeMinutes = 0;
+
+  for (const step of steps) {
+    if (!isDistanceSplitStep(step)) continue;
+
+    const distance = parseStepDistanceInMiles(step);
+    const timeMinutes = parseTimeToMinutes(step.actual);
+
+    if (distance > 0 && timeMinutes > 0) {
+      totalDistance += distance;
+      totalTimeMinutes += timeMinutes;
+    }
+  }
+
+  const averagePaceMinutes =
+    totalDistance > 0 && totalTimeMinutes > 0 ? totalTimeMinutes / totalDistance : 0;
+
+  return {
+    totalDistance: totalDistance > 0 ? Number(totalDistance.toFixed(2)) : 0,
+    totalTimeMinutes: totalTimeMinutes > 0 ? Number(totalTimeMinutes.toFixed(2)) : 0,
+    averagePaceMinutes: averagePaceMinutes > 0 ? Number(averagePaceMinutes.toFixed(2)) : 0,
+    totalTimeDisplay: formatMinutesAsTime(totalTimeMinutes),
+    averagePaceDisplay: formatPaceFromMinutes(averagePaceMinutes),
+  };
+}
+
+function renderVisibleMetrics() {
+  const container = document.getElementById("visible-calculated-metrics");
+  if (!container) return;
+
+  const entries = Object.entries(visibleMetrics).filter(([_, value]) => value !== "" && value !== 0 && value != null);
+
+  if (!entries.length) {
+    container.innerHTML = "";
+    return;
+  }
+
+  const labels = {
+    totalDistance: "Total Distance",
+    totalTimeMinutes: "Total Time (Minutes)",
+    averagePaceMinutes: "Average Pace (Minutes)",
+    totalTimeDisplay: "Total Time",
+    averagePaceDisplay: "Average Pace",
+    calories: "Calories",
+    heartRate: "Average Heart Rate",
+    elevationGain: "Elevation Gain",
+    cadence: "Cadence",
+  };
+
+  container.innerHTML = `
+    <div class="section-header">
+      <div>
+        <h3 class="section-title">Saved Workout Metrics</h3>
+        <p class="section-subtitle">
+          ${calculationMode === "manual"
+            ? "Manual values saved"
+            : calculationMode === "auto"
+            ? "Auto-calculated values saved"
+            : "Current saved values"}
+        </p>
+      </div>
+    </div>
+    ${entries.map(([key, value]) => `
+      <p><strong>${labels[key] || key}:</strong> ${value}</p>
+    `).join("")}
+  `;
+}
     async function loadState() {
       try {
         const res = await fetch(`/api/state?pageKey=${encodeURIComponent(pageKey)}`, {
@@ -469,6 +887,8 @@ import BaseLayout from "../../layouts/BaseLayout.astro";
         workoutTypeSelect.appendChild(option);
       });
     }
+
+    const cardioWorkoutNotes = document.getElementById("cardio-workout-notes");
 
     function renderWorkoutTypeEditor() {
       workoutTypeEditPanel.innerHTML = "";
@@ -584,15 +1004,66 @@ import BaseLayout from "../../layouts/BaseLayout.astro";
         return;
       }
 
-      formFields.innerHTML = config.fields
+      const baseFields = [...config.fields];
+      
+      if (isRunWorkoutType(selectedType)) {
+        const hasPaceField = baseFields.some(
+          (field) => field.name === "pace" || field.name === "tempoPace"
+        );
+        const hasTotalTimeField = baseFields.some((field) => field.name === "totalTime");
+
+        if (!hasTotalTimeField) {
+          baseFields.push({
+            name: "totalTime",
+            label: "Planned Total Time",
+            type: "text",
+            value: "",
+            placeholder: "Leave blank to calculate from distance + pace",
+          });
+        }
+
+        if (!hasPaceField) {
+          baseFields.push({
+            name: "pace",
+            label: "Target Pace",
+            type: "text",
+            value: "",
+            placeholder: "Leave blank to calculate from distance + total time",
+          });
+        }
+      }
+
+      formFields.innerHTML = baseFields
         .map((field) => {
           const safeName = field.name || "field";
           const safeLabel = field.label || "Field";
-          const safeType = field.type === "number" ? "number" : "text";
           const safeValue = field.value ?? "";
+
+          if (field.type === "select") {
+            const options = Array.isArray(field.options) ? field.options : [];
+            return `
+              <label class="workout-field">
+                <span>${safeLabel}</span>
+                <select name="${safeName}">
+                  ${options
+                    .map(
+                      (option) => `
+                        <option value="${option.value}" ${option.value === safeValue ? "selected" : ""}>
+                          ${option.label}
+                        </option>
+                      `
+                    )
+                    .join("")}
+                </select>
+              </label>
+            `;
+          }
+
+          const safeType = field.type === "number" ? "number" : "text";
           const safeMin = safeType === "number" ? (field.min ?? "") : "";
           const safeStep = safeType === "number" ? (field.step ?? "") : "";
-
+          const safePlaceholder = field.placeholder ?? "";
+          const isOptional = safeName === "totalTime" || safeName === "pace";
           return `
             <label class="workout-field">
               <span>${safeLabel}</span>
@@ -602,35 +1073,14 @@ import BaseLayout from "../../layouts/BaseLayout.astro";
                 value="${safeValue}"
                 min="${safeMin}"
                 step="${safeStep}"
-                required
+                placeholder="${safePlaceholder}"
+                ${isOptional ? "" : "required"}
               />
             </label>
           `;
         })
         .join("");
     }
-
-    function getFormValues() {
-      const data = new FormData(form);
-      return Object.fromEntries(data.entries());
-    }
-
-    function createStep({
-      text,
-      target = "",
-      actualLabel = "Actual Time / Result",
-      actualPlaceholder = "Enter actual result",
-    }) {
-      return {
-        text,
-        target,
-        done: false,
-        actual: "",
-        actualLabel,
-        actualPlaceholder,
-      };
-    }
-
     function addDistanceSteps(steps, label, distance, pace, splitLabel = "Actual Mile Split") {
       const wholeMiles = Math.floor(distance);
       const remainder = distance - wholeMiles;
@@ -744,8 +1194,13 @@ import BaseLayout from "../../layouts/BaseLayout.astro";
       if (type === "tempo") {
         const warmupDistance = Number(values.warmupDistance || 0);
         const tempoDistance = Number(values.tempoDistance || 0);
-        const tempoPace = values.tempoPace || "Tempo pace";
+        const tempoPace = values.tempoPace || values.pace || "Tempo pace";
         const cooldownDistance = Number(values.cooldownDistance || 0);
+        const plannedMetrics = getPlannedRunMetrics(type, {
+          ...values,
+          pace: tempoPace,
+        });
+
         const steps = [];
 
         if (warmupDistance > 0) {
@@ -763,7 +1218,7 @@ import BaseLayout from "../../layouts/BaseLayout.astro";
         steps.push(
           createStep({
             text: "Finish tempo workout",
-            target: `${warmupDistance + tempoDistance + cooldownDistance} miles total`,
+            target: `${plannedMetrics.distance} miles total`,
             actualLabel: "Overall Time / Notes",
             actualPlaceholder: "Example: 38:42\nTempo felt controlled throughout",
           })
@@ -774,9 +1229,15 @@ import BaseLayout from "../../layouts/BaseLayout.astro";
           title: workoutTypes[type].label,
           summary: `${warmupDistance} mi warmup · ${tempoDistance} mi tempo at ${tempoPace} · ${cooldownDistance} mi cooldown`,
           steps,
+          meta: {
+            distanceMiles: plannedMetrics.distance,
+            plannedTotalTimeMinutes: plannedMetrics.totalTimeMinutes,
+            plannedPaceMinutes: plannedMetrics.paceMinutes,
+            plannedTotalTimeDisplay: plannedMetrics.totalTimeDisplay,
+            plannedPaceDisplay: plannedMetrics.paceDisplay, 
+          },
         };
       }
-
       if (type === "fartlek") {
         const cycles = Number(values.cycles);
         const hardMinutes = Number(values.hardMinutes);
@@ -885,7 +1346,7 @@ import BaseLayout from "../../layouts/BaseLayout.astro";
         };
       }
 
-      if (
+       if (
         type === "steady" ||
         type === "recovery" ||
         type === "longrun" ||
@@ -893,9 +1354,10 @@ import BaseLayout from "../../layouts/BaseLayout.astro";
       ) {
         const pace = values.pace ?? "Easy pace";
         const distance = Number(values.distance);
+        const plannedMetrics = getPlannedRunMetrics(type, values);
         const steps = [];
 
-        addDistanceSteps(steps, "", distance, pace);
+        addDistanceSteps(steps, "", distance, plannedMetrics.paceDisplay || pace);
 
         steps.push(
           createStep({
@@ -909,8 +1371,19 @@ import BaseLayout from "../../layouts/BaseLayout.astro";
         return {
           type,
           title: workoutTypes[type].label,
-          summary: `${distance} miles at ${pace}`,
+          summary: `${distance} miles${
+            plannedMetrics.paceDisplay ? ` at ${plannedMetrics.paceDisplay}` : pace ? ` at ${pace}` : ""
+          }${
+            plannedMetrics.totalTimeDisplay ? ` · ${plannedMetrics.totalTimeDisplay} total` : ""
+          }`,
           steps,
+          meta: {
+            distanceMiles: plannedMetrics.distance,
+            plannedTotalTimeMinutes: plannedMetrics.totalTimeMinutes,
+            plannedPaceMinutes: plannedMetrics.paceMinutes,
+            plannedTotalTimeDisplay: plannedMetrics.totalTimeDisplay,
+            plannedPaceDisplay: plannedMetrics.paceDisplay, 
+          },
         };
       }
 
@@ -1001,6 +1474,25 @@ import BaseLayout from "../../layouts/BaseLayout.astro";
         li.appendChild(actualWrap);
         liveWorkoutSteps.appendChild(li);
       });
+      const computedMetrics = calculateCardioMetricsFromCompletedSteps(workout);
+
+      liveWorkoutSummary.innerHTML = `
+        <p><strong>${workout.title}</strong> · ${workout.summary}</p>
+ 
+        ${
+          computedMetrics.totalDistance
+            ? `
+              <div class="session-metrics">
+                <p><strong>Total Distance:</strong> ${computedMetrics.totalDistance} mi</p>
+                <p><strong>Total Time:</strong> ${computedMetrics.totalTimeDisplay || "-"}</p>
+                <p><strong>Average Pace:</strong> ${computedMetrics.averagePaceDisplay || "-"}</p>
+              </div>
+            `
+            : ""
+        }
+      `;
+
+      
     }
 
     editWorkoutTypesButton.addEventListener("click", () => {
@@ -1025,32 +1517,44 @@ import BaseLayout from "../../layouts/BaseLayout.astro";
     saveCompletedWorkoutButton?.addEventListener("click", async () => {
       if (!activeWorkout) return;
 
+      const completedSteps = getCompletedLiveSteps(activeWorkout);
+
       const session = {
         id:
           typeof crypto !== "undefined" && crypto.randomUUID
             ? crypto.randomUUID()
-            : `cardio-session-${Date.now()}-${Math.random().toString(16).slice(2)}` ,
+            : `cardio-session-${Date.now()}-${Math.random().toString(16).slice(2)}`,
         type: "cardio",
         dateTime: new Date().toISOString(),
         workoutType: selectedType,
         title: activeWorkout.title || "Workout",
         summary: activeWorkout.summary || "",
-        steps: Array.isArray(activeWorkout.steps)
-          ? activeWorkout.steps.map((step) => ({
-              text: step.text || "",
-              target: step.target || "",
-              actual: step.actual || "",
-              done: !!step.done,
-            }))
-          : [],
+        notes:
+          cardioWorkoutNotes instanceof HTMLTextAreaElement
+            ? cardioWorkoutNotes.value.trim()
+            : "",
+        steps: completedSteps,
+        metrics: normalizeVisibleMetrics(visibleMetrics),
+        calculationMode,
       };
 
-      cardioHistory = [session, ...cardioHistory];
+      const latestHistory = await loadFitnessHistory();
+      const latestWeightlifting = Array.isArray(latestHistory?.weightliftingSessions)
+        ? latestHistory.weightliftingSessions
+        : [];
+      const latestCardio = Array.isArray(latestHistory?.cardioSessions)
+        ? latestHistory.cardioSessions
+        : [];
+
+      const nextCardioHistory = [session, ...latestCardio];
 
       await saveFitnessHistory({
-        weightliftingSessions: weightliftingHistory,
-        cardioSessions: cardioHistory,
+        weightliftingSessions: latestWeightlifting,
+        cardioSessions: nextCardioHistory,
       });
+
+      weightliftingHistory = latestWeightlifting;
+      cardioHistory = nextCardioHistory;
 
       await syncFitnessStats();
       window.alert("Completed cardio workout saved.");
@@ -1058,12 +1562,61 @@ import BaseLayout from "../../layouts/BaseLayout.astro";
 
     resetWorkoutButton.addEventListener("click", () => {
       activeWorkout = null;
+      savedLiveSteps = [];
+      visibleMetrics = {};
+      calculationMode = "";
       liveWorkoutCard.hidden = true;
       liveWorkoutSteps.innerHTML = "";
       liveWorkoutSummary.innerHTML = "";
+
+      const manualPanel = document.getElementById("manual-metrics-panel");
+      const visibleMetricsPanel = document.getElementById("visible-calculated-metrics");
+
+      if (manualPanel) {
+        manualPanel.hidden = true;
+        manualPanel.innerHTML = "";
+      }
+
+      if (visibleMetricsPanel) {
+        visibleMetricsPanel.innerHTML = "";
+      }
+
+      if (cardioWorkoutNotes instanceof HTMLTextAreaElement) {
+        cardioWorkoutNotes.value = "";
+      }
+
       renderFormFields();
     });
 
+    saveSplitsButton?.addEventListener("click", () => {
+      saveCurrentSplits();
+    });
+
+    openManualMetricsButton?.addEventListener("click", () => {
+      if (!activeWorkout) return;
+      renderManualMetricsPanel();
+    });
+
+    autoCalculateMetricsButton?.addEventListener("click", () => {
+      console.log("AUTO BUTTON CLICKED");
+      console.log("activeWorkout:", activeWorkout);
+      console.log("steps:", activeWorkout?.steps);
+
+      if (!activeWorkout) return;
+
+      const calculated = calculateCardioMetricsFromCompletedSteps(activeWorkout);
+      console.log("calculated metrics:", calculated);
+
+      visibleMetrics = {
+        ...visibleMetrics,
+        ...calculated,
+      };
+
+      calculationMode = "auto";
+      console.log("visibleMetrics after calc:", visibleMetrics);
+
+      renderVisibleMetrics();
+    });
     async function init() {
       const saved = await loadState();
 
