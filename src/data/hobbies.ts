@@ -1,4 +1,4 @@
-export type StageStatus = "Not Started" | "In Progress" | "Done";
+export type StageStatus = "Not Started" | "In Progress" | "Done" | "Completed";
 export type HobbyStatus = "Active" | "Paused" | "Completed" | "Dropped";
 export type HobbyCategory =
   | "Creative"
@@ -168,6 +168,7 @@ export const hobbies: HobbyItem[] = [
       },
     ],
   },
+
   {
     id: "juggling",
     name: "Juggling",
@@ -257,6 +258,7 @@ export const hobbies: HobbyItem[] = [
       },
     ],
   },
+
   {
     id: "reading",
     name: "Reading",
@@ -365,6 +367,7 @@ export const hobbies: HobbyItem[] = [
       },
     ],
   },
+
   {
     id: "writing",
     name: "Writing / Communication",

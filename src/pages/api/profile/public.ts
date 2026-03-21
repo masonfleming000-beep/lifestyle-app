@@ -1,5 +1,6 @@
 import type { APIRoute } from "astro";
 import { getSql } from "../../../lib/db";
+import { getCurrentUser } from "../../../lib/auth";
 import {
   PROFILE_SETTINGS_PAGE_KEY,
   PROFILE_PORTFOLIO_SOURCE_PAGE_KEY,
@@ -189,7 +190,7 @@ function classifyCardioType(workoutType: unknown, title: unknown) {
   if (combined.includes("power") || combined.includes("watts")) return "power";
   if (combined.includes("recovery")) return "recovery";
   if (combined.includes("long")) return "long-run";
-  if (combined.includes("steady")) return "steady";
+  if (combined.includes("steady") || combined.includes("easy")) return "steady";
 
   return slugify(workoutType || title) || "cardio";
 }
@@ -203,24 +204,71 @@ function parseWeight(value: unknown) {
 function parseReps(value: unknown) {
   const text = stringValue(value);
   if (!text) return 0;
-
   const matches = text.match(/\d+/g);
   if (!matches?.length) return 0;
-
   const nums = matches.map(Number).filter((num) => Number.isFinite(num));
   if (!nums.length) return 0;
-
   return nums.reduce((sum, current) => sum + current, 0);
 }
 
 function estimateSetCount(value: unknown) {
   const text = stringValue(value);
   if (!text) return 0;
-
   const matches = text.match(/\d+/g);
   if (!matches?.length) return 0;
-
   return matches.length;
+}
+
+function parseStepMetric(step: any) {
+  const text = `${stringValue(step?.target)} ${stringValue(step?.actual)} ${stringValue(step?.text)}`.toLowerCase();
+
+  const numberMatch = text.match(/-?\d+(\.\d+)?/);
+  const numericValue = numberMatch ? Number(numberMatch[0]) : 0;
+
+  if (text.includes("pace")) return { key: "pace", label: "Pace", value: numericValue };
+  if (text.includes("mile")) return { key: "distance", label: "Distance", value: numericValue };
+  if (text.includes("km")) return { key: "distance", label: "Distance", value: numericValue };
+  if (text.includes("minute") || text.includes("duration") || text.includes("time")) {
+    return { key: "duration", label: "Duration", value: numericValue };
+  }
+  if (text.includes("heart")) return { key: "heartRate", label: "Heart Rate", value: numericValue };
+  if (text.includes("elevation")) return { key: "elevation", label: "Elevation", value: numericValue };
+
+  return { key: "value", label: "Value", value: numericValue };
+}
+
+function getRangeStart(range: string) {
+  const now = new Date();
+  if (range === "7d") return new Date(now.getTime() - 7 * 24 * 60 * 60 * 1000);
+  if (range === "30d") return new Date(now.getTime() - 30 * 24 * 60 * 60 * 1000);
+  if (range === "90d") return new Date(now.getTime() - 90 * 24 * 60 * 60 * 1000);
+  if (range === "6m") return new Date(now.getTime() - 180 * 24 * 60 * 60 * 1000);
+  if (range === "1y") return new Date(now.getTime() - 365 * 24 * 60 * 60 * 1000);
+  return null;
+}
+
+function filterByRange<T extends { dateTime?: string; date?: string; updatedOn?: string }>(items: T[], range: string) {
+  const start = getRangeStart(range);
+  if (!start) return items;
+
+  return items.filter((item) => {
+    const raw = item.dateTime || item.date || item.updatedOn || "";
+    const date = new Date(raw);
+    return !Number.isNaN(date.getTime()) && date >= start;
+  });
+}
+
+function getThisWeekCount(items: Array<{ dateTime?: string; date?: string }>) {
+  const now = new Date();
+  const weekStart = new Date(now);
+  weekStart.setDate(now.getDate() - now.getDay());
+  weekStart.setHours(0, 0, 0, 0);
+
+  return items.filter((item) => {
+    const raw = item.dateTime || item.date || "";
+    const date = new Date(raw);
+    return !Number.isNaN(date.getTime()) && date >= weekStart;
+  }).length;
 }
 
 function normalizeProfileSettings(raw: any) {
@@ -242,6 +290,8 @@ function normalizeProfileSettings(raw: any) {
       ...safeObject(raw?.statsSources),
     },
     statsDisplay: {
+      ...defaults.statsDisplay,
+      ...safeObject(raw?.statsDisplay),
       autoFormatted: normalizeBoolean(raw?.statsDisplay?.autoFormatted, true),
       showOverview: normalizeBoolean(raw?.statsDisplay?.showOverview, true),
       showSections: normalizeBoolean(raw?.statsDisplay?.showSections, true),
@@ -250,328 +300,288 @@ function normalizeProfileSettings(raw: any) {
       showRecentSessions: normalizeBoolean(raw?.statsDisplay?.showRecentSessions, true),
       defaultRange: stringValue(raw?.statsDisplay?.defaultRange) || "30d",
       defaultSection: stringValue(raw?.statsDisplay?.defaultSection) || "all",
+      defaultWorkout: stringValue(raw?.statsDisplay?.defaultWorkout) || "all",
       defaultCardioType: stringValue(raw?.statsDisplay?.defaultCardioType) || "all",
+      defaultHobbyId: stringValue(raw?.statsDisplay?.defaultHobbyId) || "all",
+      defaultHobbyStageId: stringValue(raw?.statsDisplay?.defaultHobbyStageId) || "all",
       featuredFitnessMetrics: safeArray(raw?.statsDisplay?.featuredFitnessMetrics),
       featuredCardioMetrics: safeArray(raw?.statsDisplay?.featuredCardioMetrics),
+      featuredHobbyMetrics: safeArray(raw?.statsDisplay?.featuredHobbyMetrics),
+      portfolioMode: stringValue(raw?.statsDisplay?.portfolioMode) === "full" ? "full" : "link",
     },
   };
 }
 
-function buildFitnessFormattedStats(fitnessHistory: any, profileStats: any) {
+function buildFitnessInteractive(fitnessHistory: any, profileStats: any) {
   const weightliftingSessions = safeArray(fitnessHistory?.weightliftingSessions);
   const cardioSessions = safeArray(fitnessHistory?.cardioSessions);
   const fitnessStats = safeObject(profileStats?.fitness);
 
-  const totalWorkouts = weightliftingSessions.length;
-
-  let totalVolume = 0;
-  let totalSets = 0;
-  let totalExercisesLogged = 0;
-
-  const sectionMap = new Map<
-    string,
-    {
-      label: string;
-      totalWorkouts: number;
-      totalVolume: number;
-      totalWeight: number;
-      totalReps: number;
-      entryCount: number;
-      lastTrainedDate: string;
-    }
-  >();
-
-  const workoutMap = new Map<
-    string,
-    {
-      section: string;
-      label: string;
-      weights: number[];
-      reps: number[];
-      bestVolume: number;
-      totalSessions: number;
-      lastDate: string;
-    }
-  >();
+  const sectionMap = new Map<string, { id: string; label: string; workouts: Map<string, any[]>; sessions: any[] }>();
 
   for (const session of weightliftingSessions) {
-    const section = classifySection(session?.groupTitle);
-    const sectionLabel = stringValue(session?.groupTitle) || section || "Workout";
+    const sectionId = classifySection(session?.groupTitle);
+    const sectionLabel = stringValue(session?.groupTitle) || sectionId || "Workout";
 
-    if (!sectionMap.has(section)) {
-      sectionMap.set(section, {
+    if (!sectionMap.has(sectionId)) {
+      sectionMap.set(sectionId, {
+        id: sectionId,
         label: sectionLabel,
-        totalWorkouts: 0,
-        totalVolume: 0,
-        totalWeight: 0,
-        totalReps: 0,
-        entryCount: 0,
-        lastTrainedDate: "",
+        workouts: new Map(),
+        sessions: [],
       });
     }
 
-    const sectionEntry = sectionMap.get(section)!;
-    sectionEntry.totalWorkouts += 1;
+    const section = sectionMap.get(sectionId)!;
+    section.sessions.push(session);
 
-    const exercises = safeArray(session?.exercises);
-    for (const exercise of exercises) {
-      const actualWeight = parseWeight(exercise?.actual?.weight || exercise?.target?.weight);
-      const actualReps = parseReps(exercise?.actual?.reps || exercise?.target?.reps);
-      const actualSets =
+    for (const exercise of safeArray(session?.exercises)) {
+      const name = stringValue(exercise?.exerciseName) || "Exercise";
+      if (!section.workouts.has(name)) {
+        section.workouts.set(name, []);
+      }
+
+      const weight = parseWeight(exercise?.actual?.weight || exercise?.target?.weight);
+      const reps = parseReps(exercise?.actual?.reps || exercise?.target?.reps);
+      const sets =
         estimateSetCount(exercise?.actual?.reps) ||
         parseWeight(exercise?.actual?.sets || exercise?.target?.sets) ||
         1;
-      const exerciseVolume = actualWeight * Math.max(actualReps, 1);
+      const volume = weight * Math.max(reps, 1);
 
-      totalVolume += exerciseVolume;
-      totalSets += Math.max(actualSets, 1);
-      totalExercisesLogged += 1;
-
-      sectionEntry.totalVolume += exerciseVolume;
-      sectionEntry.totalWeight += actualWeight;
-      sectionEntry.totalReps += actualReps;
-      sectionEntry.entryCount += 1;
-      sectionEntry.lastTrainedDate = session?.dateTime || sectionEntry.lastTrainedDate;
-
-      const workoutKey = `${section}::${stringValue(exercise?.exerciseName) || "exercise"}`;
-      if (!workoutMap.has(workoutKey)) {
-        workoutMap.set(workoutKey, {
-          section,
-          label: stringValue(exercise?.exerciseName) || "Exercise",
-          weights: [],
-          reps: [],
-          bestVolume: 0,
-          totalSessions: 0,
-          lastDate: "",
-        });
-      }
-
-      const workoutEntry = workoutMap.get(workoutKey)!;
-      workoutEntry.weights.push(actualWeight);
-      workoutEntry.reps.push(actualReps);
-      workoutEntry.bestVolume = Math.max(workoutEntry.bestVolume, exerciseVolume);
-      workoutEntry.totalSessions += 1;
-      workoutEntry.lastDate = session?.dateTime || workoutEntry.lastDate;
+      section.workouts.get(name)!.push({
+        date: session?.dateTime || "",
+        weight,
+        reps,
+        sets,
+        volume,
+      });
     }
   }
 
-  const avgWeight = totalExercisesLogged ? totalVolume / Math.max(totalExercisesLogged, 1) : 0;
-  const avgReps = totalExercisesLogged
-    ? Array.from(workoutMap.values()).reduce((sum, item) => sum + item.reps.reduce((a, b) => a + b, 0), 0) /
-      Math.max(totalExercisesLogged, 1)
-    : 0;
+  const sections = Array.from(sectionMap.values()).map((section) => {
+    const workoutOptions = Array.from(section.workouts.keys()).sort();
 
-  const sectionCards = Array.from(sectionMap.entries()).map(([sectionKey, item]) => {
-    const avgSectionWeight = item.entryCount ? item.totalWeight / item.entryCount : 0;
-    const avgSectionReps = item.entryCount ? item.totalReps / item.entryCount : 0;
+    const workouts = workoutOptions.map((workoutName) => {
+      const points = safeArray(section.workouts.get(workoutName)).sort(
+        (a, b) => new Date(a.date).getTime() - new Date(b.date).getTime()
+      );
 
-    return {
-      section: sectionKey,
-      label: item.label,
-      highlight: `${item.totalWorkouts} workouts`,
-      totalWorkouts: String(item.totalWorkouts),
-      totalVolume: String(Math.round(item.totalVolume)),
-      avgWeight: avgSectionWeight ? `${avgSectionWeight.toFixed(1)} avg` : "—",
-      avgReps: avgSectionReps ? `${avgSectionReps.toFixed(1)} avg` : "—",
-      percentIncrease: "Track over time",
-      lastTrainedDate: formatDateShort(item.lastTrainedDate) || "—",
-    };
-  });
+      const first = points[0];
+      const last = points[points.length - 1];
 
-  const sectionWorkoutGroups = Array.from(sectionMap.keys()).map((sectionKey) => {
-    const workouts = Array.from(workoutMap.values())
-      .filter((item) => item.section === sectionKey)
-      .map((item) => {
-        const startingWeight = item.weights[0] || 0;
-        const currentWeight = item.weights[item.weights.length - 1] || 0;
-        const startingReps = item.reps[0] || 0;
-        const currentReps = item.reps[item.reps.length - 1] || 0;
-        const maxWeight = item.weights.length ? Math.max(...item.weights) : 0;
-        const maxReps = item.reps.length ? Math.max(...item.reps) : 0;
-        const estimatedOneRepMax = maxWeight && maxReps ? Math.round(maxWeight * (1 + maxReps / 30)) : 0;
+      return {
+        id: slugify(workoutName),
+        name: workoutName,
+        trendSummary:
+          first && last
+            ? {
+                weightChange: last.weight - first.weight,
+                repChange: last.reps - first.reps,
+                volumeChange: last.volume - first.volume,
+              }
+            : {
+                weightChange: 0,
+                repChange: 0,
+                volumeChange: 0,
+              },
+        chartSeries: {
+          weight: points.map((p) => ({ x: formatDateShort(p.date), y: p.weight })),
+          reps: points.map((p) => ({ x: formatDateShort(p.date), y: p.reps })),
+          volume: points.map((p) => ({ x: formatDateShort(p.date), y: p.volume })),
+        },
+      };
+    });
 
-        return {
-          section: sectionKey,
-          label: item.label,
-          startingWeight: startingWeight ? `${startingWeight}` : "—",
-          currentWeight: currentWeight ? `${currentWeight}` : "—",
-          startingReps: startingReps ? `${startingReps}` : "—",
-          currentReps: currentReps ? `${currentReps}` : "—",
-          bestSet: item.bestVolume ? `${Math.round(item.bestVolume)} volume` : "—",
-          estimatedOneRepMax: estimatedOneRepMax ? `${estimatedOneRepMax}` : "—",
-          frequency: `${item.totalSessions} sessions`,
-          weightTrend: startingWeight && currentWeight ? `${currentWeight - startingWeight >= 0 ? "+" : ""}${(currentWeight - startingWeight).toFixed(1)}` : "—",
-          repTrend: startingReps && currentReps ? `${currentReps - startingReps >= 0 ? "+" : ""}${currentReps - startingReps}` : "—",
-          volumeTrend: item.bestVolume ? `Best ${Math.round(item.bestVolume)}` : "—",
-        };
-      });
-
-    const sectionInfo = sectionCards.find((item) => item.section === sectionKey);
+    const sectionSessionsSorted = safeArray(section.sessions).sort(
+      (a, b) => new Date(b?.dateTime || 0).getTime() - new Date(a?.dateTime || 0).getTime()
+    );
 
     return {
-      section: sectionKey,
-      label: sectionInfo?.label || sectionKey,
-      summary: "Starting vs current, PRs, frequency, and workout trends",
+      id: section.id,
+      label: section.label,
+      workoutOptions,
       workouts,
+      summaryByRange: {
+        "7d": {
+          totalSessions: filterByRange(section.sessions, "7d").length,
+          workoutsThisWeek: getThisWeekCount(section.sessions),
+        },
+        "30d": {
+          totalSessions: filterByRange(section.sessions, "30d").length,
+          workoutsThisWeek: getThisWeekCount(section.sessions),
+        },
+        "90d": {
+          totalSessions: filterByRange(section.sessions, "90d").length,
+          workoutsThisWeek: getThisWeekCount(section.sessions),
+        },
+        "6m": {
+          totalSessions: filterByRange(section.sessions, "6m").length,
+          workoutsThisWeek: getThisWeekCount(section.sessions),
+        },
+        "1y": {
+          totalSessions: filterByRange(section.sessions, "1y").length,
+          workoutsThisWeek: getThisWeekCount(section.sessions),
+        },
+        all: {
+          totalSessions: section.sessions.length,
+          workoutsThisWeek: getThisWeekCount(section.sessions),
+        },
+      },
+      recentSessions: sectionSessionsSorted.slice(0, 5).map((session) => ({
+        title: stringValue(session?.groupTitle) || "Workout",
+        date: formatDateTime(session?.dateTime),
+        summary: `${safeArray(session?.exercises).length} exercise(s)`,
+      })),
     };
   });
 
-  const overviewCards = [
-    createMetricCard("Total Workouts", String(totalWorkouts), "Saved weightlifting sessions"),
-    createMetricCard("Total Sets", String(totalSets), "Estimated from logged workouts"),
-    createMetricCard("Avg Workout Duration", "Track next", "Add duration later for more accuracy"),
-    createMetricCard("Strongest Body Section", sectionCards[0]?.label || "—", "Based on saved volume so far"),
-    createMetricCard("Biggest Improvement", "Track next", "First vs latest progression by workout"),
-    createMetricCard("Consistency Streak", fitnessStats?.lastWorkoutAt ? "Active" : "—", "Derived from recent saved workouts"),
-  ];
-
-  const fitnessOverviewCards = [
-    createMetricCard("Workouts Completed", String(totalWorkouts), "Saved lifting sessions"),
-    createMetricCard("Total Volume Lifted", String(Math.round(totalVolume)), "Weight x reps across logged lifts"),
-    createMetricCard("Avg Reps per Exercise", avgReps ? avgReps.toFixed(1) : "0", "Across saved lifting entries"),
-    createMetricCard("Avg Weight per Exercise", avgWeight ? avgWeight.toFixed(1) : "0", "Across saved lifting entries"),
-    createMetricCard("Strength Increase", "Track over time", "Compare first and latest per workout"),
-    createMetricCard("Rep Endurance", "Track over time", "Compare rep growth over time"),
-  ];
-
-  return {
-    overviewCards,
-    fitnessOverviewCards,
-    fitnessSectionComparison: sectionCards,
-    fitnessWorkoutDetail: {
-      sections: sectionWorkoutGroups,
-    },
-    recentWeightliftingSessions: weightliftingSessions.slice(0, 6).map((session: any) => ({
-      title: stringValue(session?.groupTitle) || "Weightlifting Workout",
-      date: formatDateTime(session?.dateTime),
-      summary: `${safeArray(session?.exercises).length} exercise(s) saved`,
-    })),
-  };
-}
-
-function buildCardioFormattedStats(fitnessHistory: any) {
-  const cardioSessions = safeArray(fitnessHistory?.cardioSessions);
-
-  const typeMap = new Map<
-    string,
-    {
-      label: string;
-      totalSessions: number;
-      totalSteps: number;
-      completedSteps: number;
-      lastWorkout: string;
-    }
-  >();
-
-  const favoriteCounts = new Map<string, number>();
+  const cardioTypeMap = new Map<string, { id: string; label: string; sessions: any[]; metricBuckets: Map<string, any[]> }>();
 
   for (const session of cardioSessions) {
     const type = classifyCardioType(session?.workoutType, session?.title);
     const label = stringValue(session?.workoutType) || stringValue(session?.title) || "Cardio";
 
-    if (!typeMap.has(type)) {
-      typeMap.set(type, {
+    if (!cardioTypeMap.has(type)) {
+      cardioTypeMap.set(type, {
+        id: type,
         label,
-        totalSessions: 0,
-        totalSteps: 0,
-        completedSteps: 0,
-        lastWorkout: "",
+        sessions: [],
+        metricBuckets: new Map(),
       });
     }
 
-    favoriteCounts.set(type, (favoriteCounts.get(type) || 0) + 1);
+    const entry = cardioTypeMap.get(type)!;
+    entry.sessions.push(session);
 
-    const entry = typeMap.get(type)!;
-    entry.totalSessions += 1;
-    entry.lastWorkout = session?.dateTime || entry.lastWorkout;
-
-    const steps = safeArray(session?.steps);
-    entry.totalSteps += steps.length;
-    entry.completedSteps += steps.filter((step) => !!step?.done).length;
+    for (const step of safeArray(session?.steps)) {
+      const metric = parseStepMetric(step);
+      if (!entry.metricBuckets.has(metric.key)) {
+        entry.metricBuckets.set(metric.key, []);
+      }
+      entry.metricBuckets.get(metric.key)!.push({
+        date: session?.dateTime || "",
+        value: metric.value,
+        label: metric.label,
+      });
+    }
   }
 
-  const favoriteWorkoutType =
-    Array.from(favoriteCounts.entries()).sort((a, b) => b[1] - a[1])[0]?.[0] || "—";
+  const cardioTypes = Array.from(cardioTypeMap.values()).map((entry) => {
+    const metrics = Array.from(entry.metricBuckets.entries()).map(([key, values]) => ({
+      key,
+      label: values[0]?.label || key,
+      chartSeries: values
+        .sort((a, b) => new Date(a.date).getTime() - new Date(b.date).getTime())
+        .map((item) => ({
+          x: formatDateShort(item.date),
+          y: item.value,
+        })),
+    }));
 
-  const cardioOverviewCards = [
-    createMetricCard("Total Cardio Sessions", String(cardioSessions.length), "Saved cardio workouts"),
-    createMetricCard("Total Distance", "Track next", "Add parsed distance later"),
-    createMetricCard("Total Time", "Track next", "Add parsed duration later"),
-    createMetricCard("Avg Weekly Sessions", "Track next", "Best with date-range grouping"),
-    createMetricCard("Completion Rate", "From saved steps", "How often planned steps were completed"),
-    createMetricCard("Favorite Workout Type", favoriteWorkoutType, "Most frequently saved cardio type"),
-  ];
-
-  const cardioTypeBreakdown = {
-    types: Array.from(typeMap.entries()).map(([typeKey, item]) => {
-      const completionRate = item.totalSteps
-        ? `${Math.round((item.completedSteps / item.totalSteps) * 100)}%`
-        : "—";
-
-      return {
-        type: typeKey,
-        label: item.label,
-        headlineValue: `${item.totalSessions} sessions`,
-        totalSessions: String(item.totalSessions),
-        consistency: "Track by range",
-        completionRate,
-        lastWorkout: formatDateShort(item.lastWorkout) || "—",
-        coreMetric: "Type-specific metric",
-        bestEffort: "Track next",
-        improvement: "Track over time",
-        totalVolume: `${item.totalSteps} planned steps`,
-      };
-    }),
-  };
+    return {
+      id: entry.id,
+      label: entry.label,
+      metrics,
+      summaryByRange: {
+        "7d": {
+          totalSessions: filterByRange(entry.sessions, "7d").length,
+          workoutsThisWeek: getThisWeekCount(entry.sessions),
+        },
+        "30d": {
+          totalSessions: filterByRange(entry.sessions, "30d").length,
+          workoutsThisWeek: getThisWeekCount(entry.sessions),
+        },
+        "90d": {
+          totalSessions: filterByRange(entry.sessions, "90d").length,
+          workoutsThisWeek: getThisWeekCount(entry.sessions),
+        },
+        "6m": {
+          totalSessions: filterByRange(entry.sessions, "6m").length,
+          workoutsThisWeek: getThisWeekCount(entry.sessions),
+        },
+        "1y": {
+          totalSessions: filterByRange(entry.sessions, "1y").length,
+          workoutsThisWeek: getThisWeekCount(entry.sessions),
+        },
+        all: {
+          totalSessions: entry.sessions.length,
+          workoutsThisWeek: getThisWeekCount(entry.sessions),
+        },
+      },
+      recentSessions: entry.sessions
+        .sort((a, b) => new Date(b?.dateTime || 0).getTime() - new Date(a?.dateTime || 0).getTime())
+        .slice(0, 5)
+        .map((session) => ({
+          title: stringValue(session?.title) || stringValue(session?.workoutType) || "Cardio",
+          date: formatDateTime(session?.dateTime),
+          summary: `${safeArray(session?.steps).length} step(s)`,
+        })),
+    };
+  });
 
   return {
-    cardioOverviewCards,
-    cardioTypeBreakdown,
-    recentCardioSessions: cardioSessions.slice(0, 6).map((session: any) => ({
-      title: stringValue(session?.title) || stringValue(session?.workoutType) || "Cardio Workout",
-      date: formatDateTime(session?.dateTime),
-      summary: `${safeArray(session?.steps).length} step(s) saved`,
+    overviewCards: [
+      createMetricCard("Total Workouts", String(weightliftingSessions.length), "Saved lifting sessions"),
+      createMetricCard("Total Cardio", String(cardioSessions.length), "Saved cardio sessions"),
+      createMetricCard(
+        "Last Workout",
+        fitnessStats?.lastWorkoutAt ? formatDateShort(fitnessStats.lastWorkoutAt) : "—",
+        "Most recent saved session"
+      ),
+    ],
+    sections,
+    cardioTypes,
+  };
+}
+
+function buildHobbyInteractive(profileStats: any, hobbiesState: any) {
+  const hobbies = safeArray(hobbiesState?.hobbies);
+
+  return {
+    overviewCards: [
+      createMetricCard("Hobbies", String(numberValue(profileStats?.hobbies?.totalHobbies)), "Tracked hobbies"),
+      createMetricCard("Completed Stages", String(numberValue(profileStats?.hobbies?.completedStages)), "Finished stages"),
+      createMetricCard("Hours Spent", String(numberValue(profileStats?.hobbies?.totalHoursSpent)), "Logged hours"),
+    ],
+    weeklySummary: {
+      activeHobbies: hobbies.filter((h) => h?.status === "Active").length,
+      updatesThisWeek: hobbies.reduce((sum, hobby) => sum + filterByRange(safeArray(hobby?.activityLog), "7d").length, 0),
+      stageProgressThisWeek: hobbies.reduce(
+        (sum, hobby) => sum + safeArray(hobby?.stages).reduce((inner, stage) => inner + numberValue(stage?.progress, 0), 0),
+        0
+      ),
+    },
+    hobbies: hobbies.map((hobby) => ({
+      id: hobby?.id || slugify(hobby?.name),
+      name: hobby?.name || "Hobby",
+      status: hobby?.status || "Active",
+      overallProgress:
+        safeArray(hobby?.stages).length > 0
+          ? Math.round(
+              safeArray(hobby?.stages).reduce((sum, stage) => sum + numberValue(stage?.progress, 0), 0) /
+                safeArray(hobby?.stages).length
+            )
+          : 0,
+      stages: safeArray(hobby?.stages).map((stage) => ({
+        id: stage?.id || slugify(stage?.name),
+        name: stage?.name || "Stage",
+        description: stage?.description || "",
+        progress: numberValue(stage?.progress),
+        status: stage?.status || "Not Started",
+        targetDate: stage?.targetDate || "",
+        update: stage?.update || "",
+      })),
+      recentLogs: safeArray(hobby?.activityLog)
+        .sort((a, b) => new Date(b?.date || 0).getTime() - new Date(a?.date || 0).getTime())
+        .slice(0, 5),
     })),
   };
 }
 
-function buildHobbyFormattedStats(profileStats: any) {
-  const hobbies = safeObject(profileStats?.hobbies);
-
-  return [
-    createMetricCard("Hobbies", String(numberValue(hobbies?.totalHobbies)), "Total active hobbies"),
-    createMetricCard("Stages", String(numberValue(hobbies?.totalStages)), "All tracked hobby stages"),
-    createMetricCard("Completed Stages", String(numberValue(hobbies?.completedStages)), "Finished hobby milestones"),
-    createMetricCard("Log Entries", String(numberValue(hobbies?.totalLogEntries)), "Activity logs saved"),
-    createMetricCard("Library Items", String(numberValue(hobbies?.totalLibraryItems)), "Saved hobby resources"),
-    createMetricCard("Hours Spent", String(numberValue(hobbies?.totalHoursSpent)), "Total logged hobby hours"),
-  ];
-}
-
-function buildFormattedStats(profileSettings: any, fitnessHistory: any, profileStats: any) {
-  const fitness = buildFitnessFormattedStats(fitnessHistory, profileStats);
-  const cardio = buildCardioFormattedStats(fitnessHistory);
-  const hobbies = buildHobbyFormattedStats(profileStats);
-
-  return {
-    overviewCards: [
-      ...(profileSettings?.statsSources?.fitness ? fitness.overviewCards : []),
-      ...(profileSettings?.statsSources?.hobbies ? hobbies.slice(0, 2) : []),
-    ].slice(0, 8),
-    fitnessOverviewCards: profileSettings?.statsSources?.fitness ? fitness.fitnessOverviewCards : [],
-    cardioOverviewCards: profileSettings?.statsSources?.fitness ? cardio.cardioOverviewCards : [],
-    fitnessSectionComparison: profileSettings?.statsSources?.fitness ? fitness.fitnessSectionComparison : [],
-    fitnessWorkoutDetail: profileSettings?.statsSources?.fitness ? fitness.fitnessWorkoutDetail : { sections: [] },
-    cardioTypeBreakdown: profileSettings?.statsSources?.fitness ? cardio.cardioTypeBreakdown : { types: [] },
-    recentWeightliftingSessions: profileSettings?.statsSources?.fitness ? fitness.recentWeightliftingSessions : [],
-    recentCardioSessions: profileSettings?.statsSources?.fitness ? cardio.recentCardioSessions : [],
-    hobbyOverviewCards: profileSettings?.statsSources?.hobbies ? hobbies : [],
-  };
-}
-
 async function findPublicProfileUserId(sql: ReturnType<typeof getSql>, username: string) {
-  const rows = await sql<{ user_id: string; page_key: string; state: unknown; updated_at: string }[]>`
-    select distinct on (user_id) user_id, page_key, state, updated_at
+  const rows = await sql<{ user_id: string; state: unknown; updated_at: string }[]>`
+    select distinct on (user_id) user_id, state, updated_at
     from page_state
     where page_key = ${PROFILE_SETTINGS_PAGE_KEY}
     order by user_id, updated_at desc
@@ -579,34 +589,13 @@ async function findPublicProfileUserId(sql: ReturnType<typeof getSql>, username:
 
   const wanted = username.trim().toLowerCase();
 
-  console.log("[public profile] lookup start", {
-    wanted,
-    profileSettingsPageKey: PROFILE_SETTINGS_PAGE_KEY,
-    rowCount: rows.length,
-  });
-
   for (const row of rows) {
     const rawState = normalizeStoredState(row.state);
     const state = normalizeProfileSettings(rawState);
     const savedUsername = stringValue(state?.username).trim().toLowerCase();
     const savedHandle = stringValue(state?.handle).replace(/^@/, "").trim().toLowerCase();
 
-    console.log("[public profile] candidate", {
-      userId: row.user_id,
-      pageKey: row.page_key,
-      updatedAt: row.updated_at,
-      savedUsername,
-      savedHandle,
-      displayName: stringValue(state?.displayName),
-    });
-
     if (savedUsername === wanted || savedHandle === wanted) {
-      console.log("[public profile] matched", {
-        userId: row.user_id,
-        savedUsername,
-        savedHandle,
-      });
-
       return {
         userId: row.user_id,
         profileSettings: state,
@@ -614,7 +603,6 @@ async function findPublicProfileUserId(sql: ReturnType<typeof getSql>, username:
     }
   }
 
-  console.log("[public profile] no match found", { wanted });
   return null;
 }
 
@@ -635,23 +623,36 @@ async function readUserPageState(
   return rows[0] ? normalizeStoredState(rows[0].state) : null;
 }
 
-export const GET: APIRoute = async ({ url }) => {
+export const GET: APIRoute = async ({ url, cookies }) => {
   const username = url.searchParams.get("username")?.trim() || "";
-
-  if (!username) {
-    return json({ ok: false, error: "Username is required." }, 400);
-  }
+  const preview = url.searchParams.get("preview") === "1";
 
   const sql = getSql();
 
   try {
-    const found = await findPublicProfileUserId(sql, username);
+    let userId = "";
+    let profileSettings: any = null;
 
-    if (!found) {
-      return json({ ok: false, error: "Profile not found." }, 404);
+    if (preview) {
+      const user = await getCurrentUser(cookies);
+      if (!user) return json({ ok: false, error: "Unauthorized" }, 401);
+
+      userId = user.id;
+      const rawSettings = await readUserPageState(sql, userId, PROFILE_SETTINGS_PAGE_KEY);
+      profileSettings = normalizeProfileSettings(rawSettings || {});
+    } else {
+      if (!username) {
+        return json({ ok: false, error: "Username is required." }, 400);
+      }
+
+      const found = await findPublicProfileUserId(sql, username);
+      if (!found) {
+        return json({ ok: false, error: "Profile not found." }, 404);
+      }
+
+      userId = found.userId;
+      profileSettings = found.profileSettings;
     }
-
-    const { userId, profileSettings } = found;
 
     const career =
       (await readUserPageState(sql, userId, PROFILE_PORTFOLIO_SOURCE_PAGE_KEY)) || {};
@@ -659,6 +660,8 @@ export const GET: APIRoute = async ({ url }) => {
       (await readUserPageState(sql, userId, "fitness-history")) || {};
     const profileStats =
       (await readUserPageState(sql, userId, "profile-stats")) || {};
+    const hobbiesState =
+      (await readUserPageState(sql, userId, "hobbies")) || {};
 
     const normalizedUsername =
       stringValue(profileSettings?.username) ||
@@ -677,12 +680,13 @@ export const GET: APIRoute = async ({ url }) => {
       resume: publicItems(career?.resume),
     };
 
-    const formattedStats = buildFormattedStats(profileSettings, fitnessHistory, profileStats);
+    const fitnessInteractive = buildFitnessInteractive(fitnessHistory, profileStats);
+    const hobbyInteractive = buildHobbyInteractive(profileStats, hobbiesState);
 
     return json({
       ok: true,
       profile: {
-        displayName: stringValue(profileSettings?.displayName) || username,
+        displayName: stringValue(profileSettings?.displayName) || normalizedUsername || username,
         username: normalizedUsername,
         handle: stringValue(profileSettings?.handle) || `@${normalizedUsername}`,
         bio: stringValue(profileSettings?.bio),
@@ -692,10 +696,7 @@ export const GET: APIRoute = async ({ url }) => {
         location: stringValue(profileSettings?.location),
         badges: buildBadges(profileSettings, portfolio),
         stats: buildLegacyStats(career),
-        formattedStats,
-        statsDisplay: profileSettings?.statsDisplay,
         pinned: buildPinned(portfolio),
-        portfolio,
         activity: buildActivity(portfolio),
         visibility: {
           stats: normalizeBoolean(profileSettings?.visibility?.stats, true),
@@ -705,8 +706,14 @@ export const GET: APIRoute = async ({ url }) => {
           contact: normalizeBoolean(profileSettings?.visibility?.contact, false),
           bio: normalizeBoolean(profileSettings?.visibility?.bio, true),
         },
-        portfolioFilters:
-          profileSettings?.portfolioFilters || DEFAULT_PROFILE_SETTINGS.portfolioFilters,
+        displayConfig: profileSettings?.statsDisplay || DEFAULT_PROFILE_SETTINGS.statsDisplay,
+        interactiveData: {
+          fitness: fitnessInteractive,
+          hobbies: hobbyInteractive,
+        },
+        portfolioLink: `/career/portfolio`,
+        portfolioMode: profileSettings?.statsDisplay?.portfolioMode || "link",
+        portfolio,
       },
     });
   } catch (error) {

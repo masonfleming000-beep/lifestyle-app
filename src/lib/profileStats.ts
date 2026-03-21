@@ -99,7 +99,10 @@ export function buildHobbyStats(hobbiesState: any) {
   const totalStages = hobbies.reduce((sum: number, hobby: any) => sum + (hobby?.stages?.length || 0), 0);
   const completedStages = hobbies.reduce(
     (sum: number, hobby: any) =>
-      sum + (Array.isArray(hobby?.stages) ? hobby.stages.filter((s: any) => s?.status === "Completed").length : 0),
+      sum +
+      (Array.isArray(hobby?.stages)
+        ? hobby.stages.filter((s: any) => s?.status === "Completed" || s?.status === "Done").length
+        : 0),
     0
   );
   const totalLogEntries = hobbies.reduce((sum: number, hobby: any) => sum + (hobby?.activityLog?.length || 0), 0);

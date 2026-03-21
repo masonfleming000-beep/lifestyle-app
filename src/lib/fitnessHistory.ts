@@ -52,6 +52,15 @@ export function createEmptyFitnessHistoryState(): FitnessHistoryState {
   };
 }
 
+export function normalizeFitnessHistoryState(raw: any): FitnessHistoryState {
+  return {
+    weightliftingSessions: Array.isArray(raw?.weightliftingSessions)
+      ? raw.weightliftingSessions
+      : [],
+    cardioSessions: Array.isArray(raw?.cardioSessions) ? raw.cardioSessions : [],
+  };
+}
+
 export async function loadFitnessHistory(): Promise<FitnessHistoryState> {
   try {
     const res = await fetch(`/api/state?pageKey=${encodeURIComponent(FITNESS_HISTORY_PAGE_KEY)}`, {
@@ -62,14 +71,7 @@ export async function loadFitnessHistory(): Promise<FitnessHistoryState> {
     if (!res.ok) return createEmptyFitnessHistoryState();
 
     const data = await res.json();
-    const state = data?.state ?? {};
-
-    return {
-      weightliftingSessions: Array.isArray(state?.weightliftingSessions)
-        ? state.weightliftingSessions
-        : [],
-      cardioSessions: Array.isArray(state?.cardioSessions) ? state.cardioSessions : [],
-    };
+    return normalizeFitnessHistoryState(data?.state);
   } catch {
     return createEmptyFitnessHistoryState();
   }

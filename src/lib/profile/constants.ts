@@ -25,10 +25,12 @@ export const PROFILE_PORTFOLIO_CATEGORIES = [
 
 export const PROFILE_THEME_OPTIONS = ["system", "light", "dark"] as const;
 export const PROFILE_TEXT_SIZE_OPTIONS = ["sm", "md", "lg"] as const;
+export const PROFILE_TIME_RANGE_OPTIONS = ["7d", "30d", "90d", "6m", "1y", "all"] as const;
 
 export type ProfileThemeMode = (typeof PROFILE_THEME_OPTIONS)[number];
 export type ProfileTextSize = (typeof PROFILE_TEXT_SIZE_OPTIONS)[number];
 export type ProfileStatSection = (typeof PROFILE_STAT_SECTIONS)[number];
+export type ProfileTimeRange = (typeof PROFILE_TIME_RANGE_OPTIONS)[number];
 
 export type ProfileBadge = {
   id: string;
@@ -72,6 +74,25 @@ export type ProfileThemeSettings = {
   textSize: ProfileTextSize;
 };
 
+export type ProfileStatsDisplaySettings = {
+  autoFormatted: boolean;
+  showOverview: boolean;
+  showSections: boolean;
+  showWorkouts: boolean;
+  showCardio: boolean;
+  showRecentSessions: boolean;
+  defaultRange: ProfileTimeRange;
+  defaultSection: string;
+  defaultWorkout: string;
+  defaultCardioType: string;
+  defaultHobbyId: string;
+  defaultHobbyStageId: string;
+  featuredFitnessMetrics: string[];
+  featuredCardioMetrics: string[];
+  featuredHobbyMetrics: string[];
+  portfolioMode: "link" | "full";
+};
+
 export type ProfileSettings = {
   displayName: string;
   username: string;
@@ -87,6 +108,7 @@ export type ProfileSettings = {
   visibility: ProfileVisibilitySettings;
   portfolioFilters: ProfilePortfolioFilters;
   statsSources: ProfileStatsSources;
+  statsDisplay: ProfileStatsDisplaySettings;
   notifications: ProfileNotifications;
   theme: ProfileThemeSettings;
 };
@@ -129,6 +151,24 @@ export const DEFAULT_PROFILE_SETTINGS: ProfileSettings = {
     work: false,
     nutrition: false,
     hobbies: false,
+  },
+  statsDisplay: {
+    autoFormatted: true,
+    showOverview: true,
+    showSections: true,
+    showWorkouts: true,
+    showCardio: true,
+    showRecentSessions: true,
+    defaultRange: "30d",
+    defaultSection: "all",
+    defaultWorkout: "all",
+    defaultCardioType: "all",
+    defaultHobbyId: "all",
+    defaultHobbyStageId: "all",
+    featuredFitnessMetrics: ["totalWorkouts", "totalVolume", "avgWeight", "avgReps"],
+    featuredCardioMetrics: ["totalSessions", "completionRate", "favoriteWorkoutType", "plannedSteps"],
+    featuredHobbyMetrics: ["totalHobbies", "completedStages", "totalHoursSpent"],
+    portfolioMode: "link",
   },
   notifications: {
     email: true,

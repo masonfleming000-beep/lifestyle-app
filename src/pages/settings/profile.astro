@@ -124,46 +124,29 @@ import {
           <label class="toggle-card"><input id="visibility-profile" type="checkbox" /><span>Public profile enabled</span></label>
           <label class="toggle-card"><input id="visibility-bio" type="checkbox" /><span>Show bio</span></label>
           <label class="toggle-card"><input id="visibility-stats" type="checkbox" /><span>Show stats</span></label>
-          <label class="toggle-card"><input id="visibility-portfolio" type="checkbox" /><span>Show portfolio</span></label>
+          <label class="toggle-card"><input id="visibility-portfolio" type="checkbox" /><span>Show portfolio button</span></label>
           <label class="toggle-card"><input id="visibility-activity" type="checkbox" /><span>Show recent activity</span></label>
           <label class="toggle-card"><input id="visibility-achievements" type="checkbox" /><span>Show achievements</span></label>
           <label class="toggle-card"><input id="visibility-contact" type="checkbox" /><span>Show contact section</span></label>
         </div>
       </SectionCard>
 
-      <SectionCard title="Portfolio Sections" subtitle="Choose which portfolio sections appear publicly">
-        <div class="toggle-card-grid">
-          <label class="toggle-card"><input id="portfolio-projects" type="checkbox" /><span>Projects</span></label>
-          <label class="toggle-card"><input id="portfolio-experience" type="checkbox" /><span>Experience</span></label>
-          <label class="toggle-card"><input id="portfolio-school" type="checkbox" /><span>School</span></label>
-          <label class="toggle-card"><input id="portfolio-stats" type="checkbox" /><span>Stats</span></label>
-          <label class="toggle-card"><input id="portfolio-timeline" type="checkbox" /><span>Timeline</span></label>
-          <label class="toggle-card"><input id="portfolio-recommendations" type="checkbox" /><span>Recommendations</span></label>
-          <label class="toggle-card"><input id="portfolio-star" type="checkbox" /><span>STAR</span></label>
-        </div>
-      </SectionCard>
-
       <SectionCard title="Stats Sources" subtitle="Choose which app areas contribute public stats">
         <div class="toggle-card-grid">
           <label class="toggle-card"><input id="stats-fitness" type="checkbox" /><span>Fitness</span></label>
-          <label class="toggle-card"><input id="stats-career" type="checkbox" /><span>Career</span></label>
-          <label class="toggle-card"><input id="stats-mind" type="checkbox" /><span>Mind</span></label>
-          <label class="toggle-card"><input id="stats-education" type="checkbox" /><span>Education</span></label>
-          <label class="toggle-card"><input id="stats-work" type="checkbox" /><span>Work</span></label>
-          <label class="toggle-card"><input id="stats-nutrition" type="checkbox" /><span>Nutrition</span></label>
           <label class="toggle-card"><input id="stats-hobbies" type="checkbox" /><span>Hobbies</span></label>
         </div>
       </SectionCard>
 
-      <SectionCard title="Stats Display & Formatting" subtitle="Control how fitness and hobby stats are shown on the public profile">
+      <SectionCard title="Interactive Stats Display" subtitle="Configure exactly how the public stats view behaves">
         <div class="form-stack">
           <div class="toggle-card-grid">
-            <label class="toggle-card"><input id="stats-display-auto" type="checkbox" /><span>Use formatted stats layout</span></label>
+            <label class="toggle-card"><input id="stats-display-auto" type="checkbox" /><span>Use interactive formatted stats</span></label>
             <label class="toggle-card"><input id="stats-display-overview" type="checkbox" /><span>Show overview cards</span></label>
-            <label class="toggle-card"><input id="stats-display-sections" type="checkbox" /><span>Show body section comparison</span></label>
-            <label class="toggle-card"><input id="stats-display-workouts" type="checkbox" /><span>Show workout detail drilldown</span></label>
-            <label class="toggle-card"><input id="stats-display-cardio" type="checkbox" /><span>Show cardio type breakdown</span></label>
-            <label class="toggle-card"><input id="stats-display-recent" type="checkbox" /><span>Show recent saved sessions</span></label>
+            <label class="toggle-card"><input id="stats-display-sections" type="checkbox" /><span>Show lifting section summary</span></label>
+            <label class="toggle-card"><input id="stats-display-workouts" type="checkbox" /><span>Show workout charts</span></label>
+            <label class="toggle-card"><input id="stats-display-cardio" type="checkbox" /><span>Show cardio charts</span></label>
+            <label class="toggle-card"><input id="stats-display-recent" type="checkbox" /><span>Show recent sessions</span></label>
           </div>
 
           <div class="grid three">
@@ -189,10 +172,23 @@ import {
                 <option value="legs">Legs</option>
                 <option value="arms">Arms</option>
                 <option value="core">Core</option>
-                <option value="cardio">Cardio</option>
               </select>
             </label>
 
+            <label class="field-group">
+              <span class="field-label">Default Workout</span>
+              <select id="stats-default-workout" class="ui-select">
+                <option value="all">All workouts</option>
+                <option value="reverse-cable-crossovers">Reverse Cable Crossovers</option>
+                <option value="bench-press">Bench Press</option>
+                <option value="lat-pulldown">Lat Pulldown</option>
+                <option value="squat">Squat</option>
+                <option value="deadlift">Deadlift</option>
+              </select>
+            </label>
+          </div>
+
+          <div class="grid three">
             <label class="field-group">
               <span class="field-label">Default Cardio Type</span>
               <select id="stats-default-cardio-type" class="ui-select">
@@ -200,35 +196,36 @@ import {
                 <option value="steady">Steady</option>
                 <option value="tempo">Tempo</option>
                 <option value="intervals">Intervals</option>
-                <option value="hiit">HIIT</option>
-                <option value="fartlek">Fartlek</option>
-                <option value="hills">Hills</option>
-                <option value="power">Power</option>
-                <option value="recovery">Recovery</option>
-                <option value="long-run">Long Run</option>
+              </select>
+            </label>
+
+            <label class="field-group">
+              <span class="field-label">Default Hobby</span>
+              <select id="stats-default-hobby-id" class="ui-select">
+                <option value="all">All hobbies</option>
+                <option value="reading">Reading</option>
+                <option value="drumming">Drumming</option>
+              </select>
+            </label>
+
+            <label class="field-group">
+              <span class="field-label">Default Hobby Stage</span>
+              <select id="stats-default-hobby-stage-id" class="ui-select">
+                <option value="all">All stages</option>
+                <option value="beginner">Beginner</option>
+                <option value="intermediate">Intermediate</option>
+                <option value="advanced">Advanced</option>
               </select>
             </label>
           </div>
 
-          <div class="grid two">
+          <div class="grid three">
             <label class="field-group">
-              <span class="field-label">Featured Fitness Metrics</span>
-              <textarea
-                id="stats-featured-fitness"
-                class="ui-textarea"
-                rows="5"
-                placeholder="One metric key per line&#10;totalWorkouts&#10;totalVolume&#10;avgWeight&#10;consistencyStreak"
-              ></textarea>
-            </label>
-
-            <label class="field-group">
-              <span class="field-label">Featured Cardio Metrics</span>
-              <textarea
-                id="stats-featured-cardio"
-                class="ui-textarea"
-                rows="5"
-                placeholder="One metric key per line&#10;totalSessions&#10;completionRate&#10;avgDistance&#10;favoriteWorkoutType"
-              ></textarea>
+              <span class="field-label">Portfolio Mode</span>
+              <select id="stats-portfolio-mode" class="ui-select">
+                <option value="link">Link only</option>
+                <option value="full">Full</option>
+              </select>
             </label>
           </div>
         </div>
@@ -270,33 +267,37 @@ import {
           </label>
         </div>
       </SectionCard>
-
-      <SectionCard title="Subscription" subtitle="Current plan and perks">
-        <div class="form-stack">
-          <label class="field-group">
-            <span class="field-label">Current Plan</span>
-            <input id="subscription-plan" class="ui-input" type="text" placeholder="Free / Pro / Elite" />
-          </label>
-
-          <label class="field-group">
-            <span class="field-label">Perks</span>
-            <textarea id="subscription-perks" class="ui-textarea" rows="4" placeholder="One perk per line"></textarea>
-          </label>
-        </div>
-      </SectionCard>
     </div>
+  </section>
+
+  <section class="section">
+    <article class="card">
+      <div class="section-header">
+        <div>
+          <h2 class="section-title">Public profile preview</h2>
+          <p class="section-subtitle">See the interactive profile layout before saving</p>
+        </div>
+      </div>
+      <div id="profile-preview-root">
+        <p>Loading preview...</p>
+      </div>
+    </article>
   </section>
 
   <section class="section">
     <div class="profile-settings-actions card">
       <div id="profile-settings-status" class="save-status neutral">Loading...</div>
-      <button id="save-profile-settings-btn" type="button" class="ui-button">Save Profile Settings</button>
+      <div class="button-row">
+        <button id="refresh-preview-btn" type="button" class="ui-button ui-button-secondary">Refresh Preview</button>
+        <button id="save-profile-settings-btn" type="button" class="ui-button">Save Profile Settings</button>
+      </div>
     </div>
   </section>
 
   <script define:vars={{ pageKey: PROFILE_SETTINGS_PAGE_KEY, defaultProfileSettings: JSON.stringify(DEFAULT_PROFILE_SETTINGS) }}>
     (() => {
       const statusEl = document.getElementById("profile-settings-status");
+      const previewRoot = document.getElementById("profile-preview-root");
 
       function setStatus(text, mode = "neutral") {
         if (!statusEl) return;
@@ -312,6 +313,14 @@ import {
         return typeof value === "string" ? value : "";
       }
 
+      function normalizeBoolean(value, fallback = false) {
+        return typeof value === "boolean" ? value : fallback;
+      }
+
+      function normalizeArray(value) {
+        return Array.isArray(value) ? value : [];
+      }
+
       function slugifyProfileValue(value) {
         return String(value || "")
           .trim()
@@ -320,6 +329,39 @@ import {
           .replace(/[^a-z0-9._-]+/g, ".")
           .replace(/\.{2,}/g, ".")
           .replace(/^\.+|\.+$/g, "");
+      }
+
+      function byId(id) {
+        return document.getElementById(id);
+      }
+
+      function setValue(id, value) {
+        const el = byId(id);
+        if (!el) return;
+
+        const normalizedValue = value ?? "";
+
+        if (el.tagName === "SELECT") {
+          const hasOption = Array.from(el.options).some((option) => option.value === normalizedValue);
+          el.value = hasOption ? normalizedValue : el.options[0]?.value || "";
+          return;
+        }
+
+        el.value = normalizedValue;
+      }
+
+      function setChecked(id, value) {
+        const el = byId(id);
+        if (!el) return;
+        el.checked = !!value;
+      }
+
+      function getValue(id) {
+        return String(byId(id)?.value || "").trim();
+      }
+
+      function getChecked(id) {
+        return !!byId(id)?.checked;
       }
 
       function deriveUsernameCandidate() {
@@ -345,142 +387,6 @@ import {
         return username ? `@${username}` : "";
       }
 
-      function normalizeBoolean(value, fallback = false) {
-        return typeof value === "boolean" ? value : fallback;
-      }
-
-      function normalizeArray(value) {
-        return Array.isArray(value) ? value : [];
-      }
-
-      function normalizeMultilineToArray(value, fallback = []) {
-        if (Array.isArray(value)) {
-          return value.map((item) => String(item || "").trim()).filter(Boolean);
-        }
-
-        if (typeof value === "string") {
-          return value
-            .split("\n")
-            .map((item) => item.trim())
-            .filter(Boolean);
-        }
-
-        return fallback;
-      }
-
-      function arrayToMultiline(value) {
-        return normalizeArray(value).join("\n");
-      }
-
-      function normalizeState(raw) {
-        const defaults = cloneDefaults();
-        const state = raw && typeof raw === "object" ? raw : {};
-
-        return {
-          ...defaults,
-          displayName: normalizeString(state.displayName),
-          username: normalizeString(state.username),
-          handle: normalizeString(state.handle),
-          bio: normalizeString(state.bio),
-          bannerUrl: normalizeString(state.bannerUrl),
-          avatarUrl: normalizeString(state.avatarUrl),
-          location: normalizeString(state.location),
-          headline: normalizeString(state.headline),
-          pinnedItemIds: normalizeArray(state.pinnedItemIds),
-          badges: normalizeArray(state.badges),
-          featuredStatIds: normalizeArray(state.featuredStatIds),
-          visibility: {
-            profile: normalizeBoolean(state?.visibility?.profile, defaults.visibility.profile),
-            bio: normalizeBoolean(state?.visibility?.bio, defaults.visibility.bio),
-            stats: normalizeBoolean(state?.visibility?.stats, defaults.visibility.stats),
-            portfolio: normalizeBoolean(state?.visibility?.portfolio, defaults.visibility.portfolio),
-            activity: normalizeBoolean(state?.visibility?.activity, defaults.visibility.activity),
-            achievements: normalizeBoolean(state?.visibility?.achievements, defaults.visibility.achievements),
-            contact: normalizeBoolean(state?.visibility?.contact, defaults.visibility.contact),
-          },
-          portfolioFilters: {
-            showProjects: normalizeBoolean(state?.portfolioFilters?.showProjects, defaults.portfolioFilters.showProjects),
-            showExperience: normalizeBoolean(state?.portfolioFilters?.showExperience, defaults.portfolioFilters.showExperience),
-            showSchool: normalizeBoolean(state?.portfolioFilters?.showSchool, defaults.portfolioFilters.showSchool),
-            showStats: normalizeBoolean(state?.portfolioFilters?.showStats, defaults.portfolioFilters.showStats),
-            showTimeline: normalizeBoolean(state?.portfolioFilters?.showTimeline, defaults.portfolioFilters.showTimeline),
-            showRecommendations: normalizeBoolean(state?.portfolioFilters?.showRecommendations, defaults.portfolioFilters.showRecommendations),
-            showStar: normalizeBoolean(state?.portfolioFilters?.showStar, defaults.portfolioFilters.showStar),
-          },
-          statsSources: {
-            fitness: normalizeBoolean(state?.statsSources?.fitness, defaults.statsSources.fitness),
-            career: normalizeBoolean(state?.statsSources?.career, defaults.statsSources.career),
-            mind: normalizeBoolean(state?.statsSources?.mind, defaults.statsSources.mind),
-            education: normalizeBoolean(state?.statsSources?.education, defaults.statsSources.education),
-            work: normalizeBoolean(state?.statsSources?.work, defaults.statsSources.work),
-            nutrition: normalizeBoolean(state?.statsSources?.nutrition, defaults.statsSources.nutrition),
-            hobbies: normalizeBoolean(state?.statsSources?.hobbies, defaults.statsSources.hobbies),
-          },
-          statsDisplay: {
-            autoFormatted: normalizeBoolean(state?.statsDisplay?.autoFormatted, true),
-            showOverview: normalizeBoolean(state?.statsDisplay?.showOverview, true),
-            showSections: normalizeBoolean(state?.statsDisplay?.showSections, true),
-            showWorkouts: normalizeBoolean(state?.statsDisplay?.showWorkouts, true),
-            showCardio: normalizeBoolean(state?.statsDisplay?.showCardio, true),
-            showRecentSessions: normalizeBoolean(state?.statsDisplay?.showRecentSessions, true),
-            defaultRange: normalizeString(state?.statsDisplay?.defaultRange) || "30d",
-            defaultSection: normalizeString(state?.statsDisplay?.defaultSection) || "all",
-            defaultCardioType: normalizeString(state?.statsDisplay?.defaultCardioType) || "all",
-            featuredFitnessMetrics: normalizeMultilineToArray(
-              state?.statsDisplay?.featuredFitnessMetrics,
-              ["totalWorkouts", "totalVolume", "avgWeight", "consistencyStreak"]
-            ),
-            featuredCardioMetrics: normalizeMultilineToArray(
-              state?.statsDisplay?.featuredCardioMetrics,
-              ["totalSessions", "completionRate", "favoriteWorkoutType", "totalVolume"]
-            ),
-          },
-          notifications: {
-            email: normalizeBoolean(state?.notifications?.email, defaults.notifications.email),
-            push: normalizeBoolean(state?.notifications?.push, defaults.notifications.push),
-            product: normalizeBoolean(state?.notifications?.product, defaults.notifications.product),
-            reminders: normalizeBoolean(state?.notifications?.reminders, defaults.notifications.reminders),
-            marketing: normalizeBoolean(state?.notifications?.marketing, defaults.notifications.marketing),
-          },
-          theme: {
-            mode: normalizeString(state?.theme?.mode) || defaults.theme.mode,
-            accent: normalizeString(state?.theme?.accent) || defaults.theme.accent,
-            textSize: normalizeString(state?.theme?.textSize) || defaults.theme.textSize,
-          },
-          subscription: {
-            plan: normalizeString(state?.subscription?.plan),
-            perks: normalizeString(state?.subscription?.perks),
-          },
-          account: {
-            email: normalizeString(state?.account?.email),
-          },
-        };
-      }
-
-      function byId(id) {
-        return document.getElementById(id);
-      }
-
-      function setValue(id, value) {
-        const el = byId(id);
-        if (!el) return;
-        el.value = value ?? "";
-      }
-
-      function setChecked(id, value) {
-        const el = byId(id);
-        if (!el) return;
-        el.checked = !!value;
-      }
-
-      function getValue(id) {
-        return String(byId(id)?.value || "").trim();
-      }
-
-      function getChecked(id) {
-        return !!byId(id)?.checked;
-      }
-
       function refreshSnapshot(state) {
         const set = (id, value) => {
           const el = byId(id);
@@ -493,19 +399,53 @@ import {
         set("snapshot-theme", `${state.theme.mode} / ${state.theme.textSize}`);
       }
 
+      function normalizeState(raw) {
+        const defaults = cloneDefaults();
+        const state = raw && typeof raw === "object" ? raw : {};
+
+        return {
+          ...defaults,
+          ...state,
+          visibility: {
+            ...defaults.visibility,
+            ...(state?.visibility || {}),
+          },
+          portfolioFilters: {
+            ...defaults.portfolioFilters,
+            ...(state?.portfolioFilters || {}),
+          },
+          statsSources: {
+            ...defaults.statsSources,
+            ...(state?.statsSources || {}),
+          },
+          statsDisplay: {
+            ...defaults.statsDisplay,
+            ...(state?.statsDisplay || {}),
+            autoFormatted: normalizeBoolean(state?.statsDisplay?.autoFormatted, true),
+            showOverview: normalizeBoolean(state?.statsDisplay?.showOverview, true),
+            showSections: normalizeBoolean(state?.statsDisplay?.showSections, true),
+            showWorkouts: normalizeBoolean(state?.statsDisplay?.showWorkouts, true),
+            showCardio: normalizeBoolean(state?.statsDisplay?.showCardio, true),
+            showRecentSessions: normalizeBoolean(state?.statsDisplay?.showRecentSessions, true),
+          },
+          notifications: {
+            ...defaults.notifications,
+            ...(state?.notifications || {}),
+          },
+          theme: {
+            ...defaults.theme,
+            ...(state?.theme || {}),
+          },
+          account: {
+            email: normalizeString(state?.account?.email),
+          },
+        };
+      }
+
       function applyState(state) {
         setValue("email", state?.account?.email || "");
-        const derivedUsername =
-          normalizeString(state.username) ||
-          slugifyProfileValue(state.handle) ||
-          slugifyProfileValue((state?.account?.email || "").split("@")[0] || "") ||
-          slugifyProfileValue(state.displayName);
-
-        const derivedHandle =
-          normalizeString(state.handle) || (derivedUsername ? `@${derivedUsername}` : "");
-
-        setValue("username", derivedUsername);
-        setValue("handle", derivedHandle);
+        setValue("username", state.username || "");
+        setValue("handle", state.handle || "");
         setValue("displayName", state.displayName);
         setValue("headline", state.headline);
         setValue("location", state.location);
@@ -521,20 +461,7 @@ import {
         setChecked("visibility-achievements", state.visibility.achievements);
         setChecked("visibility-contact", state.visibility.contact);
 
-        setChecked("portfolio-projects", state.portfolioFilters.showProjects);
-        setChecked("portfolio-experience", state.portfolioFilters.showExperience);
-        setChecked("portfolio-school", state.portfolioFilters.showSchool);
-        setChecked("portfolio-stats", state.portfolioFilters.showStats);
-        setChecked("portfolio-timeline", state.portfolioFilters.showTimeline);
-        setChecked("portfolio-recommendations", state.portfolioFilters.showRecommendations);
-        setChecked("portfolio-star", state.portfolioFilters.showStar);
-
         setChecked("stats-fitness", state.statsSources.fitness);
-        setChecked("stats-career", state.statsSources.career);
-        setChecked("stats-mind", state.statsSources.mind);
-        setChecked("stats-education", state.statsSources.education);
-        setChecked("stats-work", state.statsSources.work);
-        setChecked("stats-nutrition", state.statsSources.nutrition);
         setChecked("stats-hobbies", state.statsSources.hobbies);
 
         setChecked("stats-display-auto", state.statsDisplay.autoFormatted);
@@ -545,9 +472,11 @@ import {
         setChecked("stats-display-recent", state.statsDisplay.showRecentSessions);
         setValue("stats-default-range", state.statsDisplay.defaultRange);
         setValue("stats-default-section", state.statsDisplay.defaultSection);
+        setValue("stats-default-workout", state.statsDisplay.defaultWorkout);
         setValue("stats-default-cardio-type", state.statsDisplay.defaultCardioType);
-        setValue("stats-featured-fitness", arrayToMultiline(state.statsDisplay.featuredFitnessMetrics));
-        setValue("stats-featured-cardio", arrayToMultiline(state.statsDisplay.featuredCardioMetrics));
+        setValue("stats-default-hobby-id", state.statsDisplay.defaultHobbyId);
+        setValue("stats-default-hobby-stage-id", state.statsDisplay.defaultHobbyStageId);
+        setValue("stats-portfolio-mode", state.statsDisplay.portfolioMode);
 
         setChecked("notifications-email", state.notifications.email);
         setChecked("notifications-push", state.notifications.push);
@@ -558,9 +487,6 @@ import {
         setValue("theme-mode", state.theme.mode);
         setValue("theme-accent", state.theme.accent);
         setValue("theme-text-size", state.theme.textSize);
-
-        setValue("subscription-plan", state?.subscription?.plan || "");
-        setValue("subscription-perks", state?.subscription?.perks || "");
 
         refreshSnapshot(state);
       }
@@ -589,22 +515,8 @@ import {
             achievements: getChecked("visibility-achievements"),
             contact: getChecked("visibility-contact"),
           },
-          portfolioFilters: {
-            showProjects: getChecked("portfolio-projects"),
-            showExperience: getChecked("portfolio-experience"),
-            showSchool: getChecked("portfolio-school"),
-            showStats: getChecked("portfolio-stats"),
-            showTimeline: getChecked("portfolio-timeline"),
-            showRecommendations: getChecked("portfolio-recommendations"),
-            showStar: getChecked("portfolio-star"),
-          },
           statsSources: {
-            fitness: getChecked("stats-fitness"),
-            career: getChecked("stats-career"),
-            mind: getChecked("stats-mind"),
-            education: getChecked("stats-education"),
-            work: getChecked("stats-work"),
-            nutrition: getChecked("stats-nutrition"),
+            fitness: getChecked("stats-fitness"), 
             hobbies: getChecked("stats-hobbies"),
           },
           statsDisplay: {
@@ -616,15 +528,14 @@ import {
             showRecentSessions: getChecked("stats-display-recent"),
             defaultRange: getValue("stats-default-range") || "30d",
             defaultSection: getValue("stats-default-section") || "all",
+            defaultWorkout: getValue("stats-default-workout") || "all",
             defaultCardioType: getValue("stats-default-cardio-type") || "all",
-            featuredFitnessMetrics: getValue("stats-featured-fitness")
-              .split("\n")
-              .map((item) => item.trim())
-              .filter(Boolean),
-            featuredCardioMetrics: getValue("stats-featured-cardio")
-              .split("\n")
-              .map((item) => item.trim())
-              .filter(Boolean),
+            defaultHobbyId: getValue("stats-default-hobby-id") || "all",
+            defaultHobbyStageId: getValue("stats-default-hobby-stage-id") || "all",
+            featuredFitnessMetrics: defaults.statsDisplay.featuredFitnessMetrics,
+            featuredCardioMetrics: defaults.statsDisplay.featuredCardioMetrics,
+            featuredHobbyMetrics: defaults.statsDisplay.featuredHobbyMetrics,
+            portfolioMode: getValue("stats-portfolio-mode") || "link",
           },
           notifications: {
             email: getChecked("notifications-email"),
@@ -637,10 +548,6 @@ import {
             mode: getValue("theme-mode") || defaults.theme.mode,
             accent: getValue("theme-accent") || defaults.theme.accent,
             textSize: getValue("theme-text-size") || defaults.theme.textSize,
-          },
-          subscription: {
-            plan: getValue("subscription-plan"),
-            perks: getValue("subscription-perks"),
           },
           account: {
             email: getValue("email"),
@@ -676,6 +583,89 @@ import {
         }
       }
 
+      function escapeHtml(value) {
+        return String(value || "")
+          .replaceAll("&", "&amp;")
+          .replaceAll("<", "&lt;")
+          .replaceAll(">", "&gt;")
+          .replaceAll('"', "&quot;")
+          .replaceAll("'", "&#039;");
+      }
+
+      function safeArray(value) {
+        return Array.isArray(value) ? value : [];
+      }
+
+      function safeObject(value) {
+        return value && typeof value === "object" ? value : {};
+      }
+
+      function renderPreview(payload) {
+        const profile = payload?.profile;
+        if (!profile) {
+          previewRoot.innerHTML = `<p>Preview unavailable.</p>`;
+          return;
+        }
+
+        const fitness = safeObject(profile?.interactiveData?.fitness);
+        const hobbies = safeObject(profile?.interactiveData?.hobbies);
+
+        previewRoot.innerHTML = `
+          <div class="preview-stack">
+            <article class="preview-card">
+              <h3>${escapeHtml(profile?.displayName || "Profile")}</h3>
+              <p>${escapeHtml(profile?.headline || "")}</p>
+              <p class="meta">${escapeHtml(profile?.location || "")}</p>
+              ${profile?.bio ? `<p>${escapeHtml(profile.bio)}</p>` : ""}
+            </article>
+
+            <div class="grid three">
+              ${safeArray(fitness?.overviewCards).map((item) => `
+                <article class="preview-stat-card">
+                  <p class="metric-label">${escapeHtml(item?.label || "")}</p>
+                  <h4>${escapeHtml(item?.value || "")}</h4>
+                </article>
+              `).join("")}
+            </div>
+
+            <article class="preview-card">
+              <h4>Weightlifting sections</h4>
+              <p>${safeArray(fitness?.sections).map((item) => escapeHtml(item?.label || item?.id)).join(", ") || "None yet"}</p>
+            </article>
+
+            <article class="preview-card">
+              <h4>Cardio types</h4>
+              <p>${safeArray(fitness?.cardioTypes).map((item) => escapeHtml(item?.label || item?.id)).join(", ") || "None yet"}</p>
+            </article>
+
+            <article class="preview-card">
+              <h4>Hobbies</h4>
+              <p>${safeArray(hobbies?.hobbies).map((item) => escapeHtml(item?.name || item?.id)).join(", ") || "None yet"}</p>
+            </article>
+
+            <article class="preview-card">
+              <h4>Portfolio mode</h4>
+              <p>${escapeHtml(profile?.portfolioMode || "link")}</p>
+            </article>
+          </div>
+        `;
+      }
+
+      async function refreshPreview() {
+        previewRoot.innerHTML = `<p>Refreshing preview...</p>`;
+        try {
+          const response = await fetch(`/api/profile/public?preview=1`, {
+            credentials: "include",
+            cache: "no-store",
+          });
+          const payload = await response.json().catch(() => ({}));
+          renderPreview(payload);
+        } catch (error) {
+          console.error(error);
+          previewRoot.innerHTML = `<p>Preview failed to load.</p>`;
+        }
+      }
+
       document.getElementById("save-profile-settings-btn")?.addEventListener("click", async () => {
         const state = collectState();
         setStatus("Saving...", "neutral");
@@ -690,10 +680,15 @@ import {
           document.documentElement.dataset.accent = state.theme.accent || "default";
           refreshSnapshot(state);
           setStatus("Saved", "success");
+          await refreshPreview();
         } catch (error) {
           console.error(error);
           setStatus("Unable to save", "error");
         }
+      });
+
+      document.getElementById("refresh-preview-btn")?.addEventListener("click", async () => {
+        await refreshPreview();
       });
 
       document.getElementById("change-password-btn")?.addEventListener("click", () => {
@@ -705,6 +700,7 @@ import {
         const saved = await loadState();
         const normalized = normalizeState(saved);
         applyState(normalized);
+        await refreshPreview();
         setStatus("Ready", "success");
       }
 
@@ -805,6 +801,19 @@ import {
       align-items: center;
       gap: 1rem;
       flex-wrap: wrap;
+    }
+
+    .preview-stack {
+      display: grid;
+      gap: 1rem;
+    }
+
+    .preview-card,
+    .preview-stat-card {
+      border-radius: 18px;
+      padding: 1rem;
+      border: 1px solid rgba(15, 23, 42, 0.08);
+      background: rgba(255, 255, 255, 0.82);
     }
 
     @media (max-width: 720px) {

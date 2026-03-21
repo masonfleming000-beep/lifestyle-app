@@ -27,6 +27,16 @@ const username = Astro.params.username ?? "";
     const root = document.getElementById("public-profile-root");
     const username = pageRoot?.dataset?.username || "";
 
+    let currentProfile = null;
+    let uiState = {
+      range: "30d",
+      section: "all",
+      workout: "all",
+      cardioType: "all",
+      hobbyId: "all",
+      hobbyStageId: "all",
+    };
+
     function escapeHtml(value) {
       return String(value || "")
         .replaceAll("&", "&amp;")
@@ -44,11 +54,6 @@ const username = Astro.params.username ?? "";
       return value && typeof value === "object" ? value : {};
     }
 
-    function numberLike(value, fallback = 0) {
-      const num = Number(value);
-      return Number.isFinite(num) ? num : fallback;
-    }
-
     function renderEmpty(message) {
       root.innerHTML = `
         <article class="card empty-profile-card">
@@ -64,6 +69,313 @@ const username = Astro.params.username ?? "";
           ${badge?.icon ? `<span>${escapeHtml(badge.icon)}</span>` : ""}
           ${escapeHtml(badge?.label || "")}
         </span>
+      `;
+    }
+
+    function renderMetricCards(items, title, subtitle) {
+      if (!items.length) return "";
+      return `
+        <section class="section">
+          <div class="section-header">
+            <div>
+              <h2 class="section-title">${escapeHtml(title)}</h2>
+              <p class="section-subtitle">${escapeHtml(subtitle)}</p>
+            </div>
+          </div>
+          <div class="grid three">
+            ${items.map((item) => `
+              <article class="profile-stat-card">
+                <p class="stat-card-label">${escapeHtml(item?.label || "")}</p>
+                <h3 class="stat-card-value">${escapeHtml(item?.value || "")}</h3>
+                ${item?.description ? `<p class="stat-card-description">${escapeHtml(item.description)}</p>` : ""}
+              </article>
+            `).join("")}
+          </div>
+        </section>
+      `;
+    }
+
+    function getSelectedSection(profile) {
+      const sections = safeArray(profile?.interactiveData?.fitness?.sections);
+      if (!sections.length) return null;
+
+      if (uiState.section === "all") return sections[0];
+      return sections.find((item) => item.id === uiState.section) || sections[0];
+    }
+
+    function getSelectedWorkout(section) {
+      const workouts = safeArray(section?.workouts);
+      if (!workouts.length) return null;
+      if (uiState.workout === "all") return workouts[0];
+      return workouts.find((item) => item.id === uiState.workout || item.name === uiState.workout) || workouts[0];
+    }
+
+    function getSelectedCardioType(profile) {
+      const items = safeArray(profile?.interactiveData?.fitness?.cardioTypes);
+      if (!items.length) return null;
+      if (uiState.cardioType === "all") return items[0];
+      return items.find((item) => item.id === uiState.cardioType) || items[0];
+    }
+
+    function getSelectedHobby(profile) {
+      const items = safeArray(profile?.interactiveData?.hobbies?.hobbies);
+      if (!items.length) return null;
+      if (uiState.hobbyId === "all") return items[0];
+      return items.find((item) => item.id === uiState.hobbyId) || items[0];
+    }
+
+    function getSelectedHobbyStage(hobby) {
+      const items = safeArray(hobby?.stages);
+      if (!items.length) return null;
+      if (uiState.hobbyStageId === "all") return items[0];
+      return items.find((item) => item.id === uiState.hobbyStageId) || items[0];
+    }
+
+    function renderSparkline(series, label) {
+      const points = safeArray(series).filter((item) => Number.isFinite(Number(item?.y)));
+      if (!points.length) {
+        return `
+          <article class="chart-card">
+            <div class="chart-header">
+              <h4>${escapeHtml(label)}</h4>
+            </div>
+            <p class="meta">No data yet</p>
+          </article>
+        `;
+      }
+
+      const width = 340;
+      const height = 120;
+      const padding = 12;
+      const values = points.map((p) => Number(p.y));
+      const min = Math.min(...values);
+      const max = Math.max(...values);
+      const range = Math.max(max - min, 1);
+
+      const path = points
+        .map((point, index) => {
+          const x = padding + (index * (width - padding * 2)) / Math.max(points.length - 1, 1);
+          const y = height - padding - ((Number(point.y) - min) / range) * (height - padding * 2);
+          return `${index === 0 ? "M" : "L"} ${x} ${y}`;
+        })
+        .join(" ");
+
+      return `
+        <article class="chart-card">
+          <div class="chart-header">
+            <h4>${escapeHtml(label)}</h4>
+            <p class="meta">${escapeHtml(String(values[values.length - 1] ?? "—"))}</p>
+          </div>
+          <svg viewBox="0 0 ${width} ${height}" class="sparkline" role="img" aria-label="${escapeHtml(label)} trend">
+            <path d="${path}" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"></path>
+          </svg>
+          <div class="chart-axis-row">
+            <span>${escapeHtml(points[0]?.x || "")}</span>
+            <span>${escapeHtml(points[points.length - 1]?.x || "")}</span>
+          </div>
+        </article>
+      `;
+    }
+
+    function renderFitnessInteractive(profile) {
+      const fitness = safeObject(profile?.interactiveData?.fitness);
+      const sections = safeArray(fitness?.sections);
+      const section = getSelectedSection(profile);
+      const workout = getSelectedWorkout(section);
+      const cardioType = getSelectedCardioType(profile);
+
+      const sectionSummary = safeObject(section?.summaryByRange?.[uiState.range] || section?.summaryByRange?.all);
+      const cardioSummary = safeObject(cardioType?.summaryByRange?.[uiState.range] || cardioType?.summaryByRange?.all);
+
+      return `
+        ${renderMetricCards(safeArray(fitness?.overviewCards), "Fitness Overview", "High-level fitness summary")}
+
+        <section class="section">
+          <div class="section-header">
+            <div>
+              <h2 class="section-title">Weightlifting</h2>
+              <p class="section-subtitle">Choose a time range, body section, and workout to inspect trends</p>
+            </div>
+          </div>
+
+          <div class="control-grid">
+            <label class="field-group">
+              <span class="field-label">Time Range</span>
+              <select id="fitness-range" class="ui-select">
+                ${["7d", "30d", "90d", "6m", "1y", "all"].map((item) => `
+                  <option value="${item}" ${uiState.range === item ? "selected" : ""}>${item}</option>
+                `).join("")}
+              </select>
+            </label>
+
+            <label class="field-group">
+              <span class="field-label">Body Section</span>
+              <select id="fitness-section" class="ui-select">
+                <option value="all">Select a section</option>
+                ${sections.map((item) => `
+                  <option value="${escapeHtml(item.id)}" ${uiState.section === item.id ? "selected" : ""}>
+                    ${escapeHtml(item.label)}
+                  </option>
+                `).join("")}
+              </select>
+            </label>
+
+            <label class="field-group">
+              <span class="field-label">Workout</span>
+              <select id="fitness-workout" class="ui-select">
+                <option value="all">Select a workout</option>
+                ${safeArray(section?.workouts).map((item) => `
+                  <option value="${escapeHtml(item.id)}" ${uiState.workout === item.id ? "selected" : ""}>
+                    ${escapeHtml(item.name)}
+                  </option>
+                `).join("")}
+              </select>
+            </label>
+          </div>
+
+          <div class="grid two">
+            <article class="card summary-card">
+              <h3 class="card-title">Quick overview</h3>
+              <p><strong>Section:</strong> ${escapeHtml(section?.label || "No section selected")}</p>
+              <p><strong>Sessions in range:</strong> ${escapeHtml(String(sectionSummary?.totalSessions ?? 0))}</p>
+              <p><strong>Workouts this week:</strong> ${escapeHtml(String(sectionSummary?.workoutsThisWeek ?? 0))}</p>
+              <p class="meta">Even when nothing is loaded yet, the selectors still stay available.</p>
+            </article>
+
+            <article class="card summary-card">
+              <h3 class="card-title">Workout trend</h3>
+              <p><strong>Workout:</strong> ${escapeHtml(workout?.name || "No workout selected")}</p>
+              <p><strong>Weight Change:</strong> ${escapeHtml(String(workout?.trendSummary?.weightChange ?? 0))}</p>
+              <p><strong>Rep Change:</strong> ${escapeHtml(String(workout?.trendSummary?.repChange ?? 0))}</p>
+              <p><strong>Volume Change:</strong> ${escapeHtml(String(workout?.trendSummary?.volumeChange ?? 0))}</p>
+            </article>
+          </div>
+
+          <div class="grid three">
+            ${renderSparkline(workout?.chartSeries?.weight, "Weight")}
+            ${renderSparkline(workout?.chartSeries?.reps, "Reps")}
+            ${renderSparkline(workout?.chartSeries?.volume, "Volume")}
+          </div>
+        </section>
+
+        <section class="section">
+          <div class="section-header">
+            <div>
+              <h2 class="section-title">Cardio</h2>
+              <p class="section-subtitle">Pick a cardio type and inspect the stats that make sense for it</p>
+            </div>
+          </div>
+
+          <div class="control-grid">
+            <label class="field-group">
+              <span class="field-label">Cardio Type</span>
+              <select id="cardio-type" class="ui-select">
+                <option value="all">Select cardio type</option>
+                ${safeArray(fitness?.cardioTypes).map((item) => `
+                  <option value="${escapeHtml(item.id)}" ${uiState.cardioType === item.id ? "selected" : ""}>
+                    ${escapeHtml(item.label)}
+                  </option>
+                `).join("")}
+              </select>
+            </label>
+          </div>
+
+          <div class="grid two">
+            <article class="card summary-card">
+              <h3 class="card-title">Cardio summary</h3>
+              <p><strong>Type:</strong> ${escapeHtml(cardioType?.label || "No cardio selected")}</p>
+              <p><strong>Sessions in range:</strong> ${escapeHtml(String(cardioSummary?.totalSessions ?? 0))}</p>
+              <p><strong>Workouts this week:</strong> ${escapeHtml(String(cardioSummary?.workoutsThisWeek ?? 0))}</p>
+            </article>
+
+            <article class="card summary-card">
+              <h3 class="card-title">Recent sessions</h3>
+              ${safeArray(cardioType?.recentSessions).slice(0, 3).map((item) => `
+                <p>${escapeHtml(item?.title || "Session")} — ${escapeHtml(item?.date || "")}</p>
+              `).join("") || `<p class="meta">No recent sessions yet</p>`}
+            </article>
+          </div>
+
+          <div class="grid three">
+            ${safeArray(cardioType?.metrics).map((metric) => renderSparkline(metric?.chartSeries, metric?.label || "Metric")).join("")}
+          </div>
+        </section>
+      `;
+    }
+
+    function renderHobbies(profile) {
+      const hobbies = safeObject(profile?.interactiveData?.hobbies);
+      const hobby = getSelectedHobby(profile);
+      const stage = getSelectedHobbyStage(hobby);
+
+      return `
+        ${renderMetricCards(safeArray(hobbies?.overviewCards), "Hobby Overview", "Overall hobby progress and totals")}
+
+        <section class="section">
+          <div class="section-header">
+            <div>
+              <h2 class="section-title">Hobbies</h2>
+              <p class="section-subtitle">Weekly progress plus hobby and stage drilldown</p>
+            </div>
+          </div>
+
+          <div class="grid three">
+            <article class="profile-stat-card">
+              <p class="stat-card-label">Active Hobbies</p>
+              <h3 class="stat-card-value">${escapeHtml(String(hobbies?.weeklySummary?.activeHobbies ?? 0))}</h3>
+            </article>
+            <article class="profile-stat-card">
+              <p class="stat-card-label">Updates This Week</p>
+              <h3 class="stat-card-value">${escapeHtml(String(hobbies?.weeklySummary?.updatesThisWeek ?? 0))}</h3>
+            </article>
+            <article class="profile-stat-card">
+              <p class="stat-card-label">Stage Progress Total</p>
+              <h3 class="stat-card-value">${escapeHtml(String(hobbies?.weeklySummary?.stageProgressThisWeek ?? 0))}</h3>
+            </article>
+          </div>
+
+          <div class="control-grid">
+            <label class="field-group">
+              <span class="field-label">Hobby</span>
+              <select id="hobby-id" class="ui-select">
+                <option value="all">Select a hobby</option>
+                ${safeArray(hobbies?.hobbies).map((item) => `
+                  <option value="${escapeHtml(item.id)}" ${uiState.hobbyId === item.id ? "selected" : ""}>
+                    ${escapeHtml(item.name)}
+                  </option>
+                `).join("")}
+              </select>
+            </label>
+
+            <label class="field-group">
+              <span class="field-label">Stage</span>
+              <select id="hobby-stage-id" class="ui-select">
+                <option value="all">Select a stage</option>
+                ${safeArray(hobby?.stages).map((item) => `
+                  <option value="${escapeHtml(item.id)}" ${uiState.hobbyStageId === item.id ? "selected" : ""}>
+                    ${escapeHtml(item.name)}
+                  </option>
+                `).join("")}
+              </select>
+            </label>
+          </div>
+
+          <div class="grid two">
+            <article class="card summary-card">
+              <h3 class="card-title">${escapeHtml(hobby?.name || "Hobby")}</h3>
+              <p><strong>Status:</strong> ${escapeHtml(hobby?.status || "—")}</p>
+              <p><strong>Overall Progress:</strong> ${escapeHtml(String(hobby?.overallProgress ?? 0))}%</p>
+            </article>
+
+            <article class="card summary-card">
+              <h3 class="card-title">${escapeHtml(stage?.name || "Stage")}</h3>
+              <p><strong>Status:</strong> ${escapeHtml(stage?.status || "—")}</p>
+              <p><strong>Progress:</strong> ${escapeHtml(String(stage?.progress ?? 0))}%</p>
+              <p><strong>Target:</strong> ${escapeHtml(stage?.targetDate || "—")}</p>
+              ${stage?.update ? `<p>${escapeHtml(stage.update)}</p>` : ""}
+            </article>
+          </div>
+        </section>
       `;
     }
 
@@ -91,286 +403,25 @@ const username = Astro.params.username ?? "";
       `;
     }
 
-    function renderLegacyStats(items) {
-      if (!items.length) return "";
-      return `
-        <section class="section">
-          <div class="section-header">
-            <div>
-              <h2 class="section-title">Stats</h2>
-              <p class="section-subtitle">A quick snapshot across categories</p>
-            </div>
-          </div>
-          <div class="grid three">
-            ${items.map((item) => `
-              <article class="profile-stat-card">
-                <p class="stat-card-label">${escapeHtml(item?.label || "")}</p>
-                <h3 class="stat-card-value">${escapeHtml(item?.value || "")}</h3>
-                ${item?.description ? `<p class="stat-card-description">${escapeHtml(item.description)}</p>` : ""}
-              </article>
-            `).join("")}
-          </div>
-        </section>
-      `;
-    }
-
-    function renderMetricCards(items, title, subtitle) {
-      if (!items.length) return "";
-      return `
-        <section class="section">
-          <div class="section-header">
-            <div>
-              <h2 class="section-title">${escapeHtml(title)}</h2>
-              <p class="section-subtitle">${escapeHtml(subtitle)}</p>
-            </div>
-          </div>
-          <div class="grid three">
-            ${items.map((item) => `
-              <article class="profile-stat-card">
-                <p class="stat-card-label">${escapeHtml(item?.label || "")}</p>
-                <h3 class="stat-card-value">${escapeHtml(item?.value || "")}</h3>
-                ${item?.description ? `<p class="stat-card-description">${escapeHtml(item.description)}</p>` : ""}
-              </article>
-            `).join("")}
-          </div>
-        </section>
-      `;
-    }
-
-    function renderSectionComparison(sections) {
-      if (!sections.length) return "";
-      return `
-        <section class="section">
-          <div class="section-header">
-            <div>
-              <h2 class="section-title">Body Section Performance</h2>
-              <p class="section-subtitle">Compare lifting sections side by side</p>
-            </div>
-          </div>
-          <div class="grid three">
-            ${sections.map((section) => `
-              <article class="profile-stat-card section-comparison-card">
-                <p class="stat-card-label">${escapeHtml(section?.label || section?.section || "Section")}</p>
-                <h3 class="stat-card-value">${escapeHtml(section?.highlight || `${section?.totalWorkouts || 0} workouts`)}</h3>
-                <div class="mini-stat-list">
-                  <p><strong>Workouts:</strong> ${escapeHtml(section?.totalWorkouts ?? "0")}</p>
-                  <p><strong>Volume:</strong> ${escapeHtml(section?.totalVolume ?? "0")}</p>
-                  <p><strong>Avg Weight:</strong> ${escapeHtml(section?.avgWeight ?? "—")}</p>
-                  <p><strong>Avg Reps:</strong> ${escapeHtml(section?.avgReps ?? "—")}</p>
-                  <p><strong>Change:</strong> ${escapeHtml(section?.percentIncrease ?? "—")}</p>
-                  <p><strong>Last Trained:</strong> ${escapeHtml(section?.lastTrainedDate ?? "—")}</p>
-                </div>
-              </article>
-            `).join("")}
-          </div>
-        </section>
-      `;
-    }
-
-    function renderWorkoutDetail(workoutDetail) {
-      const bodySections = safeArray(workoutDetail?.sections);
-      if (!bodySections.length) return "";
-
-      return `
-        <section class="section">
-          <div class="section-header">
-            <div>
-              <h2 class="section-title">Workout Drilldown</h2>
-              <p class="section-subtitle">Section trends, specific workouts, and recent progress</p>
-            </div>
-          </div>
-
-          <div class="workout-detail-stack">
-            ${bodySections.map((section) => `
-              <article class="card detail-section-card">
-                <div class="section-header">
-                  <div>
-                    <h3 class="section-title">${escapeHtml(section?.label || section?.section || "Workout Section")}</h3>
-                    <p class="section-subtitle">${escapeHtml(section?.summary || "Workout performance and progress")}</p>
-                  </div>
-                </div>
-
-                <div class="grid two">
-                  ${safeArray(section?.workouts).map((workout) => `
-                    <article class="card nested-stat-card">
-                      <p class="meta">${escapeHtml(workout?.section || section?.label || "Workout")}</p>
-                      <h4 class="card-title">${escapeHtml(workout?.label || workout?.name || "Exercise")}</h4>
-                      <div class="mini-stat-list">
-                        <p><strong>Starting Weight:</strong> ${escapeHtml(workout?.startingWeight ?? "—")}</p>
-                        <p><strong>Current Weight:</strong> ${escapeHtml(workout?.currentWeight ?? "—")}</p>
-                        <p><strong>Starting Reps:</strong> ${escapeHtml(workout?.startingReps ?? "—")}</p>
-                        <p><strong>Current Reps:</strong> ${escapeHtml(workout?.currentReps ?? "—")}</p>
-                        <p><strong>Best Set:</strong> ${escapeHtml(workout?.bestSet ?? "—")}</p>
-                        <p><strong>Estimated 1RM:</strong> ${escapeHtml(workout?.estimatedOneRepMax ?? "—")}</p>
-                        <p><strong>Frequency:</strong> ${escapeHtml(workout?.frequency ?? "—")}</p>
-                        <p><strong>Weight Trend:</strong> ${escapeHtml(workout?.weightTrend ?? "—")}</p>
-                        <p><strong>Rep Trend:</strong> ${escapeHtml(workout?.repTrend ?? "—")}</p>
-                        <p><strong>Volume Trend:</strong> ${escapeHtml(workout?.volumeTrend ?? "—")}</p>
-                      </div>
-                    </article>
-                  `).join("")}
-                </div>
-              </article>
-            `).join("")}
-          </div>
-        </section>
-      `;
-    }
-
-    function renderCardioBreakdown(cardioDetail) {
-      const types = safeArray(cardioDetail?.types);
-      if (!types.length) return "";
-
-      return `
-        <section class="section">
-          <div class="section-header">
-            <div>
-              <h2 class="section-title">Cardio Breakdown</h2>
-              <p class="section-subtitle">By workout type with performance, volume, consistency, and adherence</p>
-            </div>
-          </div>
-
-          <div class="grid three">
-            ${types.map((type) => `
-              <article class="profile-stat-card cardio-type-card">
-                <p class="stat-card-label">${escapeHtml(type?.label || type?.type || "Cardio Type")}</p>
-                <h3 class="stat-card-value">${escapeHtml(type?.headlineValue || `${type?.totalSessions || 0} sessions`)}</h3>
-                <div class="mini-stat-list">
-                  <p><strong>Total Sessions:</strong> ${escapeHtml(type?.totalSessions ?? "0")}</p>
-                  <p><strong>Consistency:</strong> ${escapeHtml(type?.consistency ?? "—")}</p>
-                  <p><strong>Completion Rate:</strong> ${escapeHtml(type?.completionRate ?? "—")}</p>
-                  <p><strong>Last Workout:</strong> ${escapeHtml(type?.lastWorkout ?? "—")}</p>
-                  <p><strong>Core Metric:</strong> ${escapeHtml(type?.coreMetric ?? "—")}</p>
-                  <p><strong>Best Effort:</strong> ${escapeHtml(type?.bestEffort ?? "—")}</p>
-                  <p><strong>Improvement:</strong> ${escapeHtml(type?.improvement ?? "—")}</p>
-                  <p><strong>Total Volume:</strong> ${escapeHtml(type?.totalVolume ?? "—")}</p>
-                </div>
-              </article>
-            `).join("")}
-          </div>
-        </section>
-      `;
-    }
-
-    function renderRecentSessions(items, title, subtitle) {
-      if (!items.length) return "";
-      return `
-        <section class="section">
-          <div class="section-header">
-            <div>
-              <h2 class="section-title">${escapeHtml(title)}</h2>
-              <p class="section-subtitle">${escapeHtml(subtitle)}</p>
-            </div>
-          </div>
-          <div class="activity-stack">
-            ${items.map((item) => `
-              <article class="card content-card">
-                <h3 class="card-title">${escapeHtml(item?.title || item?.label || "Session")}</h3>
-                ${item?.date ? `<p class="meta">${escapeHtml(item.date)}</p>` : ""}
-                ${item?.summary ? `<p>${escapeHtml(item.summary)}</p>` : ""}
-                ${item?.href ? `<p class="top-gap-sm"><a href="${escapeHtml(item.href)}">Open</a></p>` : ""}
-              </article>
-            `).join("")}
-          </div>
-        </section>
-      `;
-    }
-
-    function renderFormattedStats(profile) {
-      const formatted = safeObject(profile?.formattedStats);
-      const settings = safeObject(profile?.statsDisplay);
-      const showOverview = settings?.showOverview !== false;
-      const showSections = settings?.showSections !== false;
-      const showWorkouts = settings?.showWorkouts !== false;
-      const showCardio = settings?.showCardio !== false;
-      const showRecent = settings?.showRecentSessions !== false;
-
-      const overview = safeArray(formatted?.overviewCards);
-      const fitnessOverview = safeArray(formatted?.fitnessOverviewCards);
-      const cardioOverview = safeArray(formatted?.cardioOverviewCards);
-      const hobbyOverview = safeArray(formatted?.hobbyOverviewCards);
-      const sectionComparison = safeArray(formatted?.fitnessSectionComparison);
-      const workoutDetail = safeObject(formatted?.fitnessWorkoutDetail);
-      const cardioDetail = safeObject(formatted?.cardioTypeBreakdown);
-      const recentLifting = safeArray(formatted?.recentWeightliftingSessions);
-      const recentCardio = safeArray(formatted?.recentCardioSessions);
-
-      return `
-        ${showOverview && overview.length ? renderMetricCards(overview, "Overview", "Fast profile summary for the selected ranges") : ""}
-        ${showOverview && fitnessOverview.length ? renderMetricCards(fitnessOverview, "Fitness Summary", "Workouts, volume, progress, and consistency") : ""}
-        ${showOverview && cardioOverview.length ? renderMetricCards(cardioOverview, "Cardio Summary", "Sessions, completion, favorite type, and activity trends") : ""}
-        ${showOverview && hobbyOverview.length ? renderMetricCards(hobbyOverview, "Hobby Summary", "Progress, activity, and hobby library totals") : ""}
-        ${showSections ? renderSectionComparison(sectionComparison) : ""}
-        ${showWorkouts ? renderWorkoutDetail(workoutDetail) : ""}
-        ${showCardio ? renderCardioBreakdown(cardioDetail) : ""}
-        ${showRecent && recentLifting.length ? renderRecentSessions(recentLifting, "Recent Weightlifting Sessions", "Latest saved weightlifting workouts") : ""}
-        ${showRecent && recentCardio.length ? renderRecentSessions(recentCardio, "Recent Cardio Sessions", "Latest saved cardio workouts") : ""}
-      `;
-    }
-
-    function renderPortfolioSection(title, items, category) {
-      if (!items.length) return "";
-
-      return `
-        <section class="portfolio-block" data-section="${escapeHtml(category)}">
-          <div class="section-header">
-            <div>
-              <h3 class="section-title">${escapeHtml(title)}</h3>
-              <p class="section-subtitle">${items.length} public item(s)</p>
-            </div>
-          </div>
-          <div class="grid two portfolio-group">
-            ${items.map((item) => `
-              <article class="card portfolio-public-card" data-category="${escapeHtml(category)}">
-                <p class="meta">${escapeHtml(item?.profileCategory || category)}</p>
-                <h4 class="card-title">${escapeHtml(item?.title || "Untitled")}</h4>
-                ${item?.subtitle ? `<p class="meta">${escapeHtml(item.subtitle)}</p>` : ""}
-                ${item?.description ? `<p>${escapeHtml(item.description)}</p>` : item?.body ? `<p>${escapeHtml(item.body)}</p>` : ""}
-                ${item?.impact ? `<p><strong>Impact:</strong> ${escapeHtml(item.impact)}</p>` : ""}
-                ${item?.link ? `<p class="top-gap-sm"><a href="${escapeHtml(item.link)}" target="_blank" rel="noreferrer">Open link</a></p>` : ""}
-              </article>
-            `).join("")}
-          </div>
-        </section>
-      `;
-    }
-
-    function renderPortfolio(portfolio, filters) {
-      const sections = [];
-
-      if (filters?.showProjects) sections.push(renderPortfolioSection("Projects", safeArray(portfolio?.projects), "projects"));
-      if (filters?.showExperience) sections.push(renderPortfolioSection("Experience", safeArray(portfolio?.experience), "experience"));
-      if (filters?.showSchool) sections.push(renderPortfolioSection("School", safeArray(portfolio?.school), "school"));
-      if (filters?.showStats) sections.push(renderPortfolioSection("Portfolio Stats", safeArray(portfolio?.stats), "stats"));
-      if (filters?.showTimeline) sections.push(renderPortfolioSection("Timeline", safeArray(portfolio?.timelineItems), "timeline"));
-      if (filters?.showRecommendations) sections.push(renderPortfolioSection("Recommendations", safeArray(portfolio?.recommendations), "recommendations"));
-      if (filters?.showStar) sections.push(renderPortfolioSection("STAR", safeArray(portfolio?.star), "star"));
-
-      if (!sections.length) return "";
+    function renderPortfolio(profile) {
+      if (profile?.portfolioMode !== "link") {
+        return "";
+      }
 
       return `
         <section class="section">
           <div class="section-header">
             <div>
               <h2 class="section-title">Portfolio</h2>
-              <p class="section-subtitle">Public work, experience, and highlights</p>
+              <p class="section-subtitle">Open the full portfolio in its dedicated page</p>
             </div>
           </div>
-
-          <div class="profile-filter-row">
-            <button type="button" class="profile-filter-btn is-active" data-filter="all">All</button>
-            <button type="button" class="profile-filter-btn" data-filter="projects">Projects</button>
-            <button type="button" class="profile-filter-btn" data-filter="experience">Experience</button>
-            <button type="button" class="profile-filter-btn" data-filter="school">School</button>
-            <button type="button" class="profile-filter-btn" data-filter="stats">Stats</button>
-            <button type="button" class="profile-filter-btn" data-filter="timeline">Timeline</button>
-            <button type="button" class="profile-filter-btn" data-filter="recommendations">Recommendations</button>
-            <button type="button" class="profile-filter-btn" data-filter="star">STAR</button>
-          </div>
-
-          <div class="portfolio-stack">
-            ${sections.join("")}
-          </div>
+          <article class="card content-card">
+            <p>This profile uses portfolio link mode instead of rendering portfolio cards here.</p>
+            <p class="top-gap-sm">
+              <a class="portfolio-link-btn" href="${escapeHtml(profile?.portfolioLink || "/career/portfolio")}">Open Portfolio</a>
+            </p>
+          </article>
         </section>
       `;
     }
@@ -417,13 +468,10 @@ const username = Astro.params.username ?? "";
 
     function renderProfile(profile) {
       const badges = safeArray(profile?.badges);
-      const stats = safeArray(profile?.stats);
       const pinned = safeArray(profile?.pinned);
       const activity = safeArray(profile?.activity);
-      const portfolio = profile?.portfolio || {};
       const visibility = profile?.visibility || {};
-      const filters = profile?.portfolioFilters || {};
-      const hasFormattedStats = safeObject(profile?.statsDisplay)?.autoFormatted !== false && safeObject(profile?.formattedStats);
+      const displayConfig = safeObject(profile?.displayConfig);
 
       root.innerHTML = `
         <section class="section">
@@ -457,32 +505,47 @@ const username = Astro.params.username ?? "";
         </section>
 
         ${renderPinned(pinned)}
-        ${visibility.stats !== false ? (profile?.formattedStats ? renderFormattedStats(profile) : renderLegacyStats(stats)) : ""}
-        ${visibility.portfolio !== false ? renderPortfolio(portfolio, filters) : ""}
+        ${visibility.stats !== false ? renderFitnessInteractive(profile) : ""}
+        ${visibility.stats !== false ? renderHobbies(profile) : ""}
+        ${visibility.portfolio !== false ? renderPortfolio(profile) : ""}
         ${visibility.achievements !== false ? renderAchievements(badges) : ""}
         ${visibility.activity !== false ? renderActivity(activity) : ""}
       `;
 
-      bindPortfolioFilters();
+      bindControls(profile, displayConfig);
     }
 
-    function bindPortfolioFilters() {
-      const buttons = root.querySelectorAll(".profile-filter-btn");
-      const blocks = root.querySelectorAll(".portfolio-block");
+    function bindControls(profile) {
+      root.querySelector("#fitness-range")?.addEventListener("change", (event) => {
+        uiState.range = event.target.value;
+        renderProfile(profile);
+      });
 
-      buttons.forEach((button) => {
-        button.addEventListener("click", () => {
-          const filter = button.getAttribute("data-filter") || "all";
+      root.querySelector("#fitness-section")?.addEventListener("change", (event) => {
+        uiState.section = event.target.value;
+        uiState.workout = "all";
+        renderProfile(profile);
+      });
 
-          buttons.forEach((btn) => btn.classList.remove("is-active"));
-          button.classList.add("is-active");
+      root.querySelector("#fitness-workout")?.addEventListener("change", (event) => {
+        uiState.workout = event.target.value;
+        renderProfile(profile);
+      });
 
-          blocks.forEach((block) => {
-            const category = block.getAttribute("data-section");
-            const show = filter === "all" || filter === category;
-            block.style.display = show ? "" : "none";
-          });
-        });
+      root.querySelector("#cardio-type")?.addEventListener("change", (event) => {
+        uiState.cardioType = event.target.value;
+        renderProfile(profile);
+      });
+
+      root.querySelector("#hobby-id")?.addEventListener("change", (event) => {
+        uiState.hobbyId = event.target.value;
+        uiState.hobbyStageId = "all";
+        renderProfile(profile);
+      });
+
+      root.querySelector("#hobby-stage-id")?.addEventListener("change", (event) => {
+        uiState.hobbyStageId = event.target.value;
+        renderProfile(profile);
       });
     }
 
@@ -505,7 +568,17 @@ const username = Astro.params.username ?? "";
           return;
         }
 
-        renderProfile(payload.profile);
+        currentProfile = payload.profile;
+        const defaults = safeObject(currentProfile?.displayConfig);
+
+        uiState.range = defaults?.defaultRange || "30d";
+        uiState.section = defaults?.defaultSection || "all";
+        uiState.workout = defaults?.defaultWorkout || "all";
+        uiState.cardioType = defaults?.defaultCardioType || "all";
+        uiState.hobbyId = defaults?.defaultHobbyId || "all";
+        uiState.hobbyStageId = defaults?.defaultHobbyStageId || "all";
+
+        renderProfile(currentProfile);
       } catch (error) {
         console.error(error);
         renderEmpty("Something went wrong while loading this profile.");
@@ -604,63 +677,64 @@ const username = Astro.params.username ?? "";
       line-height: 1.6;
     }
 
-    .profile-stat-card {
+    .profile-stat-card,
+    .chart-card,
+    .summary-card {
       border-radius: 20px;
       padding: 1rem 1.1rem;
       background: rgba(255,255,255,0.76);
       border: 1px solid rgba(15, 23, 42, 0.08);
     }
 
-    .portfolio-stack,
-    .workout-detail-stack {
-      display: grid;
-      gap: 1.5rem;
+    .chart-card {
+      color: #2f5d62;
     }
 
-    .portfolio-block,
-    .detail-section-card {
+    .chart-header,
+    .control-grid {
       display: grid;
       gap: 1rem;
     }
 
-    .nested-stat-card {
-      background: rgba(248, 250, 252, 0.85);
-    }
-
-    .mini-stat-list {
-      display: grid;
-      gap: 0.35rem;
-      color: #475569;
-      font-size: 0.95rem;
-    }
-
-    .mini-stat-list p {
-      margin: 0;
-    }
-
-    .profile-filter-row {
-      display: flex;
-      gap: 0.65rem;
-      overflow-x: auto;
-      padding-bottom: 0.2rem;
+    .control-grid {
+      grid-template-columns: repeat(3, minmax(0, 1fr));
       margin-bottom: 1rem;
     }
 
-    .profile-filter-btn,
-    .profile-badge {
-      border: 1px solid rgba(15, 23, 42, 0.08);
-      background: rgba(255,255,255,0.82);
-      border-radius: 999px;
-      padding: 0.65rem 0.95rem;
-      font: inherit;
-      white-space: nowrap;
+    .field-group {
+      display: grid;
+      gap: 0.45rem;
     }
 
-    .profile-filter-btn.is-active {
-      border-color: #2f5d62;
-      color: #2f5d62;
+    .field-label {
+      font-size: 0.92rem;
       font-weight: 700;
-      background: rgba(47, 93, 98, 0.08);
+      color: #334155;
+    }
+
+    .ui-select {
+      width: 100%;
+      border-radius: 14px;
+      border: 1px solid rgba(15, 23, 42, 0.1);
+      background: rgba(255, 255, 255, 0.9);
+      padding: 0.85rem 1rem;
+      font: inherit;
+      color: #0f172a;
+    }
+
+    .sparkline {
+      width: 100%;
+      height: 120px;
+      display: block;
+      margin-top: 0.5rem;
+    }
+
+    .chart-axis-row {
+      display: flex;
+      justify-content: space-between;
+      font-size: 0.8rem;
+      color: #64748b;
+      margin-top: 0.35rem;
     }
 
     .badge-row,
@@ -670,8 +744,24 @@ const username = Astro.params.username ?? "";
       gap: 0.75rem;
     }
 
-    .content-card {
-      min-height: 100%;
+    .profile-badge {
+      border: 1px solid rgba(15, 23, 42, 0.08);
+      background: rgba(255,255,255,0.82);
+      border-radius: 999px;
+      padding: 0.65rem 0.95rem;
+      white-space: nowrap;
+    }
+
+    .portfolio-link-btn {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      border-radius: 999px;
+      padding: 0.8rem 1.1rem;
+      background: #2f5d62;
+      color: white;
+      text-decoration: none;
+      font-weight: 700;
     }
 
     .empty-profile-card {
@@ -681,6 +771,12 @@ const username = Astro.params.username ?? "";
 
     .top-gap-sm {
       margin-top: 0.65rem;
+    }
+
+    @media (max-width: 900px) {
+      .control-grid {
+        grid-template-columns: 1fr;
+      }
     }
 
     @media (max-width: 720px) {

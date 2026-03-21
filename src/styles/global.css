@@ -1419,8 +1419,7 @@ img {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  font-weight: 700;
-  background: linear-gradient(180deg, #fffdfa 0%, #f5ede4 100%);
+  font-weight: 700; 
 }
 
 .dropdown-summary::-webkit-details-marker {
@@ -2850,21 +2849,38 @@ img {
   justify-content: space-between;
   gap: 1rem;
   padding: 1rem 1.1rem;
-  margin: 0;
-  background: linear-gradient(180deg, #fffdfa 0%, #f5ede4 100%);
+  margin: 0; 
 }
 
 .dropdown-card > summary::-webkit-details-marker {
   display: none;
 }
 
+.dropdown-summary::after {
+  color: var(--muted);
+}
+
 .dropdown-card > .dropdown-content {
-  padding: 1rem;
   border-top: 1px solid var(--line);
 }
 
 .dropdown-card:not([open]) > .dropdown-content {
   display: none;
+}
+
+.dropdown-card,
+.dropdown-card[open] {
+  background: var(--surface);
+}
+
+.dropdown-summary,
+.dropdown-card > summary {
+  background: var(--surface);
+  background-image: none;
+  box-shadow: none;
+  border: none;
+  appearance: none;
+  -webkit-appearance: none;
 }
 
 .editor-toolbar {
