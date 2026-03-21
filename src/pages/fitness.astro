@@ -313,7 +313,8 @@ const defaultWeeklySplit = JSON.stringify(weeklySplit);
 
           left.appendChild(input);
         } else {
-          const text = document.createElement("span");
+          const text = document.createElement("div");
+          text.className = "routine-static-text";
           text.textContent = itemText;
           left.appendChild(text);
         }
@@ -429,8 +430,17 @@ const defaultWeeklySplit = JSON.stringify(weeklySplit);
       margin-bottom: 0.85rem;
     }
 
+    .editable-list {
+      display: flex;
+      flex-direction: column;
+      gap: 0.85rem;
+      padding: 0;
+      margin: 0;
+      list-style: none;
+    }
+
     .routine-item {
-      margin-bottom: 0.75rem;
+      margin-bottom: 0;
     }
 
     .routine-row {
@@ -453,7 +463,8 @@ const defaultWeeklySplit = JSON.stringify(weeklySplit);
       min-width: 0;
     }
 
-    .routine-inline-input {
+    .routine-inline-input,
+    .routine-static-text {
       width: 100%;
       border: 1px solid var(--border-color, #d9d9d9);
       border-radius: 12px;
@@ -461,6 +472,18 @@ const defaultWeeklySplit = JSON.stringify(weeklySplit);
       background: var(--card-background, #fff);
       color: inherit;
       font: inherit;
+      line-height: 1.45;
+      box-sizing: border-box;
+    }
+
+    .routine-inline-input {
+      min-height: 48px;
+    }
+
+    .routine-static-text {
+      min-height: 48px;
+      display: flex;
+      align-items: center;
     }
 
     .routine-actions-group {

@@ -34,11 +34,16 @@ const defaultMorals = JSON.stringify(morals);
       </div>
     </div>
 
-    <div class="grid two">
+    <div class="grid two quick-links-grid">
       {navCards.map((card) => (
-        <a href={card.href} class="link-card">
-          <h3>{card.title}</h3>
-          <p>{card.text}</p>
+        <a href={card.href} class="link-card quick-link-card">
+          <div class="quick-link-card-inner">
+            <div class="quick-link-copy">
+              <h3>{card.title}</h3>
+              <p>{card.text}</p>
+            </div>
+            <span class="quick-link-arrow" aria-hidden="true">→</span>
+          </div>
         </a>
       ))}
     </div>
@@ -400,4 +405,78 @@ const defaultMorals = JSON.stringify(morals);
 
     init();
   </script>
+
+  <style>
+    .quick-links-grid {
+      align-items: stretch;
+    }
+
+    .quick-link-card {
+      display: block;
+      text-decoration: none;
+      color: inherit;
+      height: 100%;
+      border-radius: 1.35rem;
+      overflow: hidden;
+    }
+
+    .quick-link-card-inner {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 1rem;
+      min-height: 124px;
+      height: 100%;
+      padding: 1.15rem 1.2rem;
+      border-radius: inherit;
+    }
+
+    .quick-link-copy {
+      min-width: 0;
+      flex: 1 1 auto;
+    }
+
+    .quick-link-copy h3 {
+      margin: 0 0 0.45rem 0;
+      line-height: 1.15;
+    }
+
+    .quick-link-copy p {
+      margin: 0;
+      line-height: 1.45;
+    }
+
+    .quick-link-arrow {
+      flex: 0 0 auto;
+      width: 2.5rem;
+      height: 2.5rem;
+      border-radius: 999px;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 1.1rem;
+      font-weight: 700;
+      background: rgba(255, 255, 255, 0.08);
+      border: 1px solid rgba(255, 255, 255, 0.12);
+      transition: transform 0.18s ease, background 0.18s ease;
+    }
+
+    .quick-link-card:hover .quick-link-arrow,
+    .quick-link-card:focus-visible .quick-link-arrow {
+      transform: translateX(3px);
+      background: rgba(255, 255, 255, 0.14);
+    }
+
+    @media (max-width: 720px) {
+      .quick-link-card-inner {
+        min-height: 110px;
+        padding: 1rem;
+      }
+
+      .quick-link-arrow {
+        width: 2.25rem;
+        height: 2.25rem;
+      }
+    }
+  </style>
 </BaseLayout>
