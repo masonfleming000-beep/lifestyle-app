@@ -47,8 +47,27 @@ const defaultRecentSessions = JSON.stringify(recentSessions);
   </div>
 
   <section class="section">
+    <details class="dropdown-card">
+      <summary>
+        <div>
+          <p class="kicker">Cardio</p>
+          <h2 class="section-title">Recent Sessions</h2>
+          <p class="section-subtitle">
+            Saved cardio workouts from your workout builder.
+          </p>
+        </div>
+        <span class="dropdown-arrow">⌄</span>
+      </summary>
+
+      <div class="dropdown-content">
+        <div id="saved-cardio-sessions"></div>
+      </div>
+    </details>
+  </section>
+
+  <section class="section">
     <div class="grid two">
-      <details class="dropdown-card" open>
+      <details class="dropdown-card">
         <summary>
           <div>
             <p class="kicker">Cardio</p>
@@ -89,20 +108,8 @@ const defaultRecentSessions = JSON.stringify(recentSessions);
   </section>
 
   <section class="section">
-    <article class="card">
-      <div class="section-header">
-        <div>
-          <h2 class="section-title">Recent Sessions</h2>
-          <p class="section-subtitle">Saved cardio workouts from your workout builder.</p>
-        </div>
-      </div>
-      <div id="saved-cardio-sessions"></div>
-    </article>
-  </section>
-
-  <section class="section">
     <div class="grid two">
-      <details class="dropdown-card" open>
+      <details class="dropdown-card">
         <summary>
           <div>
             <p class="kicker">Checklist</p>
@@ -1011,6 +1018,15 @@ const defaultRecentSessions = JSON.stringify(recentSessions);
                         ${session.metrics.totalDistance ? `<p><strong>Total Distance:</strong> ${session.metrics.totalDistance} mi</p>` : ""}
                         ${session.metrics.totalTimeDisplay ? `<p><strong>Total Time:</strong> ${session.metrics.totalTimeDisplay}</p>` : ""}
                         ${session.metrics.averagePaceDisplay ? `<p><strong>Average Pace:</strong> ${session.metrics.averagePaceDisplay}</p>` : ""}
+                        ${session.metrics.fastestSplitDisplay ? `<p><strong>Fastest Split:</strong> ${session.metrics.fastestSplitDisplay}</p>` : ""}
+                        ${session.metrics.slowestSplitDisplay ? `<p><strong>Slowest Split:</strong> ${session.metrics.slowestSplitDisplay}</p>` : ""}
+                        ${session.metrics.tempoPaceDisplay ? `<p><strong>Tempo Pace:</strong> ${session.metrics.tempoPaceDisplay}</p>` : ""}
+                        ${session.metrics.averageSprintTimeDisplay ? `<p><strong>Average Sprint Time:</strong> ${session.metrics.averageSprintTimeDisplay}</p>` : ""}
+                        ${session.metrics.fastestSprintDisplay ? `<p><strong>Fastest Sprint:</strong> ${session.metrics.fastestSprintDisplay}</p>` : ""}
+                        ${session.metrics.workRestRatio ? `<p><strong>Work / Rest Ratio:</strong> ${session.metrics.workRestRatio}</p>` : ""}
+                        ${session.metrics.averageWatts ? `<p><strong>Average Watts:</strong> ${session.metrics.averageWatts}</p>` : ""}
+                        ${session.metrics.maxWatts ? `<p><strong>Max Watts:</strong> ${session.metrics.maxWatts}</p>` : ""}
+                        ${session.metrics.completionPercent ? `<p><strong>Completion:</strong> ${session.metrics.completionPercent}%</p>` : ""}
                       </div>
                     `
                     : ""

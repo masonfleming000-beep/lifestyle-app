@@ -47,6 +47,30 @@ function buildCardioMetricsFromSession(session: any) {
   addMetric("duration", "Duration", saved?.totalTimeMinutes);
   addMetric("pace", "Pace", saved?.averagePaceMinutes);
 
+  addMetric("tempoDistance", "Tempo Distance", saved?.tempoDistance);
+  addMetric("tempoDuration", "Tempo Duration", saved?.tempoTimeMinutes);
+
+  addMetric("completedSplits", "Completed Splits", saved?.completedSplits);
+  addMetric("completedSprints", "Completed Sprints", saved?.completedSprints);
+  addMetric("completedIntervals", "Completed Intervals", saved?.completedIntervals);
+  addMetric("completedCycles", "Completed Cycles", saved?.completedCycles);
+  addMetric("completedHillReps", "Completed Hill Reps", saved?.completedHillReps);
+  addMetric("completedPowerIntervals", "Completed Power Intervals", saved?.completedPowerIntervals);
+
+  addMetric("sprintDistance", "Sprint Distance", saved?.totalSprintDistance);
+  addMetric("sprintDuration", "Sprint Duration", saved?.totalSprintTimeMinutes);
+  addMetric("hillDistance", "Hill Distance", saved?.totalHillDistance);
+
+  addMetric("averageWatts", "Average Watts", saved?.averageWatts);
+  addMetric("maxWatts", "Max Watts", saved?.maxWatts);
+  addMetric("minWatts", "Min Watts", saved?.minWatts);
+
+  addMetric("completionPercent", "Completion %", saved?.completionPercent);
+  addMetric("heartRate", "Heart Rate", saved?.heartRate);
+  addMetric("calories", "Calories", saved?.calories);
+  addMetric("cadence", "Cadence", saved?.cadence);
+  addMetric("elevationGain", "Elevation Gain", saved?.elevationGain);
+
   if (metrics.length) return metrics;
 
   for (const step of safeArray(session?.steps)) {
@@ -555,20 +579,18 @@ function buildFitnessInteractive(fitnessHistory: any, profileStats: any) {
     const entry = cardioTypeMap.get(type)!;
     entry.sessions.push(session);
 
-    for (const step of safeArray(session?.steps)) {
-      const metrics = buildCardioMetricsFromSession(session);
+    const metrics = buildCardioMetricsFromSession(session);
 
-      for (const metric of metrics) {
-        if (!entry.metricBuckets.has(metric.key)) {
-          entry.metricBuckets.set(metric.key, []);
-        }
-
-        entry.metricBuckets.get(metric.key)!.push({
-          date: session?.dateTime || "",
-          value: metric.value,
-          label: metric.label,
-        });
+    for (const metric of metrics) {
+      if (!entry.metricBuckets.has(metric.key)) {
+        entry.metricBuckets.set(metric.key, []);
       }
+
+      entry.metricBuckets.get(metric.key)!.push({
+        date: session?.dateTime || "",
+        value: metric.value,
+        label: metric.label,
+      });
     }
   }
 

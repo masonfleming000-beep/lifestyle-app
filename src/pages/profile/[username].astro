@@ -131,6 +131,15 @@ const username = Astro.params.username ?? "";
       return items.find((item) => item.id === uiState.hobbyStageId) || items[0];
     }
 
+    function formatChartValue(value) {
+      const num = Number(value);
+      if (!Number.isFinite(num)) return "";
+
+      if (Math.abs(num) >= 100) return String(Math.round(num));
+      if (Math.abs(num) >= 10) return num.toFixed(1);
+      return num.toFixed(2);
+    }
+
     function renderSparkline(series, label) {
       const points = safeArray(series).filter((item) => Number.isFinite(Number(item?.y)));
 
@@ -146,31 +155,41 @@ const username = Astro.params.username ?? "";
       }
 
       const width = 340;
-      const height = 140;
-      const padding = 18;
+      const height = 160;
+      const paddingLeft = 42;
+      const paddingRight = 18;
+      const paddingTop = 18;
+      const paddingBottom = 24;
+
       const values = points.map((p) => Number(p.y));
       const min = Math.min(...values);
       const max = Math.max(...values);
       const range = Math.max(max - min, 1);
 
-      const normalizedPoints = points.map((point, index) => {
-        const x =
-          points.length === 1
-            ? width / 2
-            : padding + (index * (width - padding * 2)) / Math.max(points.length - 1, 1);
+      const yTop = max;
+      const yMid = min + range / 2;
+      const yBottom = min;
 
-        const y =
+      function getX(index) {
+        return points.length === 1
+          ? (width - paddingLeft - paddingRight) / 2 + paddingLeft
+          : paddingLeft + (index * (width - paddingLeft - paddingRight)) / Math.max(points.length - 1, 1);
+      }
+
+      function getY(value) {
+        return (
           height -
-          padding -
-          ((Number(point.y) - min) / range) * (height - padding * 2);
+          paddingBottom -
+          ((value - min) / range) * (height - paddingTop - paddingBottom)
+        );
+      }
 
-        return {
-          x,
-          y,
-          rawX: point.x,
-          rawY: Number(point.y),
-        };
-      });
+      const normalizedPoints = points.map((point, index) => ({
+        x: getX(index),
+        y: getY(Number(point.y)),
+        rawX: point.x,
+        rawY: Number(point.y),
+      }));
 
       const path = normalizedPoints
         .map((point, index) => `${index === 0 ? "M" : "L"} ${point.x} ${point.y}`)
@@ -179,34 +198,45 @@ const username = Astro.params.username ?? "";
       const firstValue = values[0];
       const lastValue = values[values.length - 1];
       const delta = lastValue - firstValue;
-      const deltaText = `${delta > 0 ? "+" : ""}${delta}`;
+      const deltaText = `${delta > 0 ? "+" : ""}${formatChartValue(delta)}`;
 
-      const midY = height / 2;
+      const topLineY = getY(yTop);
+      const midLineY = getY(yMid);
+      const bottomLineY = getY(yBottom);
 
       return `
         <article class="chart-card">
           <div class="chart-header">
             <div>
               <h4>${escapeHtml(label)}</h4>
-              <p class="meta">Latest: ${escapeHtml(String(lastValue))}</p>
+              <p class="meta">Latest: ${escapeHtml(formatChartValue(lastValue))}</p>
             </div>
             <p class="meta">Change: ${escapeHtml(deltaText)}</p>
           </div>
 
           <svg viewBox="0 0 ${width} ${height}" class="sparkline" role="img" aria-label="${escapeHtml(label)} trend">
-            <line x1="${padding}" y1="${midY}" x2="${width - padding}" y2="${midY}" class="chart-grid-line"></line>
-            <line x1="${padding}" y1="${padding}" x2="${padding}" y2="${height - padding}" class="chart-grid-line"></line>
+            <line x1="${paddingLeft}" y1="${topLineY}" x2="${width - paddingRight}" y2="${topLineY}" class="chart-grid-line"></line>
+            <line x1="${paddingLeft}" y1="${midLineY}" x2="${width - paddingRight}" y2="${midLineY}" class="chart-grid-line"></line>
+            <line x1="${paddingLeft}" y1="${bottomLineY}" x2="${width - paddingRight}" y2="${bottomLineY}" class="chart-grid-line"></line>
+            <line x1="${paddingLeft}" y1="${paddingTop}" x2="${paddingLeft}" y2="${height - paddingBottom}" class="chart-grid-line"></line>
+
+            <text x="${paddingLeft - 6}" y="${topLineY + 4}" text-anchor="end" class="chart-axis-label">${escapeHtml(formatChartValue(yTop))}</text>
+            <text x="${paddingLeft - 6}" y="${midLineY + 4}" text-anchor="end" class="chart-axis-label">${escapeHtml(formatChartValue(yMid))}</text>
+            <text x="${paddingLeft - 6}" y="${bottomLineY + 4}" text-anchor="end" class="chart-axis-label">${escapeHtml(formatChartValue(yBottom))}</text>
 
             ${
               normalizedPoints.length === 1
-                ? `<circle cx="${normalizedPoints[0].x}" cy="${normalizedPoints[0].y}" r="4" class="chart-point"></circle>`
+                ? `<circle cx="${normalizedPoints[0].x}" cy="${normalizedPoints[0].y}" r="4" class="chart-point">
+                    <title>${escapeHtml(String(normalizedPoints[0].rawX))}: ${escapeHtml(formatChartValue(normalizedPoints[0].rawY))}</title>
+                  </circle>`
                 : `<path d="${path}" fill="none" class="chart-line"></path>
                   ${normalizedPoints
                     .map(
-                      (point) =>
-                        `<circle cx="${point.x}" cy="${point.y}" r="3.5" class="chart-point">
-                            <title>${escapeHtml(String(point.rawX))}: ${escapeHtml(String(point.rawY))}</title>
-                          </circle>`
+                      (point) => `
+                        <circle cx="${point.x}" cy="${point.y}" r="3.5" class="chart-point">
+                          <title>${escapeHtml(String(point.rawX))}: ${escapeHtml(formatChartValue(point.rawY))}</title>
+                        </circle>
+                      `
                     )
                     .join("")}`
             }
@@ -214,8 +244,6 @@ const username = Astro.params.username ?? "";
 
           <div class="chart-axis-row">
             <span>${escapeHtml(points[0]?.x || "")}</span>
-            <span>min ${escapeHtml(String(min))}</span>
-            <span>max ${escapeHtml(String(max))}</span>
             <span>${escapeHtml(points[points.length - 1]?.x || "")}</span>
           </div>
         </article>

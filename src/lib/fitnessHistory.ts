@@ -44,6 +44,61 @@ export type CardioSession = {
     averagePaceMinutes?: number;
     averagePaceDisplay?: string;
     totalTimeDisplay?: string;
+
+    fastestSplitDisplay?: string;
+    slowestSplitDisplay?: string;
+    averageSplitTimeDisplay?: string;
+    completedSplits?: number;
+    completionPercent?: number;
+
+    tempoDistance?: number;
+    tempoTimeMinutes?: number;
+    tempoTimeDisplay?: string;
+    tempoPaceDisplay?: string;
+    warmupPaceDisplay?: string;
+    cooldownPaceDisplay?: string;
+    fastestTempoSplitDisplay?: string;
+    slowestTempoSplitDisplay?: string;
+
+    completedSprints?: number;
+    totalSprintDistance?: number;
+    totalSprintTimeMinutes?: number;
+    totalSprintTimeDisplay?: string;
+    averageSprintTimeDisplay?: string;
+    fastestSprintDisplay?: string;
+    slowestSprintDisplay?: string;
+    averageSprintPaceDisplay?: string;
+    totalRecoveryDistance?: number;
+    workRestRatio?: string;
+
+    completedIntervals?: number;
+    totalWorkTimeDisplay?: string;
+    totalRestTimeDisplay?: string;
+    totalSessionTimeDisplay?: string;
+    averageWorkIntervalDisplay?: string;
+    averageRestIntervalDisplay?: string;
+
+    completedCycles?: number;
+    totalHardTimeDisplay?: string;
+    totalEasyTimeDisplay?: string;
+    hardEasyRatio?: string;
+    averageHardSegmentDisplay?: string;
+    averageEasySegmentDisplay?: string;
+
+    completedHillReps?: number;
+    totalUphillTimeDisplay?: string;
+    totalRecoveryTimeDisplay?: string;
+    averageUphillRepDisplay?: string;
+    fastestUphillRepDisplay?: string;
+    slowestUphillRepDisplay?: string;
+    totalHillDistance?: number;
+    averageUphillPaceDisplay?: string;
+
+    completedPowerIntervals?: number;
+    averageWatts?: number;
+    maxWatts?: number;
+    minWatts?: number;
+
     calories?: number;
     heartRate?: number;
     elevationGain?: number;

@@ -259,31 +259,113 @@ import BaseLayout from "../../layouts/BaseLayout.astro";
       window.alert("Splits and completed step times saved.");
     }
     function getManualMetricFieldsForWorkout(type) {
-      if (["steady", "recovery", "longrun", "tempo"].includes(type)) {
+      const common = [
+        { name: "calories", label: "Calories" },
+        { name: "heartRate", label: "Average Heart Rate (bpm)" },
+      ];
+
+      if (["steady", "recovery", "longrun"].includes(type)) {
         return [
           { name: "totalDistance", label: "Total Distance (miles)" },
-          { name: "totalTimeDisplay", label: "Total Time (ex: 42:18)" },
-          { name: "averagePaceDisplay", label: "Average Pace (ex: 8:28 / mile)" },
-          { name: "calories", label: "Calories" },
-          { name: "heartRate", label: "Average Heart Rate (bpm)" },
-        ];
-      }
-
-      if (["intervals", "hiit", "fartlek", "hill", "power"].includes(type)) {
-        return [
           { name: "totalTimeDisplay", label: "Total Time" },
-          { name: "totalDistance", label: "Total Distance" },
-          { name: "calories", label: "Calories" },
-          { name: "heartRate", label: "Average Heart Rate (bpm)" },
+          { name: "averagePaceDisplay", label: "Average Pace" },
+          { name: "fastestSplitDisplay", label: "Fastest Split" },
+          { name: "slowestSplitDisplay", label: "Slowest Split" },
+          { name: "completedSplits", label: "Completed Splits" },
+          { name: "completionPercent", label: "Completion Percent" },
+          ...common,
         ];
       }
 
-      return [
-        { name: "totalTimeDisplay", label: "Total Time" },
-        { name: "totalDistance", label: "Total Distance" },
-      ];
-    }
+      if (type === "tempo") {
+        return [
+          { name: "totalDistance", label: "Total Distance (miles)" },
+          { name: "totalTimeDisplay", label: "Total Time" },
+          { name: "averagePaceDisplay", label: "Average Pace" },
+          { name: "tempoDistance", label: "Tempo Distance (miles)" },
+          { name: "tempoTimeDisplay", label: "Tempo Time" },
+          { name: "tempoPaceDisplay", label: "Tempo Pace" },
+          { name: "warmupPaceDisplay", label: "Warmup Pace" },
+          { name: "cooldownPaceDisplay", label: "Cooldown Pace" },
+          { name: "fastestTempoSplitDisplay", label: "Fastest Tempo Split" },
+          { name: "slowestTempoSplitDisplay", label: "Slowest Tempo Split" },
+          { name: "completionPercent", label: "Completion Percent" },
+          ...common,
+        ];
+      }
 
+      if (type === "intervals") {
+        return [
+          { name: "completedSprints", label: "Completed Sprints" },
+          { name: "totalSprintDistance", label: "Total Sprint Distance (miles)" },
+          { name: "totalSprintTimeDisplay", label: "Total Sprint Time" },
+          { name: "averageSprintTimeDisplay", label: "Average Sprint Time" },
+          { name: "fastestSprintDisplay", label: "Fastest Sprint" },
+          { name: "slowestSprintDisplay", label: "Slowest Sprint" },
+          { name: "averageSprintPaceDisplay", label: "Average Sprint Pace" },
+          { name: "completionPercent", label: "Completion Percent" },
+          ...common,
+        ];
+      }
+
+      if (type === "hiit") {
+        return [
+          { name: "completedIntervals", label: "Completed Intervals" },
+          { name: "totalWorkTimeDisplay", label: "Total Work Time" },
+          { name: "totalRestTimeDisplay", label: "Total Rest Time" },
+          { name: "totalSessionTimeDisplay", label: "Total Session Time" },
+          { name: "averageWorkIntervalDisplay", label: "Average Work Interval" },
+          { name: "averageRestIntervalDisplay", label: "Average Rest Interval" },
+          { name: "workRestRatio", label: "Work / Rest Ratio" },
+          { name: "completionPercent", label: "Completion Percent" },
+          ...common,
+        ];
+      }
+
+      if (type === "fartlek") {
+        return [
+          { name: "completedCycles", label: "Completed Cycles" },
+          { name: "totalHardTimeDisplay", label: "Total Hard Time" },
+          { name: "totalEasyTimeDisplay", label: "Total Easy Time" },
+          { name: "totalSessionTimeDisplay", label: "Total Session Time" },
+          { name: "hardEasyRatio", label: "Hard / Easy Ratio" },
+          { name: "averageHardSegmentDisplay", label: "Average Hard Segment" },
+          { name: "averageEasySegmentDisplay", label: "Average Easy Segment" },
+          { name: "completionPercent", label: "Completion Percent" },
+          ...common,
+        ];
+      }
+
+      if (type === "hill") {
+        return [
+          { name: "completedHillReps", label: "Completed Hill Reps" },
+          { name: "totalUphillTimeDisplay", label: "Total Uphill Time" },
+          { name: "averageUphillRepDisplay", label: "Average Uphill Rep" },
+          { name: "fastestUphillRepDisplay", label: "Fastest Uphill Rep" },
+          { name: "slowestUphillRepDisplay", label: "Slowest Uphill Rep" },
+          { name: "totalHillDistance", label: "Total Hill Distance (miles)" },
+          { name: "averageUphillPaceDisplay", label: "Average Uphill Pace" },
+          { name: "completionPercent", label: "Completion Percent" },
+          ...common,
+        ];
+      }
+
+      if (type === "power") {
+        return [
+          { name: "completedPowerIntervals", label: "Completed Power Intervals" },
+          { name: "averageWatts", label: "Average Watts" },
+          { name: "maxWatts", label: "Max Watts" },
+          { name: "minWatts", label: "Min Watts" },
+          { name: "totalWorkTimeDisplay", label: "Total Work Time" },
+          { name: "totalRecoveryTimeDisplay", label: "Total Recovery Time" },
+          { name: "totalSessionTimeDisplay", label: "Total Session Time" },
+          { name: "completionPercent", label: "Completion Percent" },
+          ...common,
+        ];
+      }
+
+      return common;
+    }
     function renderManualMetricsPanel() {
       const panel = document.getElementById("manual-metrics-panel");
       if (!panel || !activeWorkout) return;
@@ -333,32 +415,67 @@ import BaseLayout from "../../layouts/BaseLayout.astro";
       });
     }
 
-    function normalizeVisibleMetrics(metrics) {
-      const normalized = { ...metrics };
+function normalizeVisibleMetrics(metrics) {
+  const normalized = { ...metrics };
 
-      if (normalized.totalDistance !== undefined) {
-        const num = Number(normalized.totalDistance);
-        normalized.totalDistance = Number.isFinite(num) ? Number(num.toFixed(2)) : 0;
-      }
+  const numericFields = [
+    "totalDistance",
+    "totalTimeMinutes",
+    "averagePaceMinutes",
+    "tempoDistance",
+    "tempoTimeMinutes",
+    "completedSplits",
+    "completionPercent",
+    "completedSprints",
+    "totalSprintDistance",
+    "totalSprintTimeMinutes",
+    "completedIntervals",
+    "completedCycles",
+    "completedHillReps",
+    "totalHillDistance",
+    "completedPowerIntervals",
+    "averageWatts",
+    "maxWatts",
+    "minWatts",
+    "calories",
+    "heartRate",
+    "elevationGain",
+    "cadence",
+  ];
 
-      if (normalized.totalTimeDisplay) {
-        normalized.totalTimeMinutes = roundToTwo(parseTimeToMinutes(normalized.totalTimeDisplay));
-      }
-
-      if (normalized.averagePaceDisplay) {
-        normalized.averagePaceMinutes = roundToTwo(parseTimeToMinutes(normalized.averagePaceDisplay));
-      }
-
-      if (!normalized.averagePaceDisplay && normalized.averagePaceMinutes > 0) {
-        normalized.averagePaceDisplay = formatPaceFromMinutes(normalized.averagePaceMinutes);
-      }
-
-      if (!normalized.totalTimeDisplay && normalized.totalTimeMinutes > 0) {
-        normalized.totalTimeDisplay = formatMinutesAsTime(normalized.totalTimeMinutes);
-      }
-
-      return normalized;
+  numericFields.forEach((key) => {
+    if (normalized[key] !== undefined && normalized[key] !== "") {
+      const num = Number(normalized[key]);
+      normalized[key] = Number.isFinite(num) ? roundToTwo(num) : 0;
     }
+  });
+
+  if (normalized.totalTimeDisplay) {
+    normalized.totalTimeMinutes = roundToTwo(parseTimeToMinutes(normalized.totalTimeDisplay));
+  }
+
+  if (normalized.averagePaceDisplay) {
+    normalized.averagePaceMinutes = roundToTwo(parseTimeToMinutes(normalized.averagePaceDisplay));
+  }
+
+  if (normalized.tempoTimeDisplay) {
+    normalized.tempoTimeMinutes = roundToTwo(parseTimeToMinutes(normalized.tempoTimeDisplay));
+  }
+
+  if (!normalized.averagePaceDisplay && normalized.averagePaceMinutes > 0) {
+    normalized.averagePaceDisplay = formatPaceFromMinutes(normalized.averagePaceMinutes);
+  }
+
+  if (!normalized.totalTimeDisplay && normalized.totalTimeMinutes > 0) {
+    normalized.totalTimeDisplay = formatMinutesAsTime(normalized.totalTimeMinutes);
+  }
+
+  if (!normalized.tempoTimeDisplay && normalized.tempoTimeMinutes > 0) {
+    normalized.tempoTimeDisplay = formatMinutesAsTime(normalized.tempoTimeMinutes);
+  }
+
+  return normalized;
+}
     function createStep({
       text,
       target = "",
@@ -589,6 +706,132 @@ import BaseLayout from "../../layouts/BaseLayout.astro";
       return normalized;
     }
 
+const workoutMetricConfig = {
+  steady: ["distance", "time", "pace", "splits", "completion"],
+  recovery: ["distance", "time", "pace", "splits", "completion"],
+  longrun: ["distance", "time", "pace", "splits", "completion"],
+  tempo: ["distance", "time", "pace", "tempoBlocks", "splits", "completion"],
+  intervals: ["repTimes", "distance", "pace", "completion"],
+  hiit: ["workRestTime", "completion"],
+  fartlek: ["hardEasyTime", "completion"],
+  hill: ["repTimes", "distance", "pace", "completion"],
+  power: ["watts", "workRestTime", "completion"],
+};
+
+function getFirstLine(value) {
+  return String(value || "").split("\n")[0].trim();
+}
+
+function parseSecondsOrMinutes(value) {
+  const firstLine = getFirstLine(value).toLowerCase();
+  if (!firstLine) return 0;
+
+  const hms = firstLine.match(/^(\d+):(\d{1,2}):(\d{2})$/);
+  if (hms) {
+    const hours = Number(hms[1] || 0);
+    const minutes = Number(hms[2] || 0);
+    const seconds = Number(hms[3] || 0);
+    return hours * 3600 + minutes * 60 + seconds;
+  }
+
+  const ms = firstLine.match(/^(\d+):(\d{1,2})$/);
+  if (ms) {
+    const minutes = Number(ms[1] || 0);
+    const seconds = Number(ms[2] || 0);
+    return minutes * 60 + seconds;
+  }
+
+  const secondsMatch = firstLine.match(/(\d+(?:\.\d+)?)\s*(?:s|sec|secs|second|seconds)\b/);
+  if (secondsMatch) return Number(secondsMatch[1]);
+
+  const minutesMatch = firstLine.match(/(\d+(?:\.\d+)?)\s*(?:m|min|mins|minute|minutes)\b/);
+  if (minutesMatch) return Number(minutesMatch[1]) * 60;
+
+  const numeric = Number(firstLine);
+  return Number.isFinite(numeric) ? numeric : 0;
+}
+
+function parseDistanceToMiles(value) {
+  const text = String(value || "").toLowerCase();
+  if (!text) return 0;
+
+  const milesMatch = text.match(/(\d+(?:\.\d+)?)\s*(?:mi|mile|miles)\b/);
+  if (milesMatch) return Number(milesMatch[1]);
+
+  const kmMatch = text.match(/(\d+(?:\.\d+)?)\s*km\b/);
+  if (kmMatch) return Number(kmMatch[1]) * 0.621371;
+
+  const meterMatch = text.match(/(\d+(?:\.\d+)?)\s*m\b/);
+  if (meterMatch) return Number(meterMatch[1]) / 1609.34;
+
+  return 0;
+}
+
+function parseWatts(value) {
+  const text = String(value || "").toLowerCase();
+  if (!text) return 0;
+
+  const wattsMatch = text.match(/(\d+(?:\.\d+)?)\s*(?:w|watt|watts)\b/);
+  if (wattsMatch) return Number(wattsMatch[1]);
+
+  const numericStart = text.match(/^(\d+(?:\.\d+)?)/);
+  if (numericStart) return Number(numericStart[1]);
+
+  return 0;
+}
+
+function formatSecondsAsTime(totalSeconds) {
+  if (!Number.isFinite(totalSeconds) || totalSeconds <= 0) return "";
+
+  const rounded = Math.round(totalSeconds);
+  const hours = Math.floor(rounded / 3600);
+  const minutes = Math.floor((rounded % 3600) / 60);
+  const seconds = rounded % 60;
+
+  if (hours > 0) {
+    return `${hours}:${String(minutes).padStart(2, "0")}:${String(seconds).padStart(2, "0")}`;
+  }
+
+  return `${minutes}:${String(seconds).padStart(2, "0")}`;
+}
+
+function formatSecondsAsPace(totalSecondsPerMile) {
+  if (!Number.isFinite(totalSecondsPerMile) || totalSecondsPerMile <= 0) return "";
+  const minutes = Math.floor(totalSecondsPerMile / 60);
+  const seconds = Math.round(totalSecondsPerMile % 60);
+  return `${minutes}:${String(seconds).padStart(2, "0")} / mile`;
+}
+
+function getCompletedSteps(workout) {
+  return Array.isArray(workout?.steps) ? workout.steps.filter((step) => step?.done) : [];
+}
+
+function getCompletedStepsMatching(workout, matcher) {
+  return getCompletedSteps(workout).filter((step) => matcher(step));
+}
+
+function getCompletedStepsByKeyword(workout, keyword) {
+  const lower = String(keyword || "").toLowerCase();
+  return getCompletedSteps(workout).filter((step) =>
+    `${step?.text || ""} ${step?.target || ""}`.toLowerCase().includes(lower)
+  );
+}
+
+function getCompletionPercent(workout) {
+  const total = Array.isArray(workout?.steps) ? workout.steps.length : 0;
+  if (!total) return 0;
+  const completed = getCompletedSteps(workout).length;
+  return Math.round((completed / total) * 100);
+}
+
+function getFastestAndSlowestSeconds(values) {
+  const filtered = values.filter((x) => Number.isFinite(x) && x > 0);
+  return {
+    fastest: filtered.length ? Math.min(...filtered) : 0,
+    slowest: filtered.length ? Math.max(...filtered) : 0,
+  };
+}
+
 function parseTimeToMinutes(value) {
   const text = String(value || "")
     .trim()
@@ -752,36 +995,246 @@ function isDistanceSplitStep(step) {
   );
 }
 
-function calculateCardioMetricsFromCompletedSteps(workout) {
-  const steps = Array.isArray(workout?.steps)
-    ? workout.steps.filter((step) => step?.done)
-    : [];
+function calculateRunLikeMetrics(workout) {
+  const completedSplits = getCompletedSteps(workout).filter((step) => isDistanceSplitStep(step));
+  const splitTimesSeconds = completedSplits
+    .map((step) => parseSecondsOrMinutes(step.actual))
+    .filter((value) => value > 0);
 
-  let totalDistance = 0;
-  let totalTimeMinutes = 0;
+  const totalDistance = completedSplits.reduce((sum, step) => {
+    return sum + parseStepDistanceInMiles(step);
+  }, 0);
 
-  for (const step of steps) {
-    if (!isDistanceSplitStep(step)) continue;
+  let totalTimeSeconds = splitTimesSeconds.reduce((sum, value) => sum + value, 0);
 
-    const distance = parseStepDistanceInMiles(step);
-    const timeMinutes = parseTimeToMinutes(step.actual);
-
-    if (distance > 0 && timeMinutes > 0) {
-      totalDistance += distance;
-      totalTimeMinutes += timeMinutes;
-    }
+  const overallFinishSeconds = parseOverallActualTimeFromWorkout(workout) * 60;
+  if (overallFinishSeconds > 0) {
+    totalTimeSeconds = overallFinishSeconds;
   }
 
-  const averagePaceMinutes =
-    totalDistance > 0 && totalTimeMinutes > 0 ? totalTimeMinutes / totalDistance : 0;
+  const averagePaceSeconds =
+    totalDistance > 0 && totalTimeSeconds > 0 ? totalTimeSeconds / totalDistance : 0;
 
-  return {
-    totalDistance: totalDistance > 0 ? Number(totalDistance.toFixed(2)) : 0,
-    totalTimeMinutes: totalTimeMinutes > 0 ? Number(totalTimeMinutes.toFixed(2)) : 0,
-    averagePaceMinutes: averagePaceMinutes > 0 ? Number(averagePaceMinutes.toFixed(2)) : 0,
-    totalTimeDisplay: formatMinutesAsTime(totalTimeMinutes),
-    averagePaceDisplay: formatPaceFromMinutes(averagePaceMinutes),
-  };
+  const { fastest, slowest } = getFastestAndSlowestSeconds(splitTimesSeconds);
+  const averageSplitSeconds =
+    splitTimesSeconds.length > 0
+      ? splitTimesSeconds.reduce((sum, value) => sum + value, 0) / splitTimesSeconds.length
+      : 0;
+
+  return normalizeVisibleMetrics({
+    totalDistance: totalDistance > 0 ? roundToTwo(totalDistance) : 0,
+    totalTimeMinutes: totalTimeSeconds > 0 ? roundToTwo(totalTimeSeconds / 60) : 0,
+    totalTimeDisplay: formatSecondsAsTime(totalTimeSeconds),
+    averagePaceMinutes: averagePaceSeconds > 0 ? roundToTwo(averagePaceSeconds / 60) : 0,
+    averagePaceDisplay: formatSecondsAsPace(averagePaceSeconds),
+    fastestSplitDisplay: formatSecondsAsTime(fastest),
+    slowestSplitDisplay: formatSecondsAsTime(slowest),
+    averageSplitTimeDisplay: formatSecondsAsTime(averageSplitSeconds),
+    completedSplits: completedSplits.length,
+    completionPercent: getCompletionPercent(workout),
+  });
+}
+
+function calculateTempoMetrics(workout) {
+  const warmupSteps = getCompletedStepsByKeyword(workout, "warmup");
+  const tempoSteps = getCompletedStepsByKeyword(workout, "tempo");
+  const cooldownSteps = getCompletedStepsByKeyword(workout, "cooldown");
+
+  const toTime = (steps) =>
+    steps.map((step) => parseSecondsOrMinutes(step.actual)).filter((x) => x > 0);
+
+  const toDistance = (steps) =>
+    steps.reduce((sum, step) => sum + parseStepDistanceInMiles(step), 0);
+
+  const warmupTime = toTime(warmupSteps).reduce((a, b) => a + b, 0);
+  const tempoTime = toTime(tempoSteps).reduce((a, b) => a + b, 0);
+  const cooldownTime = toTime(cooldownSteps).reduce((a, b) => a + b, 0);
+
+  const warmupDistance = toDistance(warmupSteps);
+  const tempoDistance = toDistance(tempoSteps);
+  const cooldownDistance = toDistance(cooldownSteps);
+
+  const totalDistance = warmupDistance + tempoDistance + cooldownDistance;
+  let totalTimeSeconds = warmupTime + tempoTime + cooldownTime;
+
+  const overallFinishSeconds = parseOverallActualTimeFromWorkout(workout) * 60;
+  if (overallFinishSeconds > 0) {
+    totalTimeSeconds = overallFinishSeconds;
+  }
+
+  const tempoSplitSeconds = toTime(tempoSteps);
+  const { fastest, slowest } = getFastestAndSlowestSeconds(tempoSplitSeconds);
+
+  return normalizeVisibleMetrics({
+    totalDistance: roundToTwo(totalDistance),
+    totalTimeMinutes: roundToTwo(totalTimeSeconds / 60),
+    totalTimeDisplay: formatSecondsAsTime(totalTimeSeconds),
+    averagePaceMinutes: totalDistance > 0 ? roundToTwo((totalTimeSeconds / totalDistance) / 60) : 0,
+    averagePaceDisplay: totalDistance > 0 ? formatSecondsAsPace(totalTimeSeconds / totalDistance) : "",
+    tempoDistance: roundToTwo(tempoDistance),
+    tempoTimeMinutes: tempoTime > 0 ? roundToTwo(tempoTime / 60) : 0,
+    tempoTimeDisplay: formatSecondsAsTime(tempoTime),
+    tempoPaceDisplay: tempoDistance > 0 ? formatSecondsAsPace(tempoTime / tempoDistance) : "",
+    warmupPaceDisplay: warmupDistance > 0 ? formatSecondsAsPace(warmupTime / warmupDistance) : "",
+    cooldownPaceDisplay: cooldownDistance > 0 ? formatSecondsAsPace(cooldownTime / cooldownDistance) : "",
+    fastestTempoSplitDisplay: formatSecondsAsTime(fastest),
+    slowestTempoSplitDisplay: formatSecondsAsTime(slowest),
+    completionPercent: getCompletionPercent(workout),
+  });
+}
+
+function calculateIntervalsMetrics(workout) {
+  const sprintSteps = getCompletedStepsByKeyword(workout, "sprint");
+  const recoverySteps = getCompletedStepsByKeyword(workout, "recovery");
+
+  const sprintTimes = sprintSteps.map((step) => parseSecondsOrMinutes(step.actual)).filter((x) => x > 0);
+  const sprintDistances = sprintSteps.map((step) => parseDistanceToMiles(step.target)).filter((x) => x > 0);
+  const recoveryDistance = recoverySteps.reduce(
+    (sum, step) => sum + parseDistanceToMiles(step.actual || step.target),
+    0
+  );
+
+  const totalSprintTime = sprintTimes.reduce((a, b) => a + b, 0);
+  const totalSprintDistance = sprintDistances.reduce((a, b) => a + b, 0);
+  const averageSprintTime = sprintTimes.length ? totalSprintTime / sprintTimes.length : 0;
+  const averageSprintPace = totalSprintDistance > 0 ? totalSprintTime / totalSprintDistance : 0;
+
+  const { fastest, slowest } = getFastestAndSlowestSeconds(sprintTimes);
+
+  return normalizeVisibleMetrics({
+    completedSprints: sprintSteps.length,
+    totalSprintDistance: roundToTwo(totalSprintDistance),
+    totalSprintTimeMinutes: totalSprintTime > 0 ? roundToTwo(totalSprintTime / 60) : 0,
+    totalSprintTimeDisplay: formatSecondsAsTime(totalSprintTime),
+    averageSprintTimeDisplay: formatSecondsAsTime(averageSprintTime),
+    fastestSprintDisplay: formatSecondsAsTime(fastest),
+    slowestSprintDisplay: formatSecondsAsTime(slowest),
+    averageSprintPaceDisplay: formatSecondsAsPace(averageSprintPace),
+    totalRecoveryDistance: roundToTwo(recoveryDistance),
+    workRestRatio: recoverySteps.length ? `${sprintSteps.length}:${recoverySteps.length}` : "",
+    completionPercent: getCompletionPercent(workout),
+  });
+}
+
+function calculateHiitMetrics(workout) {
+  const workSteps = getCompletedStepsByKeyword(workout, "work");
+  const restSteps = getCompletedStepsByKeyword(workout, "rest");
+
+  const totalWorkSeconds = workSteps.reduce((sum, step) => sum + parseSecondsOrMinutes(step.actual || step.target), 0);
+  const totalRestSeconds = restSteps.reduce((sum, step) => sum + parseSecondsOrMinutes(step.actual || step.target), 0);
+
+  const averageWork = workSteps.length ? totalWorkSeconds / workSteps.length : 0;
+  const averageRest = restSteps.length ? totalRestSeconds / restSteps.length : 0;
+
+  return normalizeVisibleMetrics({
+    completedIntervals: workSteps.length,
+    totalWorkTimeDisplay: formatSecondsAsTime(totalWorkSeconds),
+    totalRestTimeDisplay: formatSecondsAsTime(totalRestSeconds),
+    totalSessionTimeDisplay: formatSecondsAsTime(totalWorkSeconds + totalRestSeconds),
+    averageWorkIntervalDisplay: formatSecondsAsTime(averageWork),
+    averageRestIntervalDisplay: formatSecondsAsTime(averageRest),
+    workRestRatio:
+      totalRestSeconds > 0 ? `${roundToTwo(totalWorkSeconds / totalRestSeconds)} : 1` : "",
+    completionPercent: getCompletionPercent(workout),
+  });
+}
+
+function calculateFartlekMetrics(workout) {
+  const hardSteps = getCompletedStepsByKeyword(workout, "hard");
+  const easySteps = getCompletedStepsByKeyword(workout, "easy");
+
+  const totalHardSeconds = hardSteps.reduce((sum, step) => sum + parseSecondsOrMinutes(step.actual || step.target), 0);
+  const totalEasySeconds = easySteps.reduce((sum, step) => sum + parseSecondsOrMinutes(step.actual || step.target), 0);
+
+  return normalizeVisibleMetrics({
+    completedCycles: Math.min(hardSteps.length, easySteps.length),
+    totalHardTimeDisplay: formatSecondsAsTime(totalHardSeconds),
+    totalEasyTimeDisplay: formatSecondsAsTime(totalEasySeconds),
+    totalSessionTimeDisplay: formatSecondsAsTime(totalHardSeconds + totalEasySeconds),
+    hardEasyRatio:
+      totalEasySeconds > 0 ? `${roundToTwo(totalHardSeconds / totalEasySeconds)} : 1` : "",
+    averageHardSegmentDisplay: formatSecondsAsTime(hardSteps.length ? totalHardSeconds / hardSteps.length : 0),
+    averageEasySegmentDisplay: formatSecondsAsTime(easySteps.length ? totalEasySeconds / easySteps.length : 0),
+    completionPercent: getCompletionPercent(workout),
+  });
+}
+
+function calculateHillMetrics(workout) {
+  const uphillSteps = getCompletedStepsByKeyword(workout, "uphill");
+  const recoverySteps = getCompletedStepsByKeyword(workout, "recovery");
+
+  const uphillTimes = uphillSteps.map((step) => parseSecondsOrMinutes(step.actual)).filter((x) => x > 0);
+  const totalUphillTime = uphillTimes.reduce((a, b) => a + b, 0);
+  const totalRecoveryTime = recoverySteps.reduce((sum, step) => sum + parseSecondsOrMinutes(step.actual), 0);
+  const totalHillDistance = uphillSteps.reduce((sum, step) => sum + parseDistanceToMiles(step.target), 0);
+
+  const { fastest, slowest } = getFastestAndSlowestSeconds(uphillTimes);
+
+  return normalizeVisibleMetrics({
+    completedHillReps: uphillSteps.length,
+    totalUphillTimeDisplay: formatSecondsAsTime(totalUphillTime),
+    totalRecoveryTimeDisplay: formatSecondsAsTime(totalRecoveryTime),
+    averageUphillRepDisplay: formatSecondsAsTime(uphillSteps.length ? totalUphillTime / uphillSteps.length : 0),
+    fastestUphillRepDisplay: formatSecondsAsTime(fastest),
+    slowestUphillRepDisplay: formatSecondsAsTime(slowest),
+    totalHillDistance: roundToTwo(totalHillDistance),
+    averageUphillPaceDisplay: totalHillDistance > 0 ? formatSecondsAsPace(totalUphillTime / totalHillDistance) : "",
+    completionPercent: getCompletionPercent(workout),
+  });
+}
+
+function calculatePowerMetrics(workout) {
+  const powerSteps = getCompletedStepsByKeyword(workout, "power interval");
+  const recoverySteps = getCompletedStepsByKeyword(workout, "recovery");
+
+  const watts = powerSteps.map((step) => parseWatts(step.actual)).filter((x) => x > 0);
+  const totalWorkSeconds = powerSteps.reduce((sum, step) => sum + parseSecondsOrMinutes(step.target), 0);
+  const totalRecoverySeconds = recoverySteps.reduce((sum, step) => sum + parseSecondsOrMinutes(step.target), 0);
+
+  return normalizeVisibleMetrics({
+    completedPowerIntervals: powerSteps.length,
+    averageWatts: watts.length ? roundToTwo(watts.reduce((a, b) => a + b, 0) / watts.length) : 0,
+    maxWatts: watts.length ? Math.max(...watts) : 0,
+    minWatts: watts.length ? Math.min(...watts) : 0,
+    totalWorkTimeDisplay: formatSecondsAsTime(totalWorkSeconds),
+    totalRecoveryTimeDisplay: formatSecondsAsTime(totalRecoverySeconds),
+    totalSessionTimeDisplay: formatSecondsAsTime(totalWorkSeconds + totalRecoverySeconds),
+    completionPercent: getCompletionPercent(workout),
+  });
+}
+
+function calculateWorkoutMetrics(workout) {
+  if (!workout?.type) return {};
+
+  if (["steady", "recovery", "longrun"].includes(workout.type)) {
+    return calculateRunLikeMetrics(workout);
+  }
+
+  if (workout.type === "tempo") {
+    return calculateTempoMetrics(workout);
+  }
+
+  if (workout.type === "intervals") {
+    return calculateIntervalsMetrics(workout);
+  }
+
+  if (workout.type === "hiit") {
+    return calculateHiitMetrics(workout);
+  }
+
+  if (workout.type === "fartlek") {
+    return calculateFartlekMetrics(workout);
+  }
+
+  if (workout.type === "hill") {
+    return calculateHillMetrics(workout);
+  }
+
+  if (workout.type === "power") {
+    return calculatePowerMetrics(workout);
+  }
+
+  return {};
 }
 
 function renderVisibleMetrics() {
@@ -801,6 +1254,58 @@ function renderVisibleMetrics() {
     averagePaceMinutes: "Average Pace (Minutes)",
     totalTimeDisplay: "Total Time",
     averagePaceDisplay: "Average Pace",
+    fastestSplitDisplay: "Fastest Split",
+    slowestSplitDisplay: "Slowest Split",
+    averageSplitTimeDisplay: "Average Split Time",
+    completedSplits: "Completed Splits",
+    completionPercent: "Completion Percent",
+
+    tempoDistance: "Tempo Distance",
+    tempoTimeDisplay: "Tempo Time",
+    tempoPaceDisplay: "Tempo Pace",
+    warmupPaceDisplay: "Warmup Pace",
+    cooldownPaceDisplay: "Cooldown Pace",
+    fastestTempoSplitDisplay: "Fastest Tempo Split",
+    slowestTempoSplitDisplay: "Slowest Tempo Split",
+
+    completedSprints: "Completed Sprints",
+    totalSprintDistance: "Total Sprint Distance",
+    totalSprintTimeDisplay: "Total Sprint Time",
+    averageSprintTimeDisplay: "Average Sprint Time",
+    fastestSprintDisplay: "Fastest Sprint",
+    slowestSprintDisplay: "Slowest Sprint",
+    averageSprintPaceDisplay: "Average Sprint Pace",
+    totalRecoveryDistance: "Total Recovery Distance",
+    workRestRatio: "Work / Rest Ratio",
+
+    completedIntervals: "Completed Intervals",
+    totalWorkTimeDisplay: "Total Work Time",
+    totalRestTimeDisplay: "Total Rest Time",
+    totalSessionTimeDisplay: "Total Session Time",
+    averageWorkIntervalDisplay: "Average Work Interval",
+    averageRestIntervalDisplay: "Average Rest Interval",
+
+    completedCycles: "Completed Cycles",
+    totalHardTimeDisplay: "Total Hard Time",
+    totalEasyTimeDisplay: "Total Easy Time",
+    hardEasyRatio: "Hard / Easy Ratio",
+    averageHardSegmentDisplay: "Average Hard Segment",
+    averageEasySegmentDisplay: "Average Easy Segment",
+
+    completedHillReps: "Completed Hill Reps",
+    totalUphillTimeDisplay: "Total Uphill Time",
+    totalRecoveryTimeDisplay: "Total Recovery Time",
+    averageUphillRepDisplay: "Average Uphill Rep",
+    fastestUphillRepDisplay: "Fastest Uphill Rep",
+    slowestUphillRepDisplay: "Slowest Uphill Rep",
+    totalHillDistance: "Total Hill Distance",
+    averageUphillPaceDisplay: "Average Uphill Pace",
+
+    completedPowerIntervals: "Completed Power Intervals",
+    averageWatts: "Average Watts",
+    maxWatts: "Max Watts",
+    minWatts: "Min Watts",
+
     calories: "Calories",
     heartRate: "Average Heart Rate",
     elevationGain: "Elevation Gain",
@@ -821,7 +1326,7 @@ function renderVisibleMetrics() {
       </div>
     </div>
     ${entries.map(([key, value]) => `
-      <p><strong>${labels[key] || key}:</strong> ${value}</p>
+      <p><strong>${labels[key] || key}:</strong> ${key === "completionPercent" ? `${value}%` : value}</p>
     `).join("")}
   `;
 }
@@ -1474,7 +1979,7 @@ function renderVisibleMetrics() {
         li.appendChild(actualWrap);
         liveWorkoutSteps.appendChild(li);
       });
-      const computedMetrics = calculateCardioMetricsFromCompletedSteps(workout);
+      const computedMetrics = calculateWorkoutMetrics(workout);
 
       liveWorkoutSummary.innerHTML = `
         <p><strong>${workout.title}</strong> · ${workout.summary}</p>
@@ -1598,14 +2103,9 @@ function renderVisibleMetrics() {
     });
 
     autoCalculateMetricsButton?.addEventListener("click", () => {
-      console.log("AUTO BUTTON CLICKED");
-      console.log("activeWorkout:", activeWorkout);
-      console.log("steps:", activeWorkout?.steps);
-
       if (!activeWorkout) return;
 
-      const calculated = calculateCardioMetricsFromCompletedSteps(activeWorkout);
-      console.log("calculated metrics:", calculated);
+      const calculated = calculateWorkoutMetrics(activeWorkout);
 
       visibleMetrics = {
         ...visibleMetrics,
@@ -1613,8 +2113,6 @@ function renderVisibleMetrics() {
       };
 
       calculationMode = "auto";
-      console.log("visibleMetrics after calc:", visibleMetrics);
-
       renderVisibleMetrics();
     });
     async function init() {
