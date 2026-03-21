@@ -1,6 +1,8 @@
 ---
 import BaseLayout from "../layouts/BaseLayout.astro";
 import PageHero from "../components/PageHero.astro";
+import QuickLinkCard from "../components/QuickLinkCard.astro";
+import Card from "../components/Card.astro";
 import { fitnessLinks, weeklySplit } from "../data/fitness";
 
 const defaultWeeklySplit = JSON.stringify(weeklySplit);
@@ -16,10 +18,11 @@ const defaultWeeklySplit = JSON.stringify(weeklySplit);
   <section class="section">
     <div class="grid two">
       {fitnessLinks.map((item) => (
-        <a href={item.href} class="quick-link-card">
-          <h3>{item.title}</h3>
-          <p>{item.description}</p>
-        </a>
+        <QuickLinkCard
+          href={item.href}
+          title={item.title}
+          text={item.description}
+        />
       ))}
     </div>
   </section>
@@ -314,6 +317,7 @@ const defaultWeeklySplit = JSON.stringify(weeklySplit);
           left.appendChild(input);
         } else {
           const text = document.createElement("span");
+          text.className = "routine-text";
           text.textContent = itemText;
           left.appendChild(text);
         }
@@ -423,6 +427,17 @@ const defaultWeeklySplit = JSON.stringify(weeklySplit);
   </script>
 
   <style>
+    .list-clean {
+      list-style: none;
+      margin: 0;
+      padding: 0;
+    }
+
+    .editable-list {
+      display: grid;
+      gap: 0.75rem;
+    }
+
     .editor-toolbar {
       display: flex;
       justify-content: flex-end;
@@ -430,7 +445,12 @@ const defaultWeeklySplit = JSON.stringify(weeklySplit);
     }
 
     .routine-item {
-      margin-bottom: 0.75rem;
+      margin: 0;
+      padding: 0.9rem 1rem;
+      border: 1px solid var(--border-soft);
+      background: var(--card-bg-soft);
+      color: var(--text-main);
+      border-radius: 16px;
     }
 
     .routine-row {
@@ -442,7 +462,7 @@ const defaultWeeklySplit = JSON.stringify(weeklySplit);
     }
 
     .routine-row-actions {
-      margin-top: 0.5rem;
+      margin-top: 0.1rem;
     }
 
     .routine-left {
@@ -453,14 +473,26 @@ const defaultWeeklySplit = JSON.stringify(weeklySplit);
       min-width: 0;
     }
 
+    .routine-text {
+      color: var(--text-main);
+      line-height: 1.5;
+    }
+
     .routine-inline-input {
       width: 100%;
-      border: 1px solid var(--border-color, #d9d9d9);
-      border-radius: 12px;
+      min-width: 0;
+      border: 1px solid var(--border-medium);
+      border-radius: 14px;
       padding: 0.8rem 0.95rem;
-      background: var(--card-background, #fff);
-      color: inherit;
+      background: var(--input-bg);
+      color: var(--text-main);
       font: inherit;
+    }
+
+    .routine-inline-input:focus {
+      outline: none;
+      border-color: var(--text-main);
+      box-shadow: 0 0 0 4px color-mix(in srgb, var(--text-main) 12%, transparent);
     }
 
     .routine-actions-group {
@@ -471,14 +503,33 @@ const defaultWeeklySplit = JSON.stringify(weeklySplit);
     }
 
     .routine-action-button {
-      border: 1px solid var(--border-color, #d9d9d9);
-      background: transparent;
-      border-radius: 10px;
-      padding: 0.65rem 0.85rem;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      border: 1px solid var(--border-soft);
+      background: var(--button-secondary-bg);
+      color: var(--button-secondary-text);
+      border-radius: 999px;
+      padding: 0.7rem 0.95rem;
       cursor: pointer;
       white-space: nowrap;
       font: inherit;
-      color: inherit;
+      transition: transform 0.18s ease, opacity 0.18s ease, background-color 0.18s ease;
+    }
+
+    .routine-action-button:hover {
+      transform: translateY(-1px);
+    }
+
+    @media (max-width: 640px) {
+      .routine-row {
+        flex-direction: column;
+        align-items: stretch;
+      }
+
+      .routine-actions-group {
+        width: 100%;
+      }
     }
   </style>
 </BaseLayout>

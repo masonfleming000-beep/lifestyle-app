@@ -1,0 +1,2221 @@
+---
+import BaseLayout from "../../layouts/BaseLayout.astro";
+---
+
+<BaseLayout
+  title="Workout Builder | Lifestyle App"
+  description="Build and track custom running workouts"
+>
+  <section class="hero">
+    <div class="hero-card">
+      <p class="kicker">Running</p>
+      <h1>Workout Builder</h1>
+      <p>
+        Choose a workout type, set your parameters, and track each step live as
+        you go.
+      </p>
+    </div>
+  </section>
+
+  <section class="section">
+    <article class="card">
+      <div class="section-header">
+        <div>
+          <h2 class="section-title">Choose Workout Type</h2>
+          <p class="section-subtitle">
+            Build HIIT, intervals, recovery runs, tempo runs, fartlek sessions, hill workouts, power workouts, or long runs.
+          </p>
+        </div>
+      </div>
+
+      <div class="editor-toolbar">
+        <button id="edit-workout-types-button" class="button-secondary" type="button">
+          Edit
+        </button>
+      </div>
+
+      <div class="workout-type-select-wrap">
+        <label class="workout-field">
+          <span>Workout Type</span>
+          <select id="workout-type-select" class="workout-type-select"></select>
+        </label>
+      </div>
+
+      <div id="workout-type-edit-panel" class="workout-type-edit-panel" hidden></div>
+    </article>
+  </section>
+
+  <section class="section">
+    <article class="card soft">
+      <div class="section-header">
+        <div>
+          <h2 class="section-title">Set Workout</h2>
+          <p class="section-subtitle">Customize the workout before you start.</p>
+        </div>
+      </div>
+
+      <form id="workout-builder-form" class="workout-form">
+        <div id="workout-form-fields"></div>
+
+        <div class="workout-form-actions">
+          <button type="submit" class="button-primary">Start Workout</button>
+        </div>
+      </form>
+    </article>
+  </section>
+
+  <section class="section">
+    <article class="card" id="live-workout-card" hidden>
+      <div class="section-header">
+        <div>
+          <h2 class="section-title">Live Workout</h2>
+          <p class="section-subtitle">
+            Fill in your real results and check each step off as you go.
+          </p>
+        </div>
+      </div>
+
+      <div class="workout-session-notes">
+        <label class="workout-field">
+          <span>Workout Notes</span>
+          <textarea
+            id="cardio-workout-notes"
+            class="workout-actual-textarea"
+            rows="4"
+            placeholder="Overall notes for this cardio workout"
+          ></textarea>
+        </label>
+      </div>
+
+      <div id="live-workout-summary" class="live-workout-summary"></div>
+      <ul id="live-workout-steps" class="routine-list workout-live-list"></ul>
+
+      <div class="workout-form-actions multi-action-workout-actions">
+        <button id="save-splits-button" type="button" class="button-secondary">
+          Save Splits / Times
+        </button>
+
+        <button id="open-manual-metrics-button" type="button" class="button-secondary">
+          Fill In Metrics Manually
+        </button>
+
+        <button id="auto-calculate-metrics-button" type="button" class="button-secondary">
+          Auto Calculate Metrics
+        </button>
+
+        <button id="save-completed-workout-button" type="button" class="button-primary">
+          Save Completed Workout
+        </button>
+
+        <button id="reset-workout-button" type="button" class="button-secondary">
+          Reset Workout
+        </button>
+      </div>
+
+      <div id="manual-metrics-panel" class="cardio-metrics-panel" hidden></div>
+      <div id="visible-calculated-metrics" class="session-metrics"></div>
+    </article>
+  </section>
+
+  <script is:inline>
+    const pageKey = "cardio-workout-builder";
+
+    const fitnessHistoryPageKey = "fitness-history";
+    const profileStatsPageKey = "profile-stats";
+
+    const defaultWorkoutTypes = {
+      hiit: {
+        label: "HIIT",
+        fields: [
+          { name: "rounds", label: "Intervals", type: "number", min: 1, value: 8 },
+          { name: "workSeconds", label: "Work Time (seconds)", type: "number", min: 5, value: 30 },
+          { name: "restSeconds", label: "Rest Time (seconds)", type: "number", min: 5, value: 30 },
+        ],
+      },
+      intervals: {
+        label: "Intervals",
+        fields: [
+          { name: "sprintCount", label: "Number of Sprints", type: "number", min: 1, value: 4 },
+          { name: "sprintDistance", label: "Sprint Distance", type: "text", value: "200m" },
+          { name: "sprintTargetTime", label: "Sprint Target Time", type: "text", value: "0:35" },
+          { name: "restDistance", label: "Jog Rest Distance", type: "text", value: "100m" },
+        ],
+      },
+      steady: {
+        label: "Steady State",
+        fields: [
+          { name: "pace", label: "Target Pace", type: "text", value: "8:45 / mile" },
+          { name: "distance", label: "Distance (miles)", type: "number", min: 1, step: "0.5", value: 5 },
+        ],
+      },
+      tempo: {
+        label: "Tempo Run",
+        fields: [
+          { name: "warmupDistance", label: "Warmup Distance (miles)", type: "number", min: 0, step: "0.5", value: 1 },
+          { name: "tempoDistance", label: "Tempo Distance (miles)", type: "number", min: 0.5, step: "0.5", value: 3 },
+          { name: "tempoPace", label: "Tempo Pace", type: "text", value: "7:15 / mile" },
+          { name: "cooldownDistance", label: "Cooldown Distance (miles)", type: "number", min: 0, step: "0.5", value: 1 },
+        ],
+      },
+      fartlek: {
+        label: "Fartlek",
+        fields: [
+          { name: "cycles", label: "Hard / Easy Cycles", type: "number", min: 1, value: 6 },
+          { name: "hardMinutes", label: "Hard Effort (minutes)", type: "number", min: 1, value: 2 },
+          { name: "easyMinutes", label: "Easy Effort (minutes)", type: "number", min: 1, value: 2 },
+          { name: "hardEffort", label: "Hard Effort Target", type: "text", value: "5K effort" },
+          { name: "easyEffort", label: "Easy Effort Target", type: "text", value: "Easy jog" },
+        ],
+      },
+      hill: {
+        label: "Hill Repeats",
+        fields: [
+          { name: "repeatCount", label: "Hill Repeats", type: "number", min: 1, value: 6 },
+          { name: "hillDistance", label: "Hill Distance", type: "text", value: "200m" },
+          { name: "hillTarget", label: "Uphill Target", type: "text", value: "Hard effort" },
+          { name: "recoveryType", label: "Recovery", type: "text", value: "Walk/jog back down" },
+        ],
+      },
+      power: {
+        label: "Power Workout",
+        fields: [
+          { name: "intervalCount", label: "Power Intervals", type: "number", min: 1, value: 5 },
+          { name: "workMinutes", label: "Work Interval (minutes)", type: "number", min: 1, value: 3 },
+          { name: "targetWatts", label: "Target Watts", type: "number", min: 50, value: 250 },
+          { name: "recoveryMinutes", label: "Recovery (minutes)", type: "number", min: 1, value: 2 },
+        ],
+      },
+      recovery: {
+        label: "Recovery Run",
+        fields: [
+          { name: "pace", label: "Target Pace", type: "text", value: "9:00 / mile" },
+          { name: "distance", label: "Distance (miles)", type: "number", min: 1, step: "0.5", value: 3 },
+        ],
+      },
+      longrun: {
+        label: "Long Run",
+        fields: [
+          { name: "pace", label: "Target Pace", type: "text", value: "8:30 / mile" },
+          { name: "distance", label: "Distance (miles)", type: "number", min: 1, step: "0.5", value: 10 },
+        ],
+      },
+    };
+
+    let workoutTypes = cloneWorkoutTypes(defaultWorkoutTypes);
+    let selectedType = "hiit";
+    let activeWorkout = null;
+    let cardioHistory = [];
+    let weightliftingHistory = [];
+    let isEditingWorkoutTypes = false;
+    let hasLoadedInitialState = false;
+    let isSaving = false;
+    let pendingSave = false;
+    let savedLiveSteps = [];
+    let visibleMetrics = {};
+    let calculationMode = "";
+
+    const workoutTypeSelect = document.getElementById("workout-type-select");
+    const workoutTypeEditPanel = document.getElementById("workout-type-edit-panel");
+    const editWorkoutTypesButton = document.getElementById("edit-workout-types-button");
+    const formFields = document.getElementById("workout-form-fields");
+    const form = document.getElementById("workout-builder-form");
+    const liveWorkoutCard = document.getElementById("live-workout-card");
+    const liveWorkoutSummary = document.getElementById("live-workout-summary");
+    const liveWorkoutSteps = document.getElementById("live-workout-steps");
+    const resetWorkoutButton = document.getElementById("reset-workout-button");
+    const saveCompletedWorkoutButton = document.getElementById("save-completed-workout-button");
+    const saveSplitsButton = document.getElementById("save-splits-button");
+    const openManualMetricsButton = document.getElementById("open-manual-metrics-button");
+    const autoCalculateMetricsButton = document.getElementById("auto-calculate-metrics-button");
+
+    function getFormValues() {
+      const formData = new FormData(form);
+      const values = {};
+
+      for (const [key, value] of formData.entries()) {
+        values[key] = typeof value === "string" ? value.trim() : value;
+      }
+
+      return values;
+    }
+    function getCompletedLiveSteps(workout) {
+      return Array.isArray(workout?.steps)
+        ? workout.steps
+            .filter((step) => step?.done)
+            .map((step) => ({
+              text: step.text || "",
+              actual: step.actual || "",
+              done: true,
+            }))
+        : [];
+    }
+
+    function saveCurrentSplits() {
+      if (!activeWorkout) return;
+
+      savedLiveSteps = getCompletedLiveSteps(activeWorkout);
+      renderVisibleMetrics();
+
+      window.alert("Splits and completed step times saved.");
+    }
+    function getManualMetricFieldsForWorkout(type) {
+      const common = [
+        { name: "calories", label: "Calories" },
+        { name: "heartRate", label: "Average Heart Rate (bpm)" },
+      ];
+
+      if (["steady", "recovery", "longrun"].includes(type)) {
+        return [
+          { name: "totalDistance", label: "Total Distance (miles)" },
+          { name: "totalTimeDisplay", label: "Total Time" },
+          { name: "averagePaceDisplay", label: "Average Pace" },
+          { name: "fastestSplitDisplay", label: "Fastest Split" },
+          { name: "slowestSplitDisplay", label: "Slowest Split" },
+          { name: "completedSplits", label: "Completed Splits" },
+          { name: "completionPercent", label: "Completion Percent" },
+          ...common,
+        ];
+      }
+
+      if (type === "tempo") {
+        return [
+          { name: "totalDistance", label: "Total Distance (miles)" },
+          { name: "totalTimeDisplay", label: "Total Time" },
+          { name: "averagePaceDisplay", label: "Average Pace" },
+          { name: "tempoDistance", label: "Tempo Distance (miles)" },
+          { name: "tempoTimeDisplay", label: "Tempo Time" },
+          { name: "tempoPaceDisplay", label: "Tempo Pace" },
+          { name: "warmupPaceDisplay", label: "Warmup Pace" },
+          { name: "cooldownPaceDisplay", label: "Cooldown Pace" },
+          { name: "fastestTempoSplitDisplay", label: "Fastest Tempo Split" },
+          { name: "slowestTempoSplitDisplay", label: "Slowest Tempo Split" },
+          { name: "completionPercent", label: "Completion Percent" },
+          ...common,
+        ];
+      }
+
+      if (type === "intervals") {
+        return [
+          { name: "completedSprints", label: "Completed Sprints" },
+          { name: "totalSprintDistance", label: "Total Sprint Distance (miles)" },
+          { name: "totalSprintTimeDisplay", label: "Total Sprint Time" },
+          { name: "averageSprintTimeDisplay", label: "Average Sprint Time" },
+          { name: "fastestSprintDisplay", label: "Fastest Sprint" },
+          { name: "slowestSprintDisplay", label: "Slowest Sprint" },
+          { name: "averageSprintPaceDisplay", label: "Average Sprint Pace" },
+          { name: "completionPercent", label: "Completion Percent" },
+          ...common,
+        ];
+      }
+
+      if (type === "hiit") {
+        return [
+          { name: "completedIntervals", label: "Completed Intervals" },
+          { name: "totalWorkTimeDisplay", label: "Total Work Time" },
+          { name: "totalRestTimeDisplay", label: "Total Rest Time" },
+          { name: "totalSessionTimeDisplay", label: "Total Session Time" },
+          { name: "averageWorkIntervalDisplay", label: "Average Work Interval" },
+          { name: "averageRestIntervalDisplay", label: "Average Rest Interval" },
+          { name: "workRestRatio", label: "Work / Rest Ratio" },
+          { name: "completionPercent", label: "Completion Percent" },
+          ...common,
+        ];
+      }
+
+      if (type === "fartlek") {
+        return [
+          { name: "completedCycles", label: "Completed Cycles" },
+          { name: "totalHardTimeDisplay", label: "Total Hard Time" },
+          { name: "totalEasyTimeDisplay", label: "Total Easy Time" },
+          { name: "totalSessionTimeDisplay", label: "Total Session Time" },
+          { name: "hardEasyRatio", label: "Hard / Easy Ratio" },
+          { name: "averageHardSegmentDisplay", label: "Average Hard Segment" },
+          { name: "averageEasySegmentDisplay", label: "Average Easy Segment" },
+          { name: "completionPercent", label: "Completion Percent" },
+          ...common,
+        ];
+      }
+
+      if (type === "hill") {
+        return [
+          { name: "completedHillReps", label: "Completed Hill Reps" },
+          { name: "totalUphillTimeDisplay", label: "Total Uphill Time" },
+          { name: "averageUphillRepDisplay", label: "Average Uphill Rep" },
+          { name: "fastestUphillRepDisplay", label: "Fastest Uphill Rep" },
+          { name: "slowestUphillRepDisplay", label: "Slowest Uphill Rep" },
+          { name: "totalHillDistance", label: "Total Hill Distance (miles)" },
+          { name: "averageUphillPaceDisplay", label: "Average Uphill Pace" },
+          { name: "completionPercent", label: "Completion Percent" },
+          ...common,
+        ];
+      }
+
+      if (type === "power") {
+        return [
+          { name: "completedPowerIntervals", label: "Completed Power Intervals" },
+          { name: "averageWatts", label: "Average Watts" },
+          { name: "maxWatts", label: "Max Watts" },
+          { name: "minWatts", label: "Min Watts" },
+          { name: "totalWorkTimeDisplay", label: "Total Work Time" },
+          { name: "totalRecoveryTimeDisplay", label: "Total Recovery Time" },
+          { name: "totalSessionTimeDisplay", label: "Total Session Time" },
+          { name: "completionPercent", label: "Completion Percent" },
+          ...common,
+        ];
+      }
+
+      return common;
+    }
+    function renderManualMetricsPanel() {
+      const panel = document.getElementById("manual-metrics-panel");
+      if (!panel || !activeWorkout) return;
+
+      const fields = getManualMetricFieldsForWorkout(activeWorkout.type);
+
+      panel.hidden = false;
+      panel.innerHTML = `
+        <div class="section-header">
+          <div>
+            <h3 class="section-title">Manual Metrics</h3>
+            <p class="section-subtitle">Enter any totals or derived values you want saved.</p>
+          </div>
+        </div>
+
+        <div class="workout-form">
+          ${fields.map((field) => `
+            <label class="workout-field">
+              <span>${field.label}</span>
+              <input
+                type="text"
+                name="${field.name}"
+                value="${visibleMetrics[field.name] ?? ""}"
+              />
+            </label>
+          `).join("")}
+        </div>
+
+        <div class="workout-form-actions">
+          <button id="save-manual-metrics-button" type="button" class="button-primary">
+            Save Manual Metrics
+          </button>
+        </div>
+      `;
+
+      document.getElementById("save-manual-metrics-button")?.addEventListener("click", () => {
+        const inputs = panel.querySelectorAll("input[name]");
+        const nextMetrics = { ...visibleMetrics };
+
+        inputs.forEach((input) => {
+          nextMetrics[input.name] = input.value.trim();
+        });
+
+        visibleMetrics = normalizeVisibleMetrics(nextMetrics);
+        calculationMode = "manual";
+        renderVisibleMetrics();
+      });
+    }
+
+function normalizeVisibleMetrics(metrics) {
+  const normalized = { ...metrics };
+
+  const numericFields = [
+    "totalDistance",
+    "totalTimeMinutes",
+    "averagePaceMinutes",
+    "tempoDistance",
+    "tempoTimeMinutes",
+    "completedSplits",
+    "completionPercent",
+    "completedSprints",
+    "totalSprintDistance",
+    "totalSprintTimeMinutes",
+    "completedIntervals",
+    "completedCycles",
+    "completedHillReps",
+    "totalHillDistance",
+    "completedPowerIntervals",
+    "averageWatts",
+    "maxWatts",
+    "minWatts",
+    "calories",
+    "heartRate",
+    "elevationGain",
+    "cadence",
+  ];
+
+  numericFields.forEach((key) => {
+    if (normalized[key] !== undefined && normalized[key] !== "") {
+      const num = Number(normalized[key]);
+      normalized[key] = Number.isFinite(num) ? roundToTwo(num) : 0;
+    }
+  });
+
+  if (normalized.totalTimeDisplay) {
+    normalized.totalTimeMinutes = roundToTwo(parseTimeToMinutes(normalized.totalTimeDisplay));
+  }
+
+  if (normalized.averagePaceDisplay) {
+    normalized.averagePaceMinutes = roundToTwo(parseTimeToMinutes(normalized.averagePaceDisplay));
+  }
+
+  if (normalized.tempoTimeDisplay) {
+    normalized.tempoTimeMinutes = roundToTwo(parseTimeToMinutes(normalized.tempoTimeDisplay));
+  }
+
+  if (!normalized.averagePaceDisplay && normalized.averagePaceMinutes > 0) {
+    normalized.averagePaceDisplay = formatPaceFromMinutes(normalized.averagePaceMinutes);
+  }
+
+  if (!normalized.totalTimeDisplay && normalized.totalTimeMinutes > 0) {
+    normalized.totalTimeDisplay = formatMinutesAsTime(normalized.totalTimeMinutes);
+  }
+
+  if (!normalized.tempoTimeDisplay && normalized.tempoTimeMinutes > 0) {
+    normalized.tempoTimeDisplay = formatMinutesAsTime(normalized.tempoTimeMinutes);
+  }
+
+  return normalized;
+}
+    function createStep({
+      text,
+      target = "",
+      actual = "",
+      done = false,
+      actualLabel = "Actual Result / Notes",
+      actualPlaceholder = "Enter actual result",
+    }) {
+      return {
+        text,
+        target,
+        actual,
+        done,
+        actualLabel,
+        actualPlaceholder,
+      };
+    }
+    async function loadFitnessHistory() {
+      try {
+        const res = await fetch(`/api/state?pageKey=${encodeURIComponent(fitnessHistoryPageKey)}`, {
+          credentials: "include",
+          cache: "no-store",
+        });
+
+        if (!res.ok) return { weightliftingSessions: [], cardioSessions: [] };
+
+        const data = await res.json();
+        const history = data?.state ?? {};
+        return {
+          weightliftingSessions: Array.isArray(history?.weightliftingSessions)
+            ? history.weightliftingSessions
+            : [],
+          cardioSessions: Array.isArray(history?.cardioSessions) ? history.cardioSessions : [],
+        };
+      } catch (error) {
+        console.error("Failed to load fitness history:", error);
+        return { weightliftingSessions: [], cardioSessions: [] };
+      }
+    }
+
+    async function saveFitnessHistory(nextState) {
+      try {
+        await fetch("/api/state", {
+          method: "POST",
+          credentials: "include",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ pageKey: fitnessHistoryPageKey, state: nextState }),
+        });
+      } catch (error) {
+        console.error("Failed to save fitness history:", error);
+      }
+    }
+
+    async function loadProfileStats() {
+      try {
+        const res = await fetch(`/api/state?pageKey=${encodeURIComponent(profileStatsPageKey)}`, {
+          credentials: "include",
+          cache: "no-store",
+        });
+
+        if (!res.ok) return { fitness: {}, hobbies: {} };
+
+        const data = await res.json();
+        return data?.state ?? { fitness: {}, hobbies: {} };
+      } catch (error) {
+        console.error("Failed to load profile stats:", error);
+        return { fitness: {}, hobbies: {} };
+      }
+    }
+
+    function buildFitnessStats(historyState) {
+      const weightSessions = Array.isArray(historyState?.weightliftingSessions)
+        ? historyState.weightliftingSessions
+        : [];
+      const cardioSessions = Array.isArray(historyState?.cardioSessions) ? historyState.cardioSessions : [];
+      const latestDate = [...weightSessions, ...cardioSessions]
+        .map((item) => item?.dateTime || "")
+        .filter(Boolean)
+        .sort((a, b) => new Date(b).getTime() - new Date(a).getTime())[0] || "";
+
+      return {
+        totalWeightliftingSessions: weightSessions.length,
+        totalCardioSessions: cardioSessions.length,
+        totalFitnessSessions: weightSessions.length + cardioSessions.length,
+        lastWorkoutAt: latestDate,
+        updatedAt: new Date().toISOString(),
+      };
+    }
+
+    async function syncFitnessStats() {
+      const existingStats = await loadProfileStats();
+      await fetch("/api/state", {
+        method: "POST",
+        credentials: "include",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          pageKey: profileStatsPageKey,
+          state: {
+            ...existingStats,
+            fitness: buildFitnessStats({
+              weightliftingSessions: weightliftingHistory,
+              cardioSessions: cardioHistory,
+            }),
+          },
+        }),
+      });
+    }
+
+    function cloneWorkoutTypes(types) {
+      return JSON.parse(JSON.stringify(types));
+    }
+
+    function slugify(value) {
+      return String(value || "")
+        .toLowerCase()
+        .trim()
+        .replace(/[^a-z0-9]+/g, "-")
+        .replace(/^-+|-+$/g, "");
+    }
+
+    function getWorkoutTypeEntries() {
+      return Object.entries(workoutTypes);
+    }
+
+    function getFirstWorkoutTypeKey() {
+      return getWorkoutTypeEntries()[0]?.[0] || "";
+    }
+
+    function ensureSelectedTypeExists() {
+      if (!workoutTypes[selectedType]) {
+        selectedType = getFirstWorkoutTypeKey();
+      }
+    }
+
+    function createDefaultFieldSetForType(typeKey) {
+      if (typeKey === "hiit") {
+        return [
+          { name: "rounds", label: "Intervals", type: "number", min: 1, value: 8 },
+          { name: "workSeconds", label: "Work Time (seconds)", type: "number", min: 5, value: 30 },
+          { name: "restSeconds", label: "Rest Time (seconds)", type: "number", min: 5, value: 30 },
+        ];
+      }
+
+      if (typeKey === "intervals") {
+        return [
+          { name: "sprintCount", label: "Number of Sprints", type: "number", min: 1, value: 4 },
+          { name: "sprintDistance", label: "Sprint Distance", type: "text", value: "200m" },
+          { name: "sprintTargetTime", label: "Sprint Target Time", type: "text", value: "0:35" },
+          { name: "restDistance", label: "Jog Rest Distance", type: "text", value: "100m" },
+        ];
+      }
+
+      if (typeKey === "tempo") {
+        return [
+          { name: "warmupDistance", label: "Warmup Distance (miles)", type: "number", min: 0, step: "0.5", value: 1 },
+          { name: "tempoDistance", label: "Tempo Distance (miles)", type: "number", min: 0.5, step: "0.5", value: 3 },
+          { name: "tempoPace", label: "Tempo Pace", type: "text", value: "7:15 / mile" },
+          { name: "cooldownDistance", label: "Cooldown Distance (miles)", type: "number", min: 0, step: "0.5", value: 1 },
+        ];
+      }
+
+      if (typeKey === "fartlek") {
+        return [
+          { name: "cycles", label: "Hard / Easy Cycles", type: "number", min: 1, value: 6 },
+          { name: "hardMinutes", label: "Hard Effort (minutes)", type: "number", min: 1, value: 2 },
+          { name: "easyMinutes", label: "Easy Effort (minutes)", type: "number", min: 1, value: 2 },
+          { name: "hardEffort", label: "Hard Effort Target", type: "text", value: "5K effort" },
+          { name: "easyEffort", label: "Easy Effort Target", type: "text", value: "Easy jog" },
+        ];
+      }
+
+      if (typeKey === "hill") {
+        return [
+          { name: "repeatCount", label: "Hill Repeats", type: "number", min: 1, value: 6 },
+          { name: "hillDistance", label: "Hill Distance", type: "text", value: "200m" },
+          { name: "hillTarget", label: "Uphill Target", type: "text", value: "Hard effort" },
+          { name: "recoveryType", label: "Recovery", type: "text", value: "Walk/jog back down" },
+        ];
+      }
+
+      if (typeKey === "power") {
+        return [
+          { name: "intervalCount", label: "Power Intervals", type: "number", min: 1, value: 5 },
+          { name: "workMinutes", label: "Work Interval (minutes)", type: "number", min: 1, value: 3 },
+          { name: "targetWatts", label: "Target Watts", type: "number", min: 50, value: 250 },
+          { name: "recoveryMinutes", label: "Recovery (minutes)", type: "number", min: 1, value: 2 },
+        ];
+      }
+
+      return [
+        { name: "pace", label: "Target Pace", type: "text", value: "9:00 / mile" },
+        { name: "distance", label: "Distance (miles)", type: "number", min: 1, step: "0.5", value: 3 },
+      ];
+    }
+
+    function normalizeSavedWorkoutTypes(savedTypes) {
+      if (!savedTypes || typeof savedTypes !== "object") {
+        return cloneWorkoutTypes(defaultWorkoutTypes);
+      }
+
+      const normalized = {};
+
+      Object.entries(savedTypes).forEach(([key, config]) => {
+        if (!config || typeof config !== "object") return;
+
+        const safeKey = slugify(key);
+        if (!safeKey) return;
+
+        const label = String(config.label || safeKey).trim() || safeKey;
+        const fields = Array.isArray(config.fields) && config.fields.length
+          ? config.fields.map((field, index) => ({
+              name: String(field.name || `field-${index + 1}`).trim() || `field-${index + 1}`,
+              label: String(field.label || `Field ${index + 1}`).trim() || `Field ${index + 1}`,
+              type: field.type === "number" ? "number" : "text",
+              min: field.min ?? "",
+              step: field.step ?? "",
+              value: field.value ?? "",
+            }))
+          : createDefaultFieldSetForType(safeKey);
+
+        normalized[safeKey] = { label, fields };
+      });
+
+      if (!Object.keys(normalized).length) {
+        return cloneWorkoutTypes(defaultWorkoutTypes);
+      }
+
+      return normalized;
+    }
+
+const workoutMetricConfig = {
+  steady: ["distance", "time", "pace", "splits", "completion"],
+  recovery: ["distance", "time", "pace", "splits", "completion"],
+  longrun: ["distance", "time", "pace", "splits", "completion"],
+  tempo: ["distance", "time", "pace", "tempoBlocks", "splits", "completion"],
+  intervals: ["repTimes", "distance", "pace", "completion"],
+  hiit: ["workRestTime", "completion"],
+  fartlek: ["hardEasyTime", "completion"],
+  hill: ["repTimes", "distance", "pace", "completion"],
+  power: ["watts", "workRestTime", "completion"],
+};
+
+function getFirstLine(value) {
+  return String(value || "").split("\n")[0].trim();
+}
+
+function parseSecondsOrMinutes(value) {
+  const firstLine = getFirstLine(value).toLowerCase();
+  if (!firstLine) return 0;
+
+  const hms = firstLine.match(/^(\d+):(\d{1,2}):(\d{2})$/);
+  if (hms) {
+    const hours = Number(hms[1] || 0);
+    const minutes = Number(hms[2] || 0);
+    const seconds = Number(hms[3] || 0);
+    return hours * 3600 + minutes * 60 + seconds;
+  }
+
+  const ms = firstLine.match(/^(\d+):(\d{1,2})$/);
+  if (ms) {
+    const minutes = Number(ms[1] || 0);
+    const seconds = Number(ms[2] || 0);
+    return minutes * 60 + seconds;
+  }
+
+  const secondsMatch = firstLine.match(/(\d+(?:\.\d+)?)\s*(?:s|sec|secs|second|seconds)\b/);
+  if (secondsMatch) return Number(secondsMatch[1]);
+
+  const minutesMatch = firstLine.match(/(\d+(?:\.\d+)?)\s*(?:m|min|mins|minute|minutes)\b/);
+  if (minutesMatch) return Number(minutesMatch[1]) * 60;
+
+  const numeric = Number(firstLine);
+  return Number.isFinite(numeric) ? numeric : 0;
+}
+
+function parseDistanceToMiles(value) {
+  const text = String(value || "").toLowerCase();
+  if (!text) return 0;
+
+  const milesMatch = text.match(/(\d+(?:\.\d+)?)\s*(?:mi|mile|miles)\b/);
+  if (milesMatch) return Number(milesMatch[1]);
+
+  const kmMatch = text.match(/(\d+(?:\.\d+)?)\s*km\b/);
+  if (kmMatch) return Number(kmMatch[1]) * 0.621371;
+
+  const meterMatch = text.match(/(\d+(?:\.\d+)?)\s*m\b/);
+  if (meterMatch) return Number(meterMatch[1]) / 1609.34;
+
+  return 0;
+}
+
+function parseWatts(value) {
+  const text = String(value || "").toLowerCase();
+  if (!text) return 0;
+
+  const wattsMatch = text.match(/(\d+(?:\.\d+)?)\s*(?:w|watt|watts)\b/);
+  if (wattsMatch) return Number(wattsMatch[1]);
+
+  const numericStart = text.match(/^(\d+(?:\.\d+)?)/);
+  if (numericStart) return Number(numericStart[1]);
+
+  return 0;
+}
+
+function formatSecondsAsTime(totalSeconds) {
+  if (!Number.isFinite(totalSeconds) || totalSeconds <= 0) return "";
+
+  const rounded = Math.round(totalSeconds);
+  const hours = Math.floor(rounded / 3600);
+  const minutes = Math.floor((rounded % 3600) / 60);
+  const seconds = rounded % 60;
+
+  if (hours > 0) {
+    return `${hours}:${String(minutes).padStart(2, "0")}:${String(seconds).padStart(2, "0")}`;
+  }
+
+  return `${minutes}:${String(seconds).padStart(2, "0")}`;
+}
+
+function formatSecondsAsPace(totalSecondsPerMile) {
+  if (!Number.isFinite(totalSecondsPerMile) || totalSecondsPerMile <= 0) return "";
+  const minutes = Math.floor(totalSecondsPerMile / 60);
+  const seconds = Math.round(totalSecondsPerMile % 60);
+  return `${minutes}:${String(seconds).padStart(2, "0")} / mile`;
+}
+
+function getCompletedSteps(workout) {
+  return Array.isArray(workout?.steps) ? workout.steps.filter((step) => step?.done) : [];
+}
+
+function getCompletedStepsMatching(workout, matcher) {
+  return getCompletedSteps(workout).filter((step) => matcher(step));
+}
+
+function getCompletedStepsByKeyword(workout, keyword) {
+  const lower = String(keyword || "").toLowerCase();
+  return getCompletedSteps(workout).filter((step) =>
+    `${step?.text || ""} ${step?.target || ""}`.toLowerCase().includes(lower)
+  );
+}
+
+function getCompletionPercent(workout) {
+  const total = Array.isArray(workout?.steps) ? workout.steps.length : 0;
+  if (!total) return 0;
+  const completed = getCompletedSteps(workout).length;
+  return Math.round((completed / total) * 100);
+}
+
+function getFastestAndSlowestSeconds(values) {
+  const filtered = values.filter((x) => Number.isFinite(x) && x > 0);
+  return {
+    fastest: filtered.length ? Math.min(...filtered) : 0,
+    slowest: filtered.length ? Math.max(...filtered) : 0,
+  };
+}
+
+function parseTimeToMinutes(value) {
+  const text = String(value || "")
+    .trim()
+    .toLowerCase()
+    .replace(/\/\s*mile/g, "")
+    .replace(/\s*per\s*mile/g, "")
+    .trim();
+
+  if (!text) return 0;
+
+  const hms = text.match(/^(\d+):(\d{1,2}):(\d{2})$/);
+  if (hms) {
+    const hours = Number(hms[1] || 0);
+    const minutes = Number(hms[2] || 0);
+    const seconds = Number(hms[3] || 0);
+    return hours * 60 + minutes + seconds / 60;
+  }
+
+  const ms = text.match(/^(\d+):(\d{1,2})$/);
+  if (ms) {
+    const minutes = Number(ms[1] || 0);
+    const seconds = Number(ms[2] || 0);
+    return minutes + seconds / 60;
+  }
+
+  const numeric = Number(text);
+  return Number.isFinite(numeric) ? numeric : 0;
+}
+
+function formatMinutesAsTime(totalMinutes) {
+  if (!Number.isFinite(totalMinutes) || totalMinutes <= 0) return "";
+
+  const totalSeconds = Math.round(totalMinutes * 60);
+  const hours = Math.floor(totalSeconds / 3600);
+  const minutes = Math.floor((totalSeconds % 3600) / 60);
+  const seconds = totalSeconds % 60;
+
+  if (hours > 0) {
+    return `${hours}:${String(minutes).padStart(2, "0")}:${String(seconds).padStart(2, "0")}`;
+  }
+
+  return `${minutes}:${String(seconds).padStart(2, "0")}`;
+}
+
+function formatPaceFromMinutes(minutesPerMile) {
+  if (!Number.isFinite(minutesPerMile) || minutesPerMile <= 0) return "";
+
+  const totalSeconds = Math.round(minutesPerMile * 60);
+  const minutes = Math.floor(totalSeconds / 60);
+  const seconds = totalSeconds % 60;
+  return `${minutes}:${String(seconds).padStart(2, "0")} / mile`;
+}
+
+function isRunWorkoutType(type) {
+  return ["steady", "recovery", "longrun", "tempo"].includes(type);
+}
+
+function roundToTwo(value) {
+  return Number.isFinite(value) ? Number(value.toFixed(2)) : 0;
+}
+
+function getRunDistanceFromValues(type, values) {
+  if (type === "tempo") {
+    return (
+      Number(values.warmupDistance || 0) +
+      Number(values.tempoDistance || 0) +
+      Number(values.cooldownDistance || 0)
+    );
+  }
+
+  return Number(values.distance || 0);
+}
+
+function getPlannedRunMetrics(type, values) {
+  const distance = getRunDistanceFromValues(type, values);
+
+  const totalTimeMinutes = parseTimeToMinutes(values.totalTime);
+  const paceMinutes = parseTimeToMinutes(values.pace);
+
+  let resolvedTotalTimeMinutes = 0;
+  let resolvedPaceMinutes = 0;
+
+  if (distance > 0 && paceMinutes > 0 && totalTimeMinutes <= 0) {
+    resolvedPaceMinutes = paceMinutes;
+    resolvedTotalTimeMinutes = distance * paceMinutes;
+  } else if (distance > 0 && totalTimeMinutes > 0 && paceMinutes <= 0) {
+    resolvedTotalTimeMinutes = totalTimeMinutes;
+    resolvedPaceMinutes = totalTimeMinutes / distance;
+  } else if (distance > 0 && totalTimeMinutes > 0 && paceMinutes > 0) {
+    resolvedTotalTimeMinutes = totalTimeMinutes;
+    resolvedPaceMinutes = paceMinutes;
+  } else {
+    resolvedTotalTimeMinutes = totalTimeMinutes > 0 ? totalTimeMinutes : 0;
+    resolvedPaceMinutes = paceMinutes > 0 ? paceMinutes : 0;
+  }
+
+  return {
+    distance: roundToTwo(distance),
+    totalTimeMinutes: roundToTwo(resolvedTotalTimeMinutes),
+    paceMinutes: roundToTwo(resolvedPaceMinutes),
+    totalTimeDisplay: formatMinutesAsTime(resolvedTotalTimeMinutes),
+    paceDisplay: formatPaceFromMinutes(resolvedPaceMinutes),
+  };
+}
+
+function parseOverallActualTimeFromWorkout(workout) {
+  const steps = Array.isArray(workout?.steps) ? workout.steps : [];
+  const finishStep = [...steps].reverse().find((step) =>
+    String(step?.text || "").toLowerCase().includes("finish")
+  );
+
+  if (!finishStep?.actual) return 0;
+
+  const firstLine = String(finishStep.actual).split("\n")[0].trim();
+  return parseTimeToMinutes(firstLine);
+}
+
+function parseStepDistanceInMiles(step) {
+  const combined = `${step?.text || ""} ${step?.target || ""}`.toLowerCase();
+
+  const finalMileMatch = combined.match(/final\s+(\d+(?:\.\d+)?)\s*mile/);
+  if (finalMileMatch) {
+    const miles = Number(finalMileMatch[1]);
+    return Number.isFinite(miles) ? miles : 0;
+  }
+
+  const standardMileMatch = combined.match(/(\d+(?:\.\d+)?)\s*(?:mi|mile|miles)\b/);
+  if (standardMileMatch) {
+    const miles = Number(standardMileMatch[1]);
+    return Number.isFinite(miles) ? miles : 0;
+  }
+
+  const reversedMileMatch = combined.match(/\bmile\s+(\d+(?:\.\d+)?)\b/);
+  if (reversedMileMatch) {
+    const miles = Number(reversedMileMatch[1]);
+    return Number.isFinite(miles) ? miles : 0;
+  }
+
+  const kmMatch = combined.match(/(\d+(?:\.\d+)?)\s*km\b/);
+  if (kmMatch) {
+    const km = Number(kmMatch[1]);
+    return Number.isFinite(km) ? km * 0.621371 : 0;
+  }
+
+  const meterMatch = combined.match(/(\d+(?:\.\d+)?)\s*m\b/);
+  if (meterMatch) {
+    const meters = Number(meterMatch[1]);
+    return Number.isFinite(meters) ? meters / 1609.34 : 0;
+  }
+
+  return 0;
+}
+
+function isDistanceSplitStep(step) {
+  const combined = `${step?.text || ""} ${step?.target || ""}`.toLowerCase();
+  return (
+    combined.includes("mile") ||
+    combined.includes("mi") ||
+    combined.includes("km") ||
+    combined.includes("m")
+  );
+}
+
+function calculateRunLikeMetrics(workout) {
+  const completedSplits = getCompletedSteps(workout).filter((step) => isDistanceSplitStep(step));
+  const splitTimesSeconds = completedSplits
+    .map((step) => parseSecondsOrMinutes(step.actual))
+    .filter((value) => value > 0);
+
+  const totalDistance = completedSplits.reduce((sum, step) => {
+    return sum + parseStepDistanceInMiles(step);
+  }, 0);
+
+  let totalTimeSeconds = splitTimesSeconds.reduce((sum, value) => sum + value, 0);
+
+  const overallFinishSeconds = parseOverallActualTimeFromWorkout(workout) * 60;
+  if (overallFinishSeconds > 0) {
+    totalTimeSeconds = overallFinishSeconds;
+  }
+
+  const averagePaceSeconds =
+    totalDistance > 0 && totalTimeSeconds > 0 ? totalTimeSeconds / totalDistance : 0;
+
+  const { fastest, slowest } = getFastestAndSlowestSeconds(splitTimesSeconds);
+  const averageSplitSeconds =
+    splitTimesSeconds.length > 0
+      ? splitTimesSeconds.reduce((sum, value) => sum + value, 0) / splitTimesSeconds.length
+      : 0;
+
+  return normalizeVisibleMetrics({
+    totalDistance: totalDistance > 0 ? roundToTwo(totalDistance) : 0,
+    totalTimeMinutes: totalTimeSeconds > 0 ? roundToTwo(totalTimeSeconds / 60) : 0,
+    totalTimeDisplay: formatSecondsAsTime(totalTimeSeconds),
+    averagePaceMinutes: averagePaceSeconds > 0 ? roundToTwo(averagePaceSeconds / 60) : 0,
+    averagePaceDisplay: formatSecondsAsPace(averagePaceSeconds),
+    fastestSplitDisplay: formatSecondsAsTime(fastest),
+    slowestSplitDisplay: formatSecondsAsTime(slowest),
+    averageSplitTimeDisplay: formatSecondsAsTime(averageSplitSeconds),
+    completedSplits: completedSplits.length,
+    completionPercent: getCompletionPercent(workout),
+  });
+}
+
+function calculateTempoMetrics(workout) {
+  const warmupSteps = getCompletedStepsByKeyword(workout, "warmup");
+  const tempoSteps = getCompletedStepsByKeyword(workout, "tempo");
+  const cooldownSteps = getCompletedStepsByKeyword(workout, "cooldown");
+
+  const toTime = (steps) =>
+    steps.map((step) => parseSecondsOrMinutes(step.actual)).filter((x) => x > 0);
+
+  const toDistance = (steps) =>
+    steps.reduce((sum, step) => sum + parseStepDistanceInMiles(step), 0);
+
+  const warmupTime = toTime(warmupSteps).reduce((a, b) => a + b, 0);
+  const tempoTime = toTime(tempoSteps).reduce((a, b) => a + b, 0);
+  const cooldownTime = toTime(cooldownSteps).reduce((a, b) => a + b, 0);
+
+  const warmupDistance = toDistance(warmupSteps);
+  const tempoDistance = toDistance(tempoSteps);
+  const cooldownDistance = toDistance(cooldownSteps);
+
+  const totalDistance = warmupDistance + tempoDistance + cooldownDistance;
+  let totalTimeSeconds = warmupTime + tempoTime + cooldownTime;
+
+  const overallFinishSeconds = parseOverallActualTimeFromWorkout(workout) * 60;
+  if (overallFinishSeconds > 0) {
+    totalTimeSeconds = overallFinishSeconds;
+  }
+
+  const tempoSplitSeconds = toTime(tempoSteps);
+  const { fastest, slowest } = getFastestAndSlowestSeconds(tempoSplitSeconds);
+
+  return normalizeVisibleMetrics({
+    totalDistance: roundToTwo(totalDistance),
+    totalTimeMinutes: roundToTwo(totalTimeSeconds / 60),
+    totalTimeDisplay: formatSecondsAsTime(totalTimeSeconds),
+    averagePaceMinutes: totalDistance > 0 ? roundToTwo((totalTimeSeconds / totalDistance) / 60) : 0,
+    averagePaceDisplay: totalDistance > 0 ? formatSecondsAsPace(totalTimeSeconds / totalDistance) : "",
+    tempoDistance: roundToTwo(tempoDistance),
+    tempoTimeMinutes: tempoTime > 0 ? roundToTwo(tempoTime / 60) : 0,
+    tempoTimeDisplay: formatSecondsAsTime(tempoTime),
+    tempoPaceDisplay: tempoDistance > 0 ? formatSecondsAsPace(tempoTime / tempoDistance) : "",
+    warmupPaceDisplay: warmupDistance > 0 ? formatSecondsAsPace(warmupTime / warmupDistance) : "",
+    cooldownPaceDisplay: cooldownDistance > 0 ? formatSecondsAsPace(cooldownTime / cooldownDistance) : "",
+    fastestTempoSplitDisplay: formatSecondsAsTime(fastest),
+    slowestTempoSplitDisplay: formatSecondsAsTime(slowest),
+    completionPercent: getCompletionPercent(workout),
+  });
+}
+
+function calculateIntervalsMetrics(workout) {
+  const sprintSteps = getCompletedStepsByKeyword(workout, "sprint");
+  const recoverySteps = getCompletedStepsByKeyword(workout, "recovery");
+
+  const sprintTimes = sprintSteps.map((step) => parseSecondsOrMinutes(step.actual)).filter((x) => x > 0);
+  const sprintDistances = sprintSteps.map((step) => parseDistanceToMiles(step.target)).filter((x) => x > 0);
+  const recoveryDistance = recoverySteps.reduce(
+    (sum, step) => sum + parseDistanceToMiles(step.actual || step.target),
+    0
+  );
+
+  const totalSprintTime = sprintTimes.reduce((a, b) => a + b, 0);
+  const totalSprintDistance = sprintDistances.reduce((a, b) => a + b, 0);
+  const averageSprintTime = sprintTimes.length ? totalSprintTime / sprintTimes.length : 0;
+  const averageSprintPace = totalSprintDistance > 0 ? totalSprintTime / totalSprintDistance : 0;
+
+  const { fastest, slowest } = getFastestAndSlowestSeconds(sprintTimes);
+
+  return normalizeVisibleMetrics({
+    completedSprints: sprintSteps.length,
+    totalSprintDistance: roundToTwo(totalSprintDistance),
+    totalSprintTimeMinutes: totalSprintTime > 0 ? roundToTwo(totalSprintTime / 60) : 0,
+    totalSprintTimeDisplay: formatSecondsAsTime(totalSprintTime),
+    averageSprintTimeDisplay: formatSecondsAsTime(averageSprintTime),
+    fastestSprintDisplay: formatSecondsAsTime(fastest),
+    slowestSprintDisplay: formatSecondsAsTime(slowest),
+    averageSprintPaceDisplay: formatSecondsAsPace(averageSprintPace),
+    totalRecoveryDistance: roundToTwo(recoveryDistance),
+    workRestRatio: recoverySteps.length ? `${sprintSteps.length}:${recoverySteps.length}` : "",
+    completionPercent: getCompletionPercent(workout),
+  });
+}
+
+function calculateHiitMetrics(workout) {
+  const workSteps = getCompletedStepsByKeyword(workout, "work");
+  const restSteps = getCompletedStepsByKeyword(workout, "rest");
+
+  const totalWorkSeconds = workSteps.reduce((sum, step) => sum + parseSecondsOrMinutes(step.actual || step.target), 0);
+  const totalRestSeconds = restSteps.reduce((sum, step) => sum + parseSecondsOrMinutes(step.actual || step.target), 0);
+
+  const averageWork = workSteps.length ? totalWorkSeconds / workSteps.length : 0;
+  const averageRest = restSteps.length ? totalRestSeconds / restSteps.length : 0;
+
+  return normalizeVisibleMetrics({
+    completedIntervals: workSteps.length,
+    totalWorkTimeDisplay: formatSecondsAsTime(totalWorkSeconds),
+    totalRestTimeDisplay: formatSecondsAsTime(totalRestSeconds),
+    totalSessionTimeDisplay: formatSecondsAsTime(totalWorkSeconds + totalRestSeconds),
+    averageWorkIntervalDisplay: formatSecondsAsTime(averageWork),
+    averageRestIntervalDisplay: formatSecondsAsTime(averageRest),
+    workRestRatio:
+      totalRestSeconds > 0 ? `${roundToTwo(totalWorkSeconds / totalRestSeconds)} : 1` : "",
+    completionPercent: getCompletionPercent(workout),
+  });
+}
+
+function calculateFartlekMetrics(workout) {
+  const hardSteps = getCompletedStepsByKeyword(workout, "hard");
+  const easySteps = getCompletedStepsByKeyword(workout, "easy");
+
+  const totalHardSeconds = hardSteps.reduce((sum, step) => sum + parseSecondsOrMinutes(step.actual || step.target), 0);
+  const totalEasySeconds = easySteps.reduce((sum, step) => sum + parseSecondsOrMinutes(step.actual || step.target), 0);
+
+  return normalizeVisibleMetrics({
+    completedCycles: Math.min(hardSteps.length, easySteps.length),
+    totalHardTimeDisplay: formatSecondsAsTime(totalHardSeconds),
+    totalEasyTimeDisplay: formatSecondsAsTime(totalEasySeconds),
+    totalSessionTimeDisplay: formatSecondsAsTime(totalHardSeconds + totalEasySeconds),
+    hardEasyRatio:
+      totalEasySeconds > 0 ? `${roundToTwo(totalHardSeconds / totalEasySeconds)} : 1` : "",
+    averageHardSegmentDisplay: formatSecondsAsTime(hardSteps.length ? totalHardSeconds / hardSteps.length : 0),
+    averageEasySegmentDisplay: formatSecondsAsTime(easySteps.length ? totalEasySeconds / easySteps.length : 0),
+    completionPercent: getCompletionPercent(workout),
+  });
+}
+
+function calculateHillMetrics(workout) {
+  const uphillSteps = getCompletedStepsByKeyword(workout, "uphill");
+  const recoverySteps = getCompletedStepsByKeyword(workout, "recovery");
+
+  const uphillTimes = uphillSteps.map((step) => parseSecondsOrMinutes(step.actual)).filter((x) => x > 0);
+  const totalUphillTime = uphillTimes.reduce((a, b) => a + b, 0);
+  const totalRecoveryTime = recoverySteps.reduce((sum, step) => sum + parseSecondsOrMinutes(step.actual), 0);
+  const totalHillDistance = uphillSteps.reduce((sum, step) => sum + parseDistanceToMiles(step.target), 0);
+
+  const { fastest, slowest } = getFastestAndSlowestSeconds(uphillTimes);
+
+  return normalizeVisibleMetrics({
+    completedHillReps: uphillSteps.length,
+    totalUphillTimeDisplay: formatSecondsAsTime(totalUphillTime),
+    totalRecoveryTimeDisplay: formatSecondsAsTime(totalRecoveryTime),
+    averageUphillRepDisplay: formatSecondsAsTime(uphillSteps.length ? totalUphillTime / uphillSteps.length : 0),
+    fastestUphillRepDisplay: formatSecondsAsTime(fastest),
+    slowestUphillRepDisplay: formatSecondsAsTime(slowest),
+    totalHillDistance: roundToTwo(totalHillDistance),
+    averageUphillPaceDisplay: totalHillDistance > 0 ? formatSecondsAsPace(totalUphillTime / totalHillDistance) : "",
+    completionPercent: getCompletionPercent(workout),
+  });
+}
+
+function calculatePowerMetrics(workout) {
+  const powerSteps = getCompletedStepsByKeyword(workout, "power interval");
+  const recoverySteps = getCompletedStepsByKeyword(workout, "recovery");
+
+  const watts = powerSteps.map((step) => parseWatts(step.actual)).filter((x) => x > 0);
+  const totalWorkSeconds = powerSteps.reduce((sum, step) => sum + parseSecondsOrMinutes(step.target), 0);
+  const totalRecoverySeconds = recoverySteps.reduce((sum, step) => sum + parseSecondsOrMinutes(step.target), 0);
+
+  return normalizeVisibleMetrics({
+    completedPowerIntervals: powerSteps.length,
+    averageWatts: watts.length ? roundToTwo(watts.reduce((a, b) => a + b, 0) / watts.length) : 0,
+    maxWatts: watts.length ? Math.max(...watts) : 0,
+    minWatts: watts.length ? Math.min(...watts) : 0,
+    totalWorkTimeDisplay: formatSecondsAsTime(totalWorkSeconds),
+    totalRecoveryTimeDisplay: formatSecondsAsTime(totalRecoverySeconds),
+    totalSessionTimeDisplay: formatSecondsAsTime(totalWorkSeconds + totalRecoverySeconds),
+    completionPercent: getCompletionPercent(workout),
+  });
+}
+
+function calculateWorkoutMetrics(workout) {
+  if (!workout?.type) return {};
+
+  if (["steady", "recovery", "longrun"].includes(workout.type)) {
+    return calculateRunLikeMetrics(workout);
+  }
+
+  if (workout.type === "tempo") {
+    return calculateTempoMetrics(workout);
+  }
+
+  if (workout.type === "intervals") {
+    return calculateIntervalsMetrics(workout);
+  }
+
+  if (workout.type === "hiit") {
+    return calculateHiitMetrics(workout);
+  }
+
+  if (workout.type === "fartlek") {
+    return calculateFartlekMetrics(workout);
+  }
+
+  if (workout.type === "hill") {
+    return calculateHillMetrics(workout);
+  }
+
+  if (workout.type === "power") {
+    return calculatePowerMetrics(workout);
+  }
+
+  return {};
+}
+
+function renderVisibleMetrics() {
+  const container = document.getElementById("visible-calculated-metrics");
+  if (!container) return;
+
+  const entries = Object.entries(visibleMetrics).filter(([_, value]) => value !== "" && value !== 0 && value != null);
+
+  if (!entries.length) {
+    container.innerHTML = "";
+    return;
+  }
+
+  const labels = {
+    totalDistance: "Total Distance",
+    totalTimeMinutes: "Total Time (Minutes)",
+    averagePaceMinutes: "Average Pace (Minutes)",
+    totalTimeDisplay: "Total Time",
+    averagePaceDisplay: "Average Pace",
+    fastestSplitDisplay: "Fastest Split",
+    slowestSplitDisplay: "Slowest Split",
+    averageSplitTimeDisplay: "Average Split Time",
+    completedSplits: "Completed Splits",
+    completionPercent: "Completion Percent",
+
+    tempoDistance: "Tempo Distance",
+    tempoTimeDisplay: "Tempo Time",
+    tempoPaceDisplay: "Tempo Pace",
+    warmupPaceDisplay: "Warmup Pace",
+    cooldownPaceDisplay: "Cooldown Pace",
+    fastestTempoSplitDisplay: "Fastest Tempo Split",
+    slowestTempoSplitDisplay: "Slowest Tempo Split",
+
+    completedSprints: "Completed Sprints",
+    totalSprintDistance: "Total Sprint Distance",
+    totalSprintTimeDisplay: "Total Sprint Time",
+    averageSprintTimeDisplay: "Average Sprint Time",
+    fastestSprintDisplay: "Fastest Sprint",
+    slowestSprintDisplay: "Slowest Sprint",
+    averageSprintPaceDisplay: "Average Sprint Pace",
+    totalRecoveryDistance: "Total Recovery Distance",
+    workRestRatio: "Work / Rest Ratio",
+
+    completedIntervals: "Completed Intervals",
+    totalWorkTimeDisplay: "Total Work Time",
+    totalRestTimeDisplay: "Total Rest Time",
+    totalSessionTimeDisplay: "Total Session Time",
+    averageWorkIntervalDisplay: "Average Work Interval",
+    averageRestIntervalDisplay: "Average Rest Interval",
+
+    completedCycles: "Completed Cycles",
+    totalHardTimeDisplay: "Total Hard Time",
+    totalEasyTimeDisplay: "Total Easy Time",
+    hardEasyRatio: "Hard / Easy Ratio",
+    averageHardSegmentDisplay: "Average Hard Segment",
+    averageEasySegmentDisplay: "Average Easy Segment",
+
+    completedHillReps: "Completed Hill Reps",
+    totalUphillTimeDisplay: "Total Uphill Time",
+    totalRecoveryTimeDisplay: "Total Recovery Time",
+    averageUphillRepDisplay: "Average Uphill Rep",
+    fastestUphillRepDisplay: "Fastest Uphill Rep",
+    slowestUphillRepDisplay: "Slowest Uphill Rep",
+    totalHillDistance: "Total Hill Distance",
+    averageUphillPaceDisplay: "Average Uphill Pace",
+
+    completedPowerIntervals: "Completed Power Intervals",
+    averageWatts: "Average Watts",
+    maxWatts: "Max Watts",
+    minWatts: "Min Watts",
+
+    calories: "Calories",
+    heartRate: "Average Heart Rate",
+    elevationGain: "Elevation Gain",
+    cadence: "Cadence",
+  };
+
+  container.innerHTML = `
+    <div class="section-header">
+      <div>
+        <h3 class="section-title">Saved Workout Metrics</h3>
+        <p class="section-subtitle">
+          ${calculationMode === "manual"
+            ? "Manual values saved"
+            : calculationMode === "auto"
+            ? "Auto-calculated values saved"
+            : "Current saved values"}
+        </p>
+      </div>
+    </div>
+    ${entries.map(([key, value]) => `
+      <p><strong>${labels[key] || key}:</strong> ${key === "completionPercent" ? `${value}%` : value}</p>
+    `).join("")}
+  `;
+}
+    async function loadState() {
+      try {
+        const res = await fetch(`/api/state?pageKey=${encodeURIComponent(pageKey)}`, {
+          credentials: "include",
+          cache: "no-store",
+        });
+
+        if (!res.ok) return null;
+        const data = await res.json();
+        return data?.state ?? null;
+      } catch (error) {
+        console.error("Failed to load workout builder state:", error);
+        return null;
+      }
+    }
+
+    async function saveState() {
+      if (!hasLoadedInitialState) return;
+
+      if (isSaving) {
+        pendingSave = true;
+        return;
+      }
+
+      isSaving = true;
+
+      try {
+        await fetch("/api/state", {
+          method: "POST",
+          credentials: "include",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            pageKey,
+            state: {
+              workoutTypes,
+              selectedType,
+            },
+          }),
+        });
+      } catch (error) {
+        console.error("Failed to save workout builder state:", error);
+      } finally {
+        isSaving = false;
+
+        if (pendingSave) {
+          pendingSave = false;
+          await saveState();
+        }
+      }
+    }
+
+    function renderTypeSelect() {
+      workoutTypeSelect.innerHTML = "";
+
+      getWorkoutTypeEntries().forEach(([key, config]) => {
+        const option = document.createElement("option");
+        option.value = key;
+        option.textContent = config.label;
+        option.selected = key === selectedType;
+        workoutTypeSelect.appendChild(option);
+      });
+    }
+
+    const cardioWorkoutNotes = document.getElementById("cardio-workout-notes");
+
+    function renderWorkoutTypeEditor() {
+      workoutTypeEditPanel.innerHTML = "";
+      workoutTypeEditPanel.hidden = !isEditingWorkoutTypes;
+
+      editWorkoutTypesButton.textContent = isEditingWorkoutTypes ? "Done" : "Edit";
+
+      if (!isEditingWorkoutTypes) return;
+
+      getWorkoutTypeEntries().forEach(([key, config]) => {
+        const card = document.createElement("div");
+        card.className = "workout-type-edit-card";
+
+        const row = document.createElement("div");
+        row.className = "workout-type-edit-row";
+
+        const input = document.createElement("input");
+        input.type = "text";
+        input.className = "workout-type-inline-input";
+        input.value = config.label;
+        input.placeholder = "Workout type name";
+
+        input.addEventListener("change", async () => {
+          const nextLabel = input.value.trim() || config.label;
+          workoutTypes[key].label = nextLabel;
+          renderTypeSelect();
+          renderWorkoutTypeEditor();
+          renderFormFields();
+          await saveState();
+        });
+
+        const deleteButton = document.createElement("button");
+        deleteButton.type = "button";
+        deleteButton.className = "routine-action-button";
+        deleteButton.textContent = "Delete";
+
+        deleteButton.addEventListener("click", async () => {
+          if (Object.keys(workoutTypes).length <= 1) return;
+
+          delete workoutTypes[key];
+          ensureSelectedTypeExists();
+          renderTypeSelect();
+          renderWorkoutTypeEditor();
+          renderFormFields();
+          await saveState();
+        });
+
+        row.appendChild(input);
+        row.appendChild(deleteButton);
+        card.appendChild(row);
+        workoutTypeEditPanel.appendChild(card);
+      });
+
+      const actions = document.createElement("div");
+      actions.className = "workout-type-edit-actions";
+
+      const addButton = document.createElement("button");
+      addButton.type = "button";
+      addButton.className = "routine-action-button";
+      addButton.textContent = "Add Workout Type";
+
+      addButton.addEventListener("click", async () => {
+        let baseKey = "new-workout";
+        let counter = 1;
+        let newKey = baseKey;
+
+        while (workoutTypes[newKey]) {
+          counter += 1;
+          newKey = `${baseKey}-${counter}`;
+        }
+
+        workoutTypes[newKey] = {
+          label: "New Workout",
+          fields: createDefaultFieldSetForType(newKey),
+        };
+
+        selectedType = newKey;
+        renderTypeSelect();
+        renderWorkoutTypeEditor();
+        renderFormFields();
+        await saveState();
+
+        const inputs = workoutTypeEditPanel.querySelectorAll(".workout-type-inline-input");
+        const lastInput = inputs[inputs.length - 1];
+        if (lastInput) lastInput.focus();
+      });
+
+      const restoreButton = document.createElement("button");
+      restoreButton.type = "button";
+      restoreButton.className = "routine-action-button";
+      restoreButton.textContent = "Restore Defaults";
+
+      restoreButton.addEventListener("click", async () => {
+        workoutTypes = cloneWorkoutTypes(defaultWorkoutTypes);
+        selectedType = "hiit";
+        renderTypeSelect();
+        renderWorkoutTypeEditor();
+        renderFormFields();
+        await saveState();
+      });
+
+      actions.appendChild(addButton);
+      actions.appendChild(restoreButton);
+      workoutTypeEditPanel.appendChild(actions);
+    }
+
+    function renderFormFields() {
+      ensureSelectedTypeExists();
+
+      const config = workoutTypes[selectedType];
+      if (!config) {
+        formFields.innerHTML = "";
+        return;
+      }
+
+      const baseFields = [...config.fields];
+      
+      if (isRunWorkoutType(selectedType)) {
+        const hasPaceField = baseFields.some(
+          (field) => field.name === "pace" || field.name === "tempoPace"
+        );
+        const hasTotalTimeField = baseFields.some((field) => field.name === "totalTime");
+
+        if (!hasTotalTimeField) {
+          baseFields.push({
+            name: "totalTime",
+            label: "Planned Total Time",
+            type: "text",
+            value: "",
+            placeholder: "Leave blank to calculate from distance + pace",
+          });
+        }
+
+        if (!hasPaceField) {
+          baseFields.push({
+            name: "pace",
+            label: "Target Pace",
+            type: "text",
+            value: "",
+            placeholder: "Leave blank to calculate from distance + total time",
+          });
+        }
+      }
+
+      formFields.innerHTML = baseFields
+        .map((field) => {
+          const safeName = field.name || "field";
+          const safeLabel = field.label || "Field";
+          const safeValue = field.value ?? "";
+
+          if (field.type === "select") {
+            const options = Array.isArray(field.options) ? field.options : [];
+            return `
+              <label class="workout-field">
+                <span>${safeLabel}</span>
+                <select name="${safeName}">
+                  ${options
+                    .map(
+                      (option) => `
+                        <option value="${option.value}" ${option.value === safeValue ? "selected" : ""}>
+                          ${option.label}
+                        </option>
+                      `
+                    )
+                    .join("")}
+                </select>
+              </label>
+            `;
+          }
+
+          const safeType = field.type === "number" ? "number" : "text";
+          const safeMin = safeType === "number" ? (field.min ?? "") : "";
+          const safeStep = safeType === "number" ? (field.step ?? "") : "";
+          const safePlaceholder = field.placeholder ?? "";
+          const isOptional = safeName === "totalTime" || safeName === "pace";
+          return `
+            <label class="workout-field">
+              <span>${safeLabel}</span>
+              <input
+                name="${safeName}"
+                type="${safeType}"
+                value="${safeValue}"
+                min="${safeMin}"
+                step="${safeStep}"
+                placeholder="${safePlaceholder}"
+                ${isOptional ? "" : "required"}
+              />
+            </label>
+          `;
+        })
+        .join("");
+    }
+    function addDistanceSteps(steps, label, distance, pace, splitLabel = "Actual Mile Split") {
+      const wholeMiles = Math.floor(distance);
+      const remainder = distance - wholeMiles;
+
+      for (let i = 1; i <= wholeMiles; i++) {
+        steps.push(
+          createStep({
+            text: `${label} Mile ${i}`,
+            target: pace,
+            actualLabel: splitLabel,
+            actualPlaceholder: "Example: 8:32\nFelt controlled",
+          })
+        );
+      }
+
+      if (remainder > 0) {
+        steps.push(
+          createStep({
+            text: `${label} Final ${remainder.toFixed(1)} mile segment`,
+            target: pace,
+            actualLabel: "Actual Split / Notes",
+            actualPlaceholder: "Example: 4:08\nStayed smooth",
+          })
+        );
+      }
+    }
+
+    function buildWorkout(type, values) {
+      if (type === "hiit") {
+        const rounds = Number(values.rounds);
+        const workSeconds = Number(values.workSeconds);
+        const restSeconds = Number(values.restSeconds);
+
+        const steps = [];
+
+        for (let i = 1; i <= rounds; i++) {
+          steps.push(
+            createStep({
+              text: `Interval ${i}: Work`,
+              target: `${workSeconds}s`,
+              actualLabel: "Actual Work Time / Notes",
+              actualPlaceholder: "Example: 31s\nFelt strong",
+            })
+          );
+
+          if (i < rounds) {
+            steps.push(
+              createStep({
+                text: `Rest ${i}: Recovery`,
+                target: `${restSeconds}s`,
+                actualLabel: "Actual Rest Time / Notes",
+                actualPlaceholder: "Example: 35s\nWalked part of it",
+              })
+            );
+          }
+        }
+
+        return {
+          type,
+          title: workoutTypes[type].label,
+          summary: `${rounds} intervals · ${workSeconds}s work · ${restSeconds}s rest`,
+          steps,
+        };
+      }
+
+      if (type === "intervals") {
+        const sprintCount = Number(values.sprintCount);
+        const sprintDistance = values.sprintDistance;
+        const sprintTargetTime = values.sprintTargetTime;
+        const restDistance = values.restDistance;
+
+        const steps = [];
+
+        for (let i = 1; i <= sprintCount; i++) {
+          steps.push(
+            createStep({
+              text: `Sprint ${i}`,
+              target: `${sprintDistance} in ${sprintTargetTime}`,
+              actualLabel: "Actual Sprint Time / Notes",
+              actualPlaceholder: "Example: 0:34\nGood turnover",
+            })
+          );
+
+          steps.push(
+            createStep({
+              text: `Jog recovery ${i}`,
+              target: `${restDistance}`,
+              actualLabel: "Actual Recovery Distance / Notes",
+              actualPlaceholder: "Example: 100m\nJogged easy",
+            })
+          );
+        }
+
+        steps.push(
+          createStep({
+            text: "Extended jog recovery",
+            target: `${sprintCount * 4} × ${restDistance}`,
+            actualLabel: "Actual Recovery Distance / Notes",
+            actualPlaceholder: "Example: 400m\nNeeded extra time",
+          })
+        );
+
+        return {
+          type,
+          title: workoutTypes[type].label,
+          summary: `${sprintCount} sprints · ${sprintDistance} target ${sprintTargetTime} · ${restDistance} jog rest`,
+          steps,
+        };
+      }
+
+      if (type === "tempo") {
+        const warmupDistance = Number(values.warmupDistance || 0);
+        const tempoDistance = Number(values.tempoDistance || 0);
+        const tempoPace = values.tempoPace || values.pace || "Tempo pace";
+        const cooldownDistance = Number(values.cooldownDistance || 0);
+        const plannedMetrics = getPlannedRunMetrics(type, {
+          ...values,
+          pace: tempoPace,
+        });
+
+        const steps = [];
+
+        if (warmupDistance > 0) {
+          addDistanceSteps(steps, "Warmup", warmupDistance, "Easy pace");
+        }
+
+        if (tempoDistance > 0) {
+          addDistanceSteps(steps, "Tempo", tempoDistance, tempoPace, "Actual Tempo Split");
+        }
+
+        if (cooldownDistance > 0) {
+          addDistanceSteps(steps, "Cooldown", cooldownDistance, "Easy pace");
+        }
+
+        steps.push(
+          createStep({
+            text: "Finish tempo workout",
+            target: `${plannedMetrics.distance} miles total`,
+            actualLabel: "Overall Time / Notes",
+            actualPlaceholder: "Example: 38:42\nTempo felt controlled throughout",
+          })
+        );
+
+        return {
+          type,
+          title: workoutTypes[type].label,
+          summary: `${warmupDistance} mi warmup · ${tempoDistance} mi tempo at ${tempoPace} · ${cooldownDistance} mi cooldown`,
+          steps,
+          meta: {
+            distanceMiles: plannedMetrics.distance,
+            plannedTotalTimeMinutes: plannedMetrics.totalTimeMinutes,
+            plannedPaceMinutes: plannedMetrics.paceMinutes,
+            plannedTotalTimeDisplay: plannedMetrics.totalTimeDisplay,
+            plannedPaceDisplay: plannedMetrics.paceDisplay, 
+          },
+        };
+      }
+      if (type === "fartlek") {
+        const cycles = Number(values.cycles);
+        const hardMinutes = Number(values.hardMinutes);
+        const easyMinutes = Number(values.easyMinutes);
+        const hardEffort = values.hardEffort || "Hard";
+        const easyEffort = values.easyEffort || "Easy";
+        const steps = [];
+
+        for (let i = 1; i <= cycles; i++) {
+          steps.push(
+            createStep({
+              text: `Cycle ${i}: Hard`,
+              target: `${hardMinutes} min · ${hardEffort}`,
+              actualLabel: "Actual Hard Segment / Notes",
+              actualPlaceholder: "Example: 2:00\nStrong effort",
+            })
+          );
+
+          steps.push(
+            createStep({
+              text: `Cycle ${i}: Easy`,
+              target: `${easyMinutes} min · ${easyEffort}`,
+              actualLabel: "Actual Easy Segment / Notes",
+              actualPlaceholder: "Example: 2:10\nRecovered well",
+            })
+          );
+        }
+
+        return {
+          type,
+          title: workoutTypes[type].label,
+          summary: `${cycles} cycles · ${hardMinutes} min hard / ${easyMinutes} min easy`,
+          steps,
+        };
+      }
+
+      if (type === "hill") {
+        const repeatCount = Number(values.repeatCount);
+        const hillDistance = values.hillDistance;
+        const hillTarget = values.hillTarget;
+        const recoveryType = values.recoveryType;
+        const steps = [];
+
+        for (let i = 1; i <= repeatCount; i++) {
+          steps.push(
+            createStep({
+              text: `Hill Repeat ${i}: Uphill`,
+              target: `${hillDistance} · ${hillTarget}`,
+              actualLabel: "Actual Uphill Time / Notes",
+              actualPlaceholder: "Example: 0:46\nStayed tall",
+            })
+          );
+
+          steps.push(
+            createStep({
+              text: `Hill Repeat ${i}: Recovery`,
+              target: recoveryType,
+              actualLabel: "Actual Recovery / Notes",
+              actualPlaceholder: "Example: Jog down\nBreathing recovered",
+            })
+          );
+        }
+
+        return {
+          type,
+          title: workoutTypes[type].label,
+          summary: `${repeatCount} repeats · ${hillDistance} uphill · ${recoveryType}`,
+          steps,
+        };
+      }
+
+      if (type === "power") {
+        const intervalCount = Number(values.intervalCount);
+        const workMinutes = Number(values.workMinutes);
+        const targetWatts = Number(values.targetWatts);
+        const recoveryMinutes = Number(values.recoveryMinutes);
+        const steps = [];
+
+        for (let i = 1; i <= intervalCount; i++) {
+          steps.push(
+            createStep({
+              text: `Power Interval ${i}`,
+              target: `${workMinutes} min @ ${targetWatts} watts`,
+              actualLabel: "Actual Watts / Notes",
+              actualPlaceholder: "Example: 248 avg watts\nCadence steady",
+            })
+          );
+
+          if (i < intervalCount) {
+            steps.push(
+              createStep({
+                text: `Recovery ${i}`,
+                target: `${recoveryMinutes} min easy`,
+                actualLabel: "Actual Recovery / Notes",
+                actualPlaceholder: "Example: 2:00\nEasy spin",
+              })
+            );
+          }
+        }
+
+        return {
+          type,
+          title: workoutTypes[type].label,
+          summary: `${intervalCount} intervals · ${workMinutes} min @ ${targetWatts}W · ${recoveryMinutes} min recovery`,
+          steps,
+        };
+      }
+
+       if (
+        type === "steady" ||
+        type === "recovery" ||
+        type === "longrun" ||
+        workoutTypes[type]?.fields?.some((field) => field.name === "distance")
+      ) {
+        const pace = values.pace ?? "Easy pace";
+        const distance = Number(values.distance);
+        const plannedMetrics = getPlannedRunMetrics(type, values);
+        const steps = [];
+
+        addDistanceSteps(steps, "", distance, plannedMetrics.paceDisplay || pace);
+
+        steps.push(
+          createStep({
+            text: `Finish ${distance} mile ${workoutTypes[type].label.toLowerCase()}`,
+            target: `${distance} miles total`,
+            actualLabel: "Overall Time / Notes",
+            actualPlaceholder: "Example: 27:41\nLegs felt good overall",
+          })
+        );
+
+        return {
+          type,
+          title: workoutTypes[type].label,
+          summary: `${distance} miles${
+            plannedMetrics.paceDisplay ? ` at ${plannedMetrics.paceDisplay}` : pace ? ` at ${pace}` : ""
+          }${
+            plannedMetrics.totalTimeDisplay ? ` · ${plannedMetrics.totalTimeDisplay} total` : ""
+          }`,
+          steps,
+          meta: {
+            distanceMiles: plannedMetrics.distance,
+            plannedTotalTimeMinutes: plannedMetrics.totalTimeMinutes,
+            plannedPaceMinutes: plannedMetrics.paceMinutes,
+            plannedTotalTimeDisplay: plannedMetrics.totalTimeDisplay,
+            plannedPaceDisplay: plannedMetrics.paceDisplay, 
+          },
+        };
+      }
+
+      const genericFields = workoutTypes[type]?.fields || [];
+      const genericSummary = genericFields
+        .map((field) => `${field.label}: ${values[field.name] ?? field.value ?? ""}`)
+        .join(" · ");
+
+      return {
+        type,
+        title: workoutTypes[type]?.label || "Workout",
+        summary: genericSummary,
+        steps: [
+          createStep({
+            text: workoutTypes[type]?.label || "Workout",
+            target: genericSummary,
+            actualLabel: "Actual Result / Notes",
+            actualPlaceholder: "Enter your actual result",
+          }),
+        ],
+      };
+    }
+
+    function renderLiveWorkout(workout) {
+      activeWorkout = workout;
+      liveWorkoutCard.hidden = false;
+      liveWorkoutSummary.innerHTML = `
+        <p><strong>${workout.title}</strong> · ${workout.summary}</p>
+      `;
+
+      liveWorkoutSteps.innerHTML = "";
+
+      workout.steps.forEach((step, index) => {
+        const li = document.createElement("li");
+        li.className = "routine-item workout-step-card" + (step.done ? " is-done" : "");
+
+        const header = document.createElement("div");
+        header.className = "workout-step-header";
+
+        const checkbox = document.createElement("input");
+        checkbox.type = "checkbox";
+        checkbox.checked = !!step.done;
+        checkbox.className = "workout-step-checkbox";
+
+        checkbox.addEventListener("change", () => {
+          activeWorkout.steps[index].done = checkbox.checked;
+          renderLiveWorkout(activeWorkout);
+        });
+
+        const copy = document.createElement("div");
+        copy.className = "workout-step-copy";
+
+        const title = document.createElement("div");
+        title.className = "workout-step-title";
+        title.textContent = step.text;
+
+        const target = document.createElement("div");
+        target.className = "workout-step-target";
+        target.textContent = `Target: ${step.target || "-"}`;
+
+        copy.appendChild(title);
+        copy.appendChild(target);
+
+        header.appendChild(checkbox);
+        header.appendChild(copy);
+
+        const actualWrap = document.createElement("div");
+        actualWrap.className = "workout-actual-field";
+
+        const actualLabel = document.createElement("label");
+        actualLabel.className = "workout-actual-label";
+        actualLabel.textContent = step.actualLabel || "Actual Time / Result";
+
+        const actualInput = document.createElement("textarea");
+        actualInput.className = "workout-actual-textarea";
+        actualInput.rows = 3;
+        actualInput.placeholder = step.actualPlaceholder || "Enter actual result";
+        actualInput.value = step.actual || "";
+
+        actualInput.addEventListener("input", (event) => {
+          activeWorkout.steps[index].actual = event.target.value;
+        });
+
+        actualWrap.appendChild(actualLabel);
+        actualWrap.appendChild(actualInput);
+
+        li.appendChild(header);
+        li.appendChild(actualWrap);
+        liveWorkoutSteps.appendChild(li);
+      });
+      const computedMetrics = calculateWorkoutMetrics(workout);
+
+      liveWorkoutSummary.innerHTML = `
+        <p><strong>${workout.title}</strong> · ${workout.summary}</p>
+ 
+        ${
+          computedMetrics.totalDistance
+            ? `
+              <div class="session-metrics">
+                <p><strong>Total Distance:</strong> ${computedMetrics.totalDistance} mi</p>
+                <p><strong>Total Time:</strong> ${computedMetrics.totalTimeDisplay || "-"}</p>
+                <p><strong>Average Pace:</strong> ${computedMetrics.averagePaceDisplay || "-"}</p>
+              </div>
+            `
+            : ""
+        }
+      `;
+
+      
+    }
+
+    editWorkoutTypesButton.addEventListener("click", () => {
+      isEditingWorkoutTypes = !isEditingWorkoutTypes;
+      renderWorkoutTypeEditor();
+    });
+
+    workoutTypeSelect.addEventListener("change", () => {
+      selectedType = workoutTypeSelect.value;
+      renderTypeSelect();
+      renderFormFields();
+      saveState();
+    });
+
+    form.addEventListener("submit", (event) => {
+      event.preventDefault();
+      const values = getFormValues();
+      const workout = buildWorkout(selectedType, values);
+      renderLiveWorkout(workout);
+    });
+
+    saveCompletedWorkoutButton?.addEventListener("click", async () => {
+      if (!activeWorkout) return;
+
+      const completedSteps = getCompletedLiveSteps(activeWorkout);
+
+      const session = {
+        id:
+          typeof crypto !== "undefined" && crypto.randomUUID
+            ? crypto.randomUUID()
+            : `cardio-session-${Date.now()}-${Math.random().toString(16).slice(2)}`,
+        type: "cardio",
+        dateTime: new Date().toISOString(),
+        workoutType: selectedType,
+        title: activeWorkout.title || "Workout",
+        summary: activeWorkout.summary || "",
+        notes:
+          cardioWorkoutNotes instanceof HTMLTextAreaElement
+            ? cardioWorkoutNotes.value.trim()
+            : "",
+        steps: completedSteps,
+        metrics: normalizeVisibleMetrics(visibleMetrics),
+        calculationMode,
+      };
+
+      const latestHistory = await loadFitnessHistory();
+      const latestWeightlifting = Array.isArray(latestHistory?.weightliftingSessions)
+        ? latestHistory.weightliftingSessions
+        : [];
+      const latestCardio = Array.isArray(latestHistory?.cardioSessions)
+        ? latestHistory.cardioSessions
+        : [];
+
+      const nextCardioHistory = [session, ...latestCardio];
+
+      await saveFitnessHistory({
+        weightliftingSessions: latestWeightlifting,
+        cardioSessions: nextCardioHistory,
+      });
+
+      weightliftingHistory = latestWeightlifting;
+      cardioHistory = nextCardioHistory;
+
+      await syncFitnessStats();
+      window.alert("Completed cardio workout saved.");
+    });
+
+    resetWorkoutButton.addEventListener("click", () => {
+      activeWorkout = null;
+      savedLiveSteps = [];
+      visibleMetrics = {};
+      calculationMode = "";
+      liveWorkoutCard.hidden = true;
+      liveWorkoutSteps.innerHTML = "";
+      liveWorkoutSummary.innerHTML = "";
+
+      const manualPanel = document.getElementById("manual-metrics-panel");
+      const visibleMetricsPanel = document.getElementById("visible-calculated-metrics");
+
+      if (manualPanel) {
+        manualPanel.hidden = true;
+        manualPanel.innerHTML = "";
+      }
+
+      if (visibleMetricsPanel) {
+        visibleMetricsPanel.innerHTML = "";
+      }
+
+      if (cardioWorkoutNotes instanceof HTMLTextAreaElement) {
+        cardioWorkoutNotes.value = "";
+      }
+
+      renderFormFields();
+    });
+
+    saveSplitsButton?.addEventListener("click", () => {
+      saveCurrentSplits();
+    });
+
+    openManualMetricsButton?.addEventListener("click", () => {
+      if (!activeWorkout) return;
+      renderManualMetricsPanel();
+    });
+
+    autoCalculateMetricsButton?.addEventListener("click", () => {
+      if (!activeWorkout) return;
+
+      const calculated = calculateWorkoutMetrics(activeWorkout);
+
+      visibleMetrics = {
+        ...visibleMetrics,
+        ...calculated,
+      };
+
+      calculationMode = "auto";
+      renderVisibleMetrics();
+    });
+    async function init() {
+      const saved = await loadState();
+
+      workoutTypes = normalizeSavedWorkoutTypes(saved?.workoutTypes);
+
+      selectedType =
+        typeof saved?.selectedType === "string" && workoutTypes[saved.selectedType]
+          ? saved.selectedType
+          : getFirstWorkoutTypeKey();
+
+      ensureSelectedTypeExists();
+
+      const historyState = await loadFitnessHistory();
+      weightliftingHistory = Array.isArray(historyState?.weightliftingSessions)
+        ? historyState.weightliftingSessions
+        : [];
+      cardioHistory = Array.isArray(historyState?.cardioSessions) ? historyState.cardioSessions : [];
+
+      hasLoadedInitialState = true;
+
+      renderTypeSelect();
+      renderWorkoutTypeEditor();
+      renderFormFields();
+    }
+
+    init();
+  </script>
+
+  <style>
+    .editor-toolbar {
+      display: flex;
+      justify-content: flex-end;
+      margin-bottom: 0.75rem;
+    }
+
+    .workout-type-select-wrap {
+      margin-bottom: 1rem;
+    }
+
+    .workout-type-select {
+      width: 100%;
+      border: 1px solid var(--border-color, rgba(0, 0, 0, 0.12));
+      border-radius: 0.9rem;
+      padding: 0.8rem 1rem;
+      background: transparent;
+      color: inherit;
+      font: inherit;
+    }
+
+    .workout-type-edit-panel {
+      display: grid;
+      gap: 0.85rem;
+      margin-top: 1rem;
+    }
+
+    .workout-type-edit-card {
+      border: 1px solid var(--border-color, rgba(0, 0, 0, 0.12));
+      border-radius: 1rem;
+      padding: 0.9rem 1rem;
+      background: transparent;
+    }
+
+    .workout-type-edit-row {
+      display: flex;
+      align-items: center;
+      gap: 0.75rem;
+      width: 100%;
+    }
+
+    .workout-type-inline-input {
+      flex: 1;
+      min-width: 0;
+      width: 100%;
+      border: none;
+      background: transparent;
+      color: inherit;
+      font: inherit;
+      font-size: 1rem;
+      padding: 0;
+      margin: 0;
+      outline: none;
+    }
+
+    .workout-type-edit-actions {
+      display: flex;
+      gap: 0.5rem;
+      flex-wrap: wrap;
+      justify-content: flex-end;
+    }
+
+    .routine-action-button {
+      border: 1px solid var(--border-color, rgba(0,0,0,0.12));
+      background: transparent;
+      color: inherit;
+      border-radius: 999px;
+      padding: 0.45rem 0.8rem;
+      font: inherit;
+      font-size: 0.9rem;
+      cursor: pointer;
+      white-space: nowrap;
+      flex-shrink: 0;
+    }
+  </style>
+</BaseLayout>

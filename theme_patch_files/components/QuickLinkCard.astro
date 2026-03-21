@@ -1,0 +1,48 @@
+---
+interface Props {
+  href: string;
+  title: string;
+  text?: string;
+}
+
+const { href, title, text = "" } = Astro.props;
+---
+
+<a href={href} class="quick-link-card surface-section">
+  <h3>{title}</h3>
+  {text && <p>{text}</p>}
+</a>
+
+<style>
+  .quick-link-card {
+    display: block;
+    text-decoration: none;
+    color: inherit;
+
+    padding: 1rem;
+    border-radius: 18px;
+
+    /* 🔥 THEME SYSTEM */
+    background: var(--quick-link-card-surface-color, var(--resolved-section-color));
+    border: 1px solid var(--border-color);
+    box-shadow: var(--card-shadow);
+
+    transition: transform 0.18s ease, box-shadow 0.18s ease, background 0.18s ease;
+  }
+
+  .quick-link-card:hover {
+    transform: translateY(-2px);
+    box-shadow: var(--card-shadow-hover);
+  }
+
+  .quick-link-card h3,
+  .quick-link-card p {
+    margin: 0;
+  }
+
+  .quick-link-card p {
+    margin-top: 0.35rem;
+    color: var(--text-secondary);
+    font-size: 0.95rem;
+  }
+</style>
