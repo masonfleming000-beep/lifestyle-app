@@ -1,216 +1,256 @@
 ---
 import BaseLayout from "../layouts/BaseLayout.astro";
-import { quotes, morals } from "../data/home";
 
-const navCards = [
-  { href: "/today", title: "Today", text: "Daily dashboard, routines, and priorities." },
-  { href: "/fitness", title: "Fitness", text: "Training hub for running and lifting." },
-  { href: "/nutrition", title: "Nutrition", text: "Macros, food reminders, and tracking." },
-  { href: "/mind", title: "Mind", text: "Recovery, yoga, and calming techniques." },
-  { href: "/education", title: "Education", text: "Classes, school goals, and planning." },
-  { href: "/work", title: "Work", text: "Tasks, meetings, sections, and deadlines." },
-  { href: "/career", title: "Career", text: "Professional direction, projects, and skills." },
-  { href: "/hobbies", title: "Hobbies", text: "Personal interests and development." },
+const defaultMorning = [
+  "Brush teeth",
+  "Wash face",
+  "Stretch",
+  "Journal / reflect",
+  "Exercise",
+  "Create to-do list",
+  "Update calendar",
 ];
 
-const defaultQuotes = JSON.stringify(quotes);
-const defaultMorals = JSON.stringify(morals);
+const defaultNight = [
+  "Clean room",
+  "Shower",
+  "Floss",
+  "Set bedtime",
+  "Create calm environment",
+  "Journal / reflect",
+  "Stretch / yoga",
+  "Turn off phone 30–60 mins before bed",
+  "Prepare for tomorrow",
+  "Read",
+];
+
+const starterTodos = [
+  { text: "Review calendar", done: false },
+  { text: "Complete highest-priority work", done: false },
+  { text: "Exercise", done: false },
+];
+
+const defaultCalendarEmbed = "";
+
+const defaultTodos = JSON.stringify(starterTodos);
+const defaultMorningItems = JSON.stringify(defaultMorning);
+const defaultNightItems = JSON.stringify(defaultNight);
+const defaultCalendar = JSON.stringify(defaultCalendarEmbed);
 ---
 
-<BaseLayout title="Home | Lifestyle App" description="Personal lifestyle home page">
-  <section class="hero">
-    <div class="hero-card">
-      <p class="kicker">Home</p>
-      <h1>Your life, organized simply.</h1>
-      <p>Use this page as the main hub. Tap into each area below.</p>
-    </div>
-  </section>
-
+<BaseLayout title="Today | Lifestyle App">
+  <!-- CALENDAR -->
   <section class="section">
-    <div class="section-header nav-header">
-      <div>
-        <h2 class="section-title">Navigate</h2>
-        <p class="section-subtitle">Choose a section.</p>
+    <article class="card">
+      <div class="today-header-row">
+        <h2 class="section-title">Calendar</h2>
+        <button id="calendar-edit-btn" type="button" class="today-btn">Edit</button>
       </div>
 
-      <div class="view-switcher" role="group" aria-label="Navigation layout">
-        <button
-          type="button"
-          class="view-btn is-active"
-          data-view-btn="grid"
-          aria-pressed="true"
-        >
-          Grid
-        </button>
-        <button
-          type="button"
-          class="view-btn"
-          data-view-btn="list"
-          aria-pressed="false"
-        >
-          List
+      <form id="calendar-form" class="todo-form today-form today-form-hidden">
+        <input
+          id="calendar-input"
+          type="text"
+          class="todo-input today-input"
+          placeholder="Paste Google Calendar embed URL..."
+        />
+        <button type="submit" class="today-btn">Save</button>
+      </form>
+
+      <div id="calendar-delete-wrap" class="today-action-row today-form-hidden">
+        <button id="calendar-delete-btn" type="button" class="today-btn today-btn-danger">
+          Remove Calendar
         </button>
       </div>
-    </div>
 
-    <div id="nav-cards" class="quick-links-grid quick-links-grid--grid">
-      {navCards.map((card) => (
-        <a href={card.href} class="link-card quick-link-card">
-          <div class="quick-link-card-inner">
-            <div class="quick-link-copy">
-              <h3>{card.title}</h3>
-              <p>{card.text}</p>
-            </div>
-            <span class="quick-link-arrow" aria-hidden="true">→</span>
-          </div>
-        </a>
-      ))}
-    </div>
+      <p id="calendar-instructions" class="muted today-calendar-help today-form-hidden">
+        Log into Google Calendar, go to Settings → Settings for my calendars →
+        select your calendar, then paste the public embed URL here.
+      </p>
+
+      <div id="calendar-container" class="calendar-embed"></div>
+    </article>
   </section>
 
+  <!-- TODO -->
   <section class="section">
-    <details class="dropdown-card" open>
-      <summary class="dropdown-summary">
-        <div>
-          <h2 class="section-title">Featured Quotes</h2>
-          <p class="section-subtitle">Open when you want perspective.</p>
+    <article class="card">
+      <div class="today-header-row">
+        <h2 class="section-title">Today</h2>
+        <div class="today-btn-group">
+          <button id="todo-restore-btn" type="button" class="today-btn">Restore</button>
+          <button id="todo-edit-btn" type="button" class="today-btn">Edit</button>
         </div>
-        <span class="dropdown-icon">+</span>
-      </summary>
+      </div>
 
-      <div class="dropdown-body">
-        <form id="quote-form" class="input-card">
-          <h3 class="card-title">Add Quote</h3>
-          <div class="form-stack">
-            <input id="quote-text" type="text" placeholder="Quote text" required />
-            <input id="quote-author" type="text" placeholder="Author or reminder source" />
-            <button type="submit" class="action-btn">Add Quote</button>
+      <form id="todo-form" class="todo-form today-form today-form-hidden">
+        <input
+          id="todo-input"
+          type="text"
+          class="todo-input today-input"
+          placeholder="Add a task..."
+        />
+        <button type="submit" class="today-btn">Add</button>
+      </form>
+
+      <ul id="todo-list" class="todo-list today-list"></ul>
+    </article>
+  </section>
+
+  <!-- ROUTINES -->
+  <section class="section">
+    <div class="grid two">
+      <article class="card today-checklist-card today-morning">
+        <div class="today-header-row">
+          <h2 class="section-title">Morning</h2>
+          <div class="today-btn-group">
+            <button id="morning-restore-btn" type="button" class="today-btn">Restore</button>
+            <button id="morning-edit-btn" type="button" class="today-btn">Edit</button>
           </div>
+        </div>
+
+        <form id="morning-form" class="todo-form today-form today-form-hidden">
+          <input
+            id="morning-input"
+            type="text"
+            class="todo-input today-input"
+            placeholder="Add morning routine item..."
+          />
+          <button type="submit" class="today-btn">Add</button>
         </form>
 
-        <div style="margin: 0 0 1rem 0;">
-          <button id="restore-quotes-btn" type="button" class="action-btn secondary-btn">
-            Restore Default Quotes
-          </button>
-        </div>
+        <ul id="morning-list" class="routine-list today-list"></ul>
+      </article>
 
-        <div id="quotes-list" class="grid three"></div>
-      </div>
-    </details>
-  </section>
-
-  <section class="section">
-    <details class="dropdown-card">
-      <summary class="dropdown-summary">
-        <div>
-          <h2 class="section-title">Core Reminders</h2>
-          <p class="section-subtitle">Keep these tucked away until needed.</p>
-        </div>
-        <span class="dropdown-icon">+</span>
-      </summary>
-
-      <div class="dropdown-body">
-        <form id="reminder-form" class="input-card">
-          <h3 class="card-title">Add Core Reminder</h3>
-          <div class="form-stack">
-            <input id="reminder-title" type="text" placeholder="Reminder title" required />
-            <textarea id="reminder-text" placeholder="Reminder details" rows="4" required></textarea>
-            <button type="submit" class="action-btn">Add Reminder</button>
+      <article class="card today-checklist-card today-night">
+        <div class="today-header-row">
+          <h2 class="section-title">Night</h2>
+          <div class="today-btn-group">
+            <button id="night-restore-btn" type="button" class="today-btn">Restore</button>
+            <button id="night-edit-btn" type="button" class="today-btn">Edit</button>
           </div>
+        </div>
+
+        <form id="night-form" class="todo-form today-form today-form-hidden">
+          <input
+            id="night-input"
+            type="text"
+            class="todo-input today-input"
+            placeholder="Add night routine item..."
+          />
+          <button type="submit" class="today-btn">Add</button>
         </form>
 
-        <div style="margin: 0 0 1rem 0;">
-          <button id="restore-reminders-btn" type="button" class="action-btn secondary-btn">
-            Restore Default Reminders
-          </button>
-        </div>
-
-        <div id="reminders-list" class="grid three"></div>
-      </div>
-    </details>
+        <ul id="night-list" class="routine-list today-list"></ul>
+      </article>
+    </div>
   </section>
 
-  <script define:vars={{ defaultQuotes, defaultMorals }}>
-    const pageKey = "home";
-    const navViewStorageKey = "home-nav-view";
+  <script
+    define:vars={{
+      defaultTodos,
+      defaultMorningItems,
+      defaultNightItems,
+      defaultCalendar,
+    }}
+  >
+    const pageKey = "today";
 
-    const quotesList = document.getElementById("quotes-list");
-    const remindersList = document.getElementById("reminders-list");
+    const todoListEl = document.getElementById("todo-list");
+    const todoForm = document.getElementById("todo-form");
+    const todoInput = document.getElementById("todo-input");
+    const todoEditBtn = document.getElementById("todo-edit-btn");
+    const todoRestoreBtn = document.getElementById("todo-restore-btn");
 
-    const quoteForm = document.getElementById("quote-form");
-    const quoteTextInput = document.getElementById("quote-text");
-    const quoteAuthorInput = document.getElementById("quote-author");
-    const restoreQuotesBtn = document.getElementById("restore-quotes-btn");
+    const morningListEl = document.getElementById("morning-list");
+    const nightListEl = document.getElementById("night-list");
 
-    const reminderForm = document.getElementById("reminder-form");
-    const reminderTitleInput = document.getElementById("reminder-title");
-    const reminderTextInput = document.getElementById("reminder-text");
-    const restoreRemindersBtn = document.getElementById("restore-reminders-btn");
+    const morningForm = document.getElementById("morning-form");
+    const nightForm = document.getElementById("night-form");
+    const morningInput = document.getElementById("morning-input");
+    const nightInput = document.getElementById("night-input");
+    const morningEditBtn = document.getElementById("morning-edit-btn");
+    const nightEditBtn = document.getElementById("night-edit-btn");
+    const morningRestoreBtn = document.getElementById("morning-restore-btn");
+    const nightRestoreBtn = document.getElementById("night-restore-btn");
 
-    const navCardsContainer = document.getElementById("nav-cards");
-    const viewButtons = document.querySelectorAll("[data-view-btn]");
+    const calendarForm = document.getElementById("calendar-form");
+    const calendarInput = document.getElementById("calendar-input");
+    const calendarContainer = document.getElementById("calendar-container");
+    const calendarInstructions = document.getElementById("calendar-instructions");
+    const calendarDeleteBtn = document.getElementById("calendar-delete-btn");
+    const calendarDeleteWrap = document.getElementById("calendar-delete-wrap");
+    const calendarEditBtn = document.getElementById("calendar-edit-btn");
 
-    const defaultQuoteItems = JSON.parse(defaultQuotes);
-    const defaultMoralItems = JSON.parse(defaultMorals);
+    const defaultTodoItems = JSON.parse(defaultTodos);
+    const defaultMorningRoutineItems = JSON.parse(defaultMorningItems);
+    const defaultNightRoutineItems = JSON.parse(defaultNightItems);
+    const defaultCalendarEmbed = JSON.parse(defaultCalendar);
 
-    function quoteKey(q) {
-      return `${q.text}::${q.author || ""}`;
-    }
+    const defaultTodoTexts = new Set(defaultTodoItems.map((item) => item.text));
+    const defaultMorningTexts = new Set(defaultMorningRoutineItems);
+    const defaultNightTexts = new Set(defaultNightRoutineItems);
 
-    function moralKey(m) {
-      return `${m.title}::${m.text}`;
-    }
-
-    const defaultQuoteKeySet = new Set(defaultQuoteItems.map(quoteKey));
-    const defaultMoralKeySet = new Set(defaultMoralItems.map(moralKey));
-
-    let state = {
-      quotes: [],
-      morals: [],
-      removedDefaultQuotes: [],
-      removedDefaultMorals: [],
+    let editModes = {
+      calendar: false,
+      todo: false,
+      morning: false,
+      night: false,
     };
 
-    function normalizeState(saved) {
-      return {
-        quotes: Array.isArray(saved?.quotes) ? saved.quotes : [],
-        morals: Array.isArray(saved?.morals) ? saved.morals : [],
-        removedDefaultQuotes: Array.isArray(saved?.removedDefaultQuotes) ? saved.removedDefaultQuotes : [],
-        removedDefaultMorals: Array.isArray(saved?.removedDefaultMorals) ? saved.removedDefaultMorals : [],
-      };
+    let state = {
+      calendarEmbed: defaultCalendarEmbed,
+      todos: [...defaultTodoItems],
+      morning: defaultMorningRoutineItems.map((text) => ({ text, done: false })),
+      night: defaultNightRoutineItems.map((text) => ({ text, done: false })),
+      removedDefaults: {
+        todos: [],
+        morning: [],
+        night: [],
+      },
+    };
+
+    let hasLoadedInitialState = false;
+    let isSaving = false;
+    let pendingSave = false;
+
+    function uniqueStrings(items = []) {
+      return [...new Set(items.filter(Boolean))];
     }
 
-    function mergeDefaults(savedItems, defaultItems, removedKeys, keyFn) {
+    function mergeDefaults(savedItems, defaultItems, keyFn, removedKeys = []) {
       const removedSet = new Set(removedKeys || []);
       const merged = [...(savedItems || [])];
-      const existingKeys = new Set(merged.map(keyFn));
 
       defaultItems.forEach((defaultItem) => {
         const key = keyFn(defaultItem);
-        if (removedSet.has(key)) return;
-        if (existingKeys.has(key)) return;
+        const exists = merged.some((item) => keyFn(item) === key);
 
-        merged.push(defaultItem);
-        existingKeys.add(key);
+        if (!exists && !removedSet.has(key)) {
+          merged.push(defaultItem);
+        }
       });
 
       return merged;
     }
 
-    function dedupeBy(items, keyFn) {
-      const seen = new Set();
-      return (items || []).filter((item) => {
-        const key = keyFn(item);
-        if (seen.has(key)) return false;
-        seen.add(key);
-        return true;
-      });
+    function markDefaultDeleted(section, text) {
+      const arr = state.removedDefaults?.[section] || [];
+      if (!arr.includes(text)) {
+        state.removedDefaults[section] = [...arr, text];
+      }
+    }
+
+    function unmarkDefaultDeleted(section, text) {
+      const arr = state.removedDefaults?.[section] || [];
+      state.removedDefaults[section] = arr.filter((item) => item !== text);
     }
 
     async function loadState() {
       try {
         const res = await fetch(`/api/state?pageKey=${encodeURIComponent(pageKey)}`, {
           credentials: "include",
+          cache: "no-store",
         });
 
         if (!res.ok) return null;
@@ -224,6 +264,15 @@ const defaultMorals = JSON.stringify(morals);
     }
 
     async function saveState() {
+      if (!hasLoadedInitialState) return;
+
+      if (isSaving) {
+        pendingSave = true;
+        return;
+      }
+
+      isSaving = true;
+
       try {
         await fetch("/api/state", {
           method: "POST",
@@ -233,370 +282,582 @@ const defaultMorals = JSON.stringify(morals);
         });
       } catch (error) {
         console.error("Failed to save state:", error);
+      } finally {
+        isSaving = false;
+
+        if (pendingSave) {
+          pendingSave = false;
+          await saveState();
+        }
       }
     }
 
-    function saveStateOnLeave() {
-      try {
-        navigator.sendBeacon(
-          "/api/state",
-          new Blob([JSON.stringify({ pageKey, state })], {
-            type: "application/json",
-          })
-        );
-      } catch (error) {
-        console.error("Failed to save on leave:", error);
+    function setVisible(el, visible, displayValue = "flex") {
+      if (!el) return;
+      el.style.display = visible ? displayValue : "none";
+    }
+
+    function updateEditUI() {
+      if (calendarEditBtn) {
+        calendarEditBtn.textContent = editModes.calendar ? "Done" : "Edit";
+      }
+      if (todoEditBtn) {
+        todoEditBtn.textContent = editModes.todo ? "Done" : "Edit";
+      }
+      if (morningEditBtn) {
+        morningEditBtn.textContent = editModes.morning ? "Done" : "Edit";
+      }
+      if (nightEditBtn) {
+        nightEditBtn.textContent = editModes.night ? "Done" : "Edit";
+      }
+
+      setVisible(calendarForm, editModes.calendar, "flex");
+      setVisible(calendarDeleteWrap, editModes.calendar, "flex");
+      setVisible(todoForm, editModes.todo, "flex");
+      setVisible(morningForm, editModes.morning, "flex");
+      setVisible(nightForm, editModes.night, "flex");
+    }
+
+    function createDeleteButton(onClick, isVisible) {
+      const btn = document.createElement("button");
+      btn.type = "button";
+      btn.textContent = "Delete";
+      btn.className = "today-btn today-btn-danger today-delete-btn";
+      btn.style.display = isVisible ? "inline-flex" : "none";
+      btn.addEventListener("click", onClick);
+      return btn;
+    }
+
+    function createCheckbox(textValue, checked, onChange) {
+      const label = document.createElement("label");
+      label.className = "today-item-main";
+
+      const checkbox = document.createElement("input");
+      checkbox.type = "checkbox";
+      checkbox.className = "today-checkbox";
+      checkbox.checked = !!checked;
+      checkbox.addEventListener("change", onChange);
+
+      const text = document.createElement("span");
+      text.className = "today-item-text";
+      text.textContent = textValue;
+
+      label.appendChild(checkbox);
+      label.appendChild(text);
+
+      return label;
+    }
+
+    function renderCalendar() {
+      if (!calendarContainer) return;
+
+      calendarContainer.innerHTML = "";
+
+      const hasEmbed = !!state.calendarEmbed?.trim();
+
+      if (calendarInstructions) {
+        calendarInstructions.style.display =
+          !hasEmbed && editModes.calendar ? "block" : "none";
+      }
+
+      if (!hasEmbed) {
+        const empty = document.createElement("div");
+        empty.className = "today-empty-state";
+        empty.textContent = "No calendar added yet. Paste a Google Calendar embed URL above.";
+        calendarContainer.appendChild(empty);
+        return;
+      }
+
+      const iframe = document.createElement("iframe");
+      iframe.src = state.calendarEmbed;
+      iframe.style.border = "0";
+      iframe.loading = "lazy";
+      iframe.width = "100%";
+      iframe.height = "600";
+      iframe.className = "today-calendar-frame";
+
+      calendarContainer.appendChild(iframe);
+    }
+
+    function renderTodos() {
+      if (!todoListEl) return;
+      todoListEl.innerHTML = "";
+
+      state.todos.forEach((todo, index) => {
+        const li = document.createElement("li");
+        li.className = "today-list-item" + (todo.done ? " is-done" : "");
+
+        const row = document.createElement("div");
+        row.className = "today-item-row";
+
+        const main = createCheckbox(todo.text, todo.done, async () => {
+          state.todos[index].done = !state.todos[index].done;
+          renderTodos();
+          await saveState();
+        });
+
+        const deleteBtn = createDeleteButton(async () => {
+          const removed = state.todos[index];
+
+          if (defaultTodoTexts.has(removed.text)) {
+            markDefaultDeleted("todos", removed.text);
+          }
+
+          state.todos.splice(index, 1);
+          renderTodos();
+          await saveState();
+        }, editModes.todo);
+
+        row.appendChild(main);
+        row.appendChild(deleteBtn);
+        li.appendChild(row);
+        todoListEl.appendChild(li);
+      });
+    }
+
+    function renderRoutine(listEl, key) {
+      if (!listEl) return;
+      listEl.innerHTML = "";
+
+      const sectionIsEditing = editModes[key];
+
+      state[key].forEach((item, index) => {
+        const li = document.createElement("li");
+        li.className = "today-list-item today-routine-item" + (item.done ? " is-done" : "");
+
+        const row = document.createElement("div");
+        row.className = "today-item-row";
+
+        const main = createCheckbox(item.text, item.done, async () => {
+          state[key][index].done = !state[key][index].done;
+          renderRoutine(listEl, key);
+          await saveState();
+        });
+
+        const deleteBtn = createDeleteButton(async () => {
+          const removed = state[key][index];
+
+          if (key === "morning" && defaultMorningTexts.has(removed.text)) {
+            markDefaultDeleted("morning", removed.text);
+          }
+
+          if (key === "night" && defaultNightTexts.has(removed.text)) {
+            markDefaultDeleted("night", removed.text);
+          }
+
+          state[key].splice(index, 1);
+          renderRoutine(listEl, key);
+          await saveState();
+        }, sectionIsEditing);
+
+        row.appendChild(main);
+        row.appendChild(deleteBtn);
+        li.appendChild(row);
+        listEl.appendChild(li);
+      });
+    }
+
+    function restoreSection(section) {
+      if (section === "todos") {
+        state.removedDefaults.todos = [];
+        state.todos = mergeDefaults(
+          state.todos,
+          defaultTodoItems,
+          (item) => item.text,
+          []
+        ).map((item) => ({
+          text: item.text,
+          done: !!item.done,
+        }));
+        renderTodos();
+        return;
+      }
+
+      if (section === "morning") {
+        state.removedDefaults.morning = [];
+        state.morning = mergeDefaults(
+          state.morning,
+          defaultMorningRoutineItems.map((text) => ({ text, done: false })),
+          (item) => item.text,
+          []
+        ).map((item) => ({
+          text: item.text,
+          done: !!item.done,
+        }));
+        renderRoutine(morningListEl, "morning");
+        return;
+      }
+
+      if (section === "night") {
+        state.removedDefaults.night = [];
+        state.night = mergeDefaults(
+          state.night,
+          defaultNightRoutineItems.map((text) => ({ text, done: false })),
+          (item) => item.text,
+          []
+        ).map((item) => ({
+          text: item.text,
+          done: !!item.done,
+        }));
+        renderRoutine(nightListEl, "night");
       }
     }
 
-    function escapeHtml(value) {
-      return String(value)
-        .replaceAll("&", "&amp;")
-        .replaceAll("<", "&lt;")
-        .replaceAll(">", "&gt;")
-        .replaceAll('"', "&quot;")
-        .replaceAll("'", "&#039;");
-    }
+    calendarEditBtn?.addEventListener("click", () => {
+      editModes.calendar = !editModes.calendar;
+      updateEditUI();
+      renderCalendar();
+    });
 
-    function setNavView(view) {
-      if (!navCardsContainer) return;
+    todoEditBtn?.addEventListener("click", () => {
+      editModes.todo = !editModes.todo;
+      updateEditUI();
+      renderTodos();
+    });
 
-      const normalizedView = view === "list" ? "list" : "grid";
+    morningEditBtn?.addEventListener("click", () => {
+      editModes.morning = !editModes.morning;
+      updateEditUI();
+      renderRoutine(morningListEl, "morning");
+    });
 
-      navCardsContainer.classList.remove("quick-links-grid--grid", "quick-links-grid--list");
-      navCardsContainer.classList.add(`quick-links-grid--${normalizedView}`);
+    nightEditBtn?.addEventListener("click", () => {
+      editModes.night = !editModes.night;
+      updateEditUI();
+      renderRoutine(nightListEl, "night");
+    });
 
-      viewButtons.forEach((button) => {
-        const isActive = button.getAttribute("data-view-btn") === normalizedView;
-        button.classList.toggle("is-active", isActive);
-        button.setAttribute("aria-pressed", String(isActive));
-      });
-
-      localStorage.setItem(navViewStorageKey, normalizedView);
-    }
-
-    function initNavView() {
-      const savedView = localStorage.getItem(navViewStorageKey);
-      setNavView(savedView === "list" ? "list" : "grid");
-
-      viewButtons.forEach((button) => {
-        button.addEventListener("click", () => {
-          const view = button.getAttribute("data-view-btn");
-          setNavView(view);
-        });
-      });
-    }
-
-    function renderQuotes() {
-      if (!quotesList) return;
-      quotesList.innerHTML = "";
-
-      state.quotes.forEach((quote, index) => {
-        const article = document.createElement("article");
-        article.className = "card quote-card";
-
-        article.innerHTML = `
-          <div>
-            <p class="quote-text">“${escapeHtml(quote.text)}”</p>
-            <span class="quote-author">${escapeHtml(quote.author || "Personal reminder")}</span>
-          </div>
-          <button class="delete-btn" data-quote-index="${index}" type="button">Remove</button>
-        `;
-
-        quotesList.appendChild(article);
-      });
-
-      quotesList.querySelectorAll("[data-quote-index]").forEach((btn) => {
-        btn.addEventListener("click", async (event) => {
-          const index = Number(event.currentTarget.getAttribute("data-quote-index"));
-          const item = state.quotes[index];
-          if (!item) return;
-
-          const key = quoteKey(item);
-
-          state.quotes.splice(index, 1);
-
-          if (defaultQuoteKeySet.has(key) && !state.removedDefaultQuotes.includes(key)) {
-            state.removedDefaultQuotes.push(key);
-          }
-
-          renderQuotes();
-          await saveState();
-        });
-      });
-    }
-
-    function renderMorals() {
-      if (!remindersList) return;
-      remindersList.innerHTML = "";
-
-      state.morals.forEach((item, index) => {
-        const article = document.createElement("article");
-        article.className = "card";
-
-        article.innerHTML = `
-          <h3 class="card-title">${escapeHtml(item.title)}</h3>
-          <p>${escapeHtml(item.text)}</p>
-          <button class="delete-btn" data-reminder-index="${index}" type="button">Remove</button>
-        `;
-
-        remindersList.appendChild(article);
-      });
-
-      remindersList.querySelectorAll("[data-reminder-index]").forEach((btn) => {
-        btn.addEventListener("click", async (event) => {
-          const index = Number(event.currentTarget.getAttribute("data-reminder-index"));
-          const item = state.morals[index];
-          if (!item) return;
-
-          const key = moralKey(item);
-
-          state.morals.splice(index, 1);
-
-          if (defaultMoralKeySet.has(key) && !state.removedDefaultMorals.includes(key)) {
-            state.removedDefaultMorals.push(key);
-          }
-
-          renderMorals();
-          await saveState();
-        });
-      });
-    }
-
-    quoteForm?.addEventListener("submit", async (event) => {
-      event.preventDefault();
-
-      const text = quoteTextInput?.value.trim();
-      const author = quoteAuthorInput?.value.trim() || "Personal reminder";
-      if (!text) return;
-
-      const newQuote = { text, author };
-      const newKey = quoteKey(newQuote);
-
-      state.quotes = dedupeBy([newQuote, ...state.quotes], quoteKey);
-      state.removedDefaultQuotes = state.removedDefaultQuotes.filter((key) => key !== newKey);
-
-      renderQuotes();
-      quoteForm.reset();
+    todoRestoreBtn?.addEventListener("click", async () => {
+      restoreSection("todos");
       await saveState();
     });
 
-    reminderForm?.addEventListener("submit", async (event) => {
-      event.preventDefault();
-
-      const title = reminderTitleInput?.value.trim();
-      const text = reminderTextInput?.value.trim();
-      if (!title || !text) return;
-
-      const newReminder = { title, text };
-      const newKey = moralKey(newReminder);
-
-      state.morals = dedupeBy([newReminder, ...state.morals], moralKey);
-      state.removedDefaultMorals = state.removedDefaultMorals.filter((key) => key !== newKey);
-
-      renderMorals();
-      reminderForm.reset();
+    morningRestoreBtn?.addEventListener("click", async () => {
+      restoreSection("morning");
       await saveState();
     });
 
-    restoreQuotesBtn?.addEventListener("click", async () => {
-      state.removedDefaultQuotes = [];
-      state.quotes = mergeDefaults(
-        state.quotes,
-        defaultQuoteItems,
-        state.removedDefaultQuotes,
-        quoteKey
-      );
-      state.quotes = dedupeBy(state.quotes, quoteKey);
-      renderQuotes();
+    nightRestoreBtn?.addEventListener("click", async () => {
+      restoreSection("night");
       await saveState();
     });
 
-    restoreRemindersBtn?.addEventListener("click", async () => {
-      state.removedDefaultMorals = [];
-      state.morals = mergeDefaults(
-        state.morals,
-        defaultMoralItems,
-        state.removedDefaultMorals,
-        moralKey
-      );
-      state.morals = dedupeBy(state.morals, moralKey);
-      renderMorals();
+    todoForm?.addEventListener("submit", async (e) => {
+      e.preventDefault();
+      const value = todoInput.value.trim();
+      if (!value) return;
+
+      unmarkDefaultDeleted("todos", value);
+
+      state.todos.unshift({ text: value, done: false });
+      todoInput.value = "";
+      renderTodos();
       await saveState();
     });
 
-    window.addEventListener("pagehide", saveStateOnLeave);
-    window.addEventListener("beforeunload", saveStateOnLeave);
+    morningForm?.addEventListener("submit", async (e) => {
+      e.preventDefault();
+      const value = morningInput.value.trim();
+      if (!value) return;
+
+      unmarkDefaultDeleted("morning", value);
+
+      state.morning.unshift({ text: value, done: false });
+      morningInput.value = "";
+      renderRoutine(morningListEl, "morning");
+      await saveState();
+    });
+
+    nightForm?.addEventListener("submit", async (e) => {
+      e.preventDefault();
+      const value = nightInput.value.trim();
+      if (!value) return;
+
+      unmarkDefaultDeleted("night", value);
+
+      state.night.unshift({ text: value, done: false });
+      nightInput.value = "";
+      renderRoutine(nightListEl, "night");
+      await saveState();
+    });
+
+    calendarForm?.addEventListener("submit", async (e) => {
+      e.preventDefault();
+      const value = calendarInput.value.trim();
+      if (!value) return;
+
+      state.calendarEmbed = value;
+      calendarInput.value = "";
+      renderCalendar();
+      await saveState();
+    });
+
+    calendarDeleteBtn?.addEventListener("click", async () => {
+      state.calendarEmbed = "";
+      renderCalendar();
+      await saveState();
+    });
 
     async function init() {
-      const saved = normalizeState(await loadState());
+      updateEditUI();
+      renderCalendar();
+      renderTodos();
+      renderRoutine(morningListEl, "morning");
+      renderRoutine(nightListEl, "night");
 
-      state = {
-        quotes: mergeDefaults(
-          saved.quotes,
-          defaultQuoteItems,
-          saved.removedDefaultQuotes,
-          quoteKey
-        ),
-        morals: mergeDefaults(
-          saved.morals,
-          defaultMoralItems,
-          saved.removedDefaultMorals,
-          moralKey
-        ),
-        removedDefaultQuotes: [...saved.removedDefaultQuotes],
-        removedDefaultMorals: [...saved.removedDefaultMorals],
+      const saved = await loadState();
+
+      const removedDefaults = {
+        todos: uniqueStrings(saved?.removedDefaults?.todos),
+        morning: uniqueStrings(saved?.removedDefaults?.morning),
+        night: uniqueStrings(saved?.removedDefaults?.night),
       };
 
-      state.quotes = dedupeBy(state.quotes, quoteKey);
-      state.morals = dedupeBy(state.morals, moralKey);
+      state = {
+        calendarEmbed: saved?.calendarEmbed ?? "",
+        removedDefaults,
+        todos: mergeDefaults(
+          saved?.todos,
+          defaultTodoItems,
+          (item) => item.text,
+          removedDefaults.todos
+        ).map((item) => ({
+          text: item.text,
+          done: !!item.done,
+        })),
+        morning: mergeDefaults(
+          saved?.morning,
+          defaultMorningRoutineItems.map((text) => ({ text, done: false })),
+          (item) => item.text,
+          removedDefaults.morning
+        ).map((item) => ({
+          text: item.text,
+          done: !!item.done,
+        })),
+        night: mergeDefaults(
+          saved?.night,
+          defaultNightRoutineItems.map((text) => ({ text, done: false })),
+          (item) => item.text,
+          removedDefaults.night
+        ).map((item) => ({
+          text: item.text,
+          done: !!item.done,
+        })),
+      };
 
-      initNavView();
-      renderQuotes();
-      renderMorals();
+      hasLoadedInitialState = true;
+
+      updateEditUI();
+      renderCalendar();
+      renderTodos();
+      renderRoutine(morningListEl, "morning");
+      renderRoutine(nightListEl, "night");
     }
 
     init();
   </script>
 
   <style>
-    .nav-header {
+    .today-header-row {
       display: flex;
-      align-items: flex-end;
       justify-content: space-between;
+      align-items: center;
       gap: 1rem;
+      flex-wrap: wrap;
+      margin-bottom: 1rem;
+    }
+
+    .today-btn-group {
+      display: flex;
+      gap: 0.5rem;
       flex-wrap: wrap;
     }
 
-    .view-switcher {
-      display: inline-flex;
-      align-items: center;
-      gap: 0.35rem;
-      padding: 0.3rem;
-      border-radius: 999px;
-      background: rgba(255, 255, 255, 0.06);
-      border: 1px solid rgba(255, 255, 255, 0.1);
-    }
-
-    .view-btn {
-      border: 0;
-      cursor: pointer;
-      padding: 0.6rem 0.95rem;
-      border-radius: 999px;
-      font: inherit;
-      color: inherit;
-      background: transparent;
-      transition: background 0.18s ease, transform 0.18s ease;
-    }
-
-    .view-btn:hover,
-    .view-btn:focus-visible {
-      background: rgba(255, 255, 255, 0.08);
-    }
-
-    .view-btn.is-active {
-      background: rgba(255, 255, 255, 0.16);
-    }
-
-    .quick-links-grid {
-      align-items: stretch;
-    }
-
-    .quick-links-grid--grid {
-      display: grid;
-      grid-template-columns: repeat(2, minmax(0, 1fr));
-      gap: 1rem;
-    }
-
-    .quick-links-grid--list {
-      display: grid;
-      grid-template-columns: 1fr;
-      gap: 0.85rem;
-    }
-
-    .quick-link-card {
-      display: block;
-      text-decoration: none;
-      color: inherit;
-      height: 100%;
-      border-radius: 1.35rem;
-      overflow: hidden;
-    }
-
-    .quick-link-card-inner {
+    .today-form {
       display: flex;
       align-items: center;
-      justify-content: space-between;
-      gap: 1rem;
-      min-height: 124px;
-      height: 100%;
-      padding: 1.15rem 1.2rem;
-      border-radius: inherit;
+      gap: 0.75rem;
+      flex-wrap: wrap;
+      margin-bottom: 1rem;
     }
 
-    .quick-links-grid--list .quick-link-card-inner {
-      min-height: 92px;
-      padding: 1rem 1.1rem;
+    .today-form-hidden {
+      display: none;
     }
 
-    .quick-link-copy {
-      min-width: 0;
-      flex: 1 1 auto;
+    .today-action-row {
+      gap: 0.75rem;
+      flex-wrap: wrap;
+      margin-bottom: 1rem;
     }
 
-    .quick-link-copy h3 {
-      margin: 0 0 0.45rem 0;
-      line-height: 1.15;
+    .today-input {
+      min-height: 44px;
+      padding: 0.8rem 0.95rem;
+      border-radius: 14px;
+      font-size: 0.98rem;
     }
 
-    .quick-link-copy p {
-      margin: 0;
-      line-height: 1.45;
-    }
-
-    .quick-link-arrow {
-      flex: 0 0 auto;
-      width: 2.5rem;
-      height: 2.5rem;
-      border-radius: 999px;
+    .today-btn {
       display: inline-flex;
       align-items: center;
       justify-content: center;
-      font-size: 1.1rem;
-      font-weight: 700;
-      background: rgba(255, 255, 255, 0.08);
-      border: 1px solid rgba(255, 255, 255, 0.12);
-      transition: transform 0.18s ease, background 0.18s ease;
+      min-height: 42px;
+      padding: 0.7rem 1rem;
+      border-radius: 999px;
+      border: none;
+      font-weight: 600;
+      font-size: 0.95rem;
+      line-height: 1;
+      cursor: pointer;
+      transition: transform 0.15s ease, opacity 0.15s ease;
     }
 
-    .quick-link-card:hover .quick-link-arrow,
-    .quick-link-card:focus-visible .quick-link-arrow {
-      transform: translateX(3px);
-      background: rgba(255, 255, 255, 0.14);
+    .today-btn:hover {
+      transform: translateY(-1px);
+      opacity: 0.96;
     }
 
-    @media (max-width: 720px) {
-      .nav-header {
-        align-items: stretch;
+    .today-btn-danger {
+      opacity: 0.92;
+    }
+
+    .today-list {
+      list-style: none;
+      margin: 0;
+      padding: 0;
+      display: grid;
+      gap: 0.8rem;
+    }
+
+    .today-list-item {
+      list-style: none;
+      margin: 0;
+      padding: 0;
+      background: rgba(255, 255, 255, 0.26);
+      border: 1px solid rgba(20, 30, 50, 0.08);
+      border-radius: 16px;
+      overflow: hidden;
+    }
+
+    .today-item-row {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 0.9rem;
+      width: 100%;
+      padding: 0.95rem 1rem;
+    }
+
+    .today-item-main {
+      display: flex !important;
+      flex-direction: row !important;
+      align-items: center !important;
+      justify-content: flex-start !important;
+      gap: 0.9rem !important;
+      flex: 1 1 auto;
+      min-width: 0;
+      width: 100%;
+      margin: 0;
+      text-align: left;
+      cursor: pointer;
+    }
+
+    .today-checkbox {
+      appearance: none;
+      -webkit-appearance: none;
+      display: inline-block !important;
+      vertical-align: middle;
+      width: 1.45rem !important;
+      height: 1.45rem !important;
+      min-width: 1.45rem !important;
+      min-height: 1.45rem !important;
+      margin: 0 !important;
+      flex: 0 0 1.45rem !important;
+      border: 2px solid rgba(20, 30, 50, 0.35);
+      border-radius: 0.38rem;
+      background: #fff;
+      position: relative;
+      cursor: pointer;
+    }
+
+    .today-checkbox:hover {
+      border-color: rgba(20, 30, 50, 0.55);
+    }
+
+    .today-checkbox:checked {
+      background: #111c44;
+      border-color: #111c44;
+    }
+
+    .today-checkbox:checked::after {
+      content: "";
+      position: absolute;
+      left: 0.42rem;
+      top: 0.14rem;
+      width: 0.33rem;
+      height: 0.72rem;
+      border: solid #fff;
+      border-width: 0 2px 2px 0;
+      transform: rotate(45deg);
+    }
+
+    .today-item-text {
+      display: block;
+      flex: 1 1 auto;
+      min-width: 0;
+      font-size: 1rem;
+      line-height: 1.45;
+      color: rgba(20, 30, 50, 0.88);
+      word-break: break-word;
+      text-align: left;
+    }
+
+    .today-list-item.is-done .today-item-text {
+      text-decoration: line-through;
+      opacity: 0.58;
+    }
+
+    .today-delete-btn {
+      flex: 0 0 auto;
+      min-height: 36px;
+      padding: 0.55rem 0.8rem;
+      font-size: 0.88rem;
+      border-radius: 12px;
+    }
+
+    .today-empty-state {
+      padding: 1rem 1.1rem;
+      border-radius: 16px;
+      background: rgba(255, 255, 255, 0.28);
+      border: 1px dashed rgba(20, 30, 50, 0.18);
+    }
+
+    .today-calendar-help {
+      margin-bottom: 1rem;
+      line-height: 1.5;
+    }
+
+    .today-calendar-frame {
+      border-radius: 18px;
+      background: white;
+    }
+
+    .today-checklist-card .today-list-item {
+      background: rgba(214, 153, 174, 0.22);
+    }
+
+    @media (max-width: 640px) {
+      .today-item-row {
+        align-items: flex-start;
       }
 
-      .view-switcher {
-        width: 100%;
-        justify-content: flex-start;
+      .today-item-main {
+        align-items: flex-start !important;
       }
 
-      .quick-links-grid--grid {
-        grid-template-columns: 1fr;
-      }
-
-      .quick-link-card-inner {
-        min-height: 110px;
-        padding: 1rem;
-      }
-
-      .quick-link-arrow {
-        width: 2.25rem;
-        height: 2.25rem;
+      .today-delete-btn {
+        align-self: center;
       }
     }
   </style>
