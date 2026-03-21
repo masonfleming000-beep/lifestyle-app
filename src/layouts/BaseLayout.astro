@@ -14,7 +14,7 @@ const {
 ---
 
 <!doctype html>
-<html lang="en">
+<html lang="en" data-theme="system" data-text-size="md">
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
@@ -28,17 +28,17 @@ const {
     />
   </head>
 
-  <body>
+  <body class="surface-background">
     <Navbar />
     <main class="site-shell">
       <slot />
     </main>
 
-    <script>
+    <script type="module">
       import { App } from "@capacitor/app";
       import { Browser } from "@capacitor/browser";
 
-      App.addListener("appUrlOpen", async ({ url }: { url: string }) => {
+      App.addListener("appUrlOpen", async ({ url }) => {
         if (url.startsWith("com.lifestyle.app://auth/success")) {
           await Browser.close();
           window.location.href = "/dashboard";
@@ -49,13 +49,175 @@ const {
     <script is:inline>
       (() => {
         const root = document.documentElement;
-        const mode = localStorage.getItem("profile-theme-mode") || "system";
-        const accent = localStorage.getItem("profile-theme-accent") || "default";
-        const textSize = localStorage.getItem("profile-theme-text-size") || "md";
+        const pageKey = window.location.pathname;
 
-        root.dataset.theme = mode;
-        root.dataset.accent = accent;
-        root.dataset.textSize = textSize;
+        const DEFAULT_UI = {
+          scope: "global",
+          mode: "system",
+          textSize: "md",
+          surfaces: {
+            header: { color: "#ffffff", texture: "solid" },
+            section: { color: "#ffffff", texture: "matte" },
+            background: { color: "#f8fafc", texture: "smoothed" },
+            dropdown: { color: "#ffffff", texture: "solid" },
+          },
+          components: {
+            navbar: { surface: "header" },
+            hero: { surface: "header" },
+            sectionCard: { surface: "section" },
+            quickLinkCard: { surface: "section" },
+            quoteCard: { surface: "section" },
+            statCard: { surface: "section" },
+          },
+        };
+
+        function safeParse(value, fallback) {
+          try {
+            return value ? JSON.parse(value) : fallback;
+          } catch {
+            return fallback;
+          }
+        }
+
+        function mergeUiSettings(globalUi, pageUi) {
+          return {
+            ...globalUi,
+            ...pageUi,
+            surfaces: {
+              ...globalUi?.surfaces,
+              ...pageUi?.surfaces,
+              header: {
+                ...globalUi?.surfaces?.header,
+                ...pageUi?.surfaces?.header,
+              },
+              section: {
+                ...globalUi?.surfaces?.section,
+                ...pageUi?.surfaces?.section,
+              },
+              background: {
+                ...globalUi?.surfaces?.background,
+                ...pageUi?.surfaces?.background,
+              },
+              dropdown: {
+                ...globalUi?.surfaces?.dropdown,
+                ...pageUi?.surfaces?.dropdown,
+              },
+            },
+            components: {
+              ...globalUi?.components,
+              ...pageUi?.components,
+              navbar: {
+                ...globalUi?.components?.navbar,
+                ...pageUi?.components?.navbar,
+              },
+              hero: {
+                ...globalUi?.components?.hero,
+                ...pageUi?.components?.hero,
+              },
+              sectionCard: {
+                ...globalUi?.components?.sectionCard,
+                ...pageUi?.components?.sectionCard,
+              },
+              quickLinkCard: {
+                ...globalUi?.components?.quickLinkCard,
+                ...pageUi?.components?.quickLinkCard,
+              },
+              quoteCard: {
+                ...globalUi?.components?.quoteCard,
+                ...pageUi?.components?.quoteCard,
+              },
+              statCard: {
+                ...globalUi?.components?.statCard,
+                ...pageUi?.components?.statCard,
+              },
+            },
+          };
+        }
+
+        function applySurfaceColor(name, config) {
+          root.style.setProperty(`--${name}-color`, config?.color || "");
+        }
+
+        function applyUiSettings(settings) {
+          const ui = {
+            ...DEFAULT_UI,
+            ...(settings || {}),
+            surfaces: {
+              ...DEFAULT_UI.surfaces,
+              ...(settings?.surfaces || {}),
+              header: {
+                ...DEFAULT_UI.surfaces.header,
+                ...(settings?.surfaces?.header || {}),
+              },
+              section: {
+                ...DEFAULT_UI.surfaces.section,
+                ...(settings?.surfaces?.section || {}),
+              },
+              background: {
+                ...DEFAULT_UI.surfaces.background,
+                ...(settings?.surfaces?.background || {}),
+              },
+              dropdown: {
+                ...DEFAULT_UI.surfaces.dropdown,
+                ...(settings?.surfaces?.dropdown || {}),
+              },
+            },
+            components: {
+              ...DEFAULT_UI.components,
+              ...(settings?.components || {}),
+              navbar: {
+                ...DEFAULT_UI.components.navbar,
+                ...(settings?.components?.navbar || {}),
+              },
+              hero: {
+                ...DEFAULT_UI.components.hero,
+                ...(settings?.components?.hero || {}),
+              },
+              sectionCard: {
+                ...DEFAULT_UI.components.sectionCard,
+                ...(settings?.components?.sectionCard || {}),
+              },
+              quickLinkCard: {
+                ...DEFAULT_UI.components.quickLinkCard,
+                ...(settings?.components?.quickLinkCard || {}),
+              },
+              quoteCard: {
+                ...DEFAULT_UI.components.quoteCard,
+                ...(settings?.components?.quoteCard || {}),
+              },
+              statCard: {
+                ...DEFAULT_UI.components.statCard,
+                ...(settings?.components?.statCard || {}),
+              },
+            },
+          };
+
+          root.dataset.theme = ui.mode || "system";
+          root.dataset.textSize = ui.textSize || "md";
+
+          root.dataset.headerTexture = ui.surfaces.header?.texture || "solid";
+          root.dataset.sectionTexture = ui.surfaces.section?.texture || "matte";
+          root.dataset.backgroundTexture = ui.surfaces.background?.texture || "smoothed";
+          root.dataset.dropdownTexture = ui.surfaces.dropdown?.texture || "solid";
+
+          root.dataset.navbarSurface = ui.components.navbar?.surface || "header";
+          root.dataset.heroSurface = ui.components.hero?.surface || "header";
+          root.dataset.sectionCardSurface = ui.components.sectionCard?.surface || "section";
+          root.dataset.quickLinkCardSurface = ui.components.quickLinkCard?.surface || "section";
+          root.dataset.quoteCardSurface = ui.components.quoteCard?.surface || "section";
+          root.dataset.statCardSurface = ui.components.statCard?.surface || "section";
+
+          applySurfaceColor("header", ui.surfaces.header);
+          applySurfaceColor("section", ui.surfaces.section);
+          applySurfaceColor("background", ui.surfaces.background);
+          applySurfaceColor("dropdown", ui.surfaces.dropdown);
+        }
+
+        const globalUi = safeParse(localStorage.getItem("app-ui-settings"), DEFAULT_UI);
+        const pageUi = safeParse(localStorage.getItem(`app-ui-page-settings:${pageKey}`), {});
+        const mergedUi = mergeUiSettings(globalUi, pageUi);
+
+        applyUiSettings(mergedUi);
       })();
     </script>
   </body>

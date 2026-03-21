@@ -5,9 +5,9 @@ import SectionCard from "../../components/SectionCard.astro";
 import {
   PROFILE_SETTINGS_PAGE_KEY,
   DEFAULT_PROFILE_SETTINGS,
-  PROFILE_THEME_OPTIONS,
-  PROFILE_TEXT_SIZE_OPTIONS,
 } from "../../lib/profile/constants";
+
+const defaultProfileSettingsJson = JSON.stringify(DEFAULT_PROFILE_SETTINGS);
 ---
 
 <BaseLayout title="Profile Settings | Lifestyle App" description="Manage your profile and visibility settings">
@@ -30,17 +30,17 @@ import {
         <div class="form-stack">
           <label class="field-group">
             <span class="field-label">Email</span>
-            <input id="email" class="ui-input" type="email" placeholder="you@example.com" />
+            <input id="email" type="email" autocomplete="email" />
           </label>
 
           <label class="field-group">
             <span class="field-label">Username</span>
-            <input id="username" class="ui-input" type="text" placeholder="mason" />
+            <input id="username" type="text" autocomplete="username" />
           </label>
 
           <label class="field-group">
             <span class="field-label">Handle</span>
-            <input id="handle" class="ui-input" type="text" placeholder="@mason" />
+            <input id="handle" type="text" autocomplete="nickname" />
           </label>
 
           <div class="button-row">
@@ -88,33 +88,33 @@ import {
           <div class="grid two profile-field-grid">
             <label class="field-group">
               <span class="field-label">Display Name</span>
-              <input id="displayName" class="ui-input" type="text" placeholder="Mason Fleming" />
+              <input id="displayName" type="text" autocomplete="name" />
             </label>
 
             <label class="field-group">
               <span class="field-label">Headline</span>
-              <input id="headline" class="ui-input" type="text" placeholder="Builder, athlete, student, engineer" />
+              <input id="headline" type="text" autocomplete="organization-title" />
             </label>
 
             <label class="field-group">
               <span class="field-label">Location</span>
-              <input id="location" class="ui-input" type="text" placeholder="West Lafayette, IN" />
+              <input id="location" type="text" autocomplete="address-level2" />
             </label>
 
             <label class="field-group">
               <span class="field-label">Avatar URL</span>
-              <input id="avatarUrl" class="ui-input" type="url" placeholder="https://..." />
+              <input id="avatarUrl" type="url" autocomplete="url" />
             </label>
           </div>
 
           <label class="field-group">
             <span class="field-label">Banner URL</span>
-            <input id="bannerUrl" class="ui-input" type="url" placeholder="https://..." />
+            <input id="bannerUrl" type="url" autocomplete="url" />
           </label>
 
           <label class="field-group">
             <span class="field-label">Bio</span>
-            <textarea id="bio" class="ui-textarea" rows="5" placeholder="Write a short bio"></textarea>
+            <textarea id="bio" autocomplete="off"></textarea>
           </label>
         </div>
       </SectionCard>
@@ -383,28 +383,158 @@ import {
         </div>
       </SectionCard>
 
-      <SectionCard title="Theme" subtitle="Apply profile preferences across the app">
+      <SectionCard title="App Appearance" subtitle="Control colors, textures, text size, and theme">
         <div class="grid three profile-select-grid">
           <label class="field-group">
-            <span class="field-label">Color Mode</span>
-            <select id="theme-mode" class="ui-select">
-              {PROFILE_THEME_OPTIONS.map((option) => (
-                <option value={option}>{option}</option>
-              ))}
+            <span class="field-label">Apply changes to</span>
+            <select id="ui-scope" class="ui-select">
+              <option value="global">All pages</option>
+              <option value="page">This page only</option>
             </select>
           </label>
 
           <label class="field-group">
-            <span class="field-label">Accent</span>
-            <input id="theme-accent" class="ui-input" type="text" placeholder="default" />
+            <span class="field-label">Color Mode</span>
+            <select id="ui-mode" class="ui-select">
+              <option value="light">light</option>
+              <option value="dark">dark</option>
+              <option value="system">system</option>
+            </select>
           </label>
 
           <label class="field-group">
             <span class="field-label">Text Size</span>
-            <select id="theme-text-size" class="ui-select">
-              {PROFILE_TEXT_SIZE_OPTIONS.map((option) => (
-                <option value={option}>{option}</option>
-              ))}
+            <select id="ui-text-size" class="ui-select">
+              <option value="sm">sm</option>
+              <option value="md">md</option>
+              <option value="lg">lg</option>
+              <option value="xl">xl</option>
+            </select>
+          </label>
+        </div>
+
+        <div class="grid two profile-select-grid">
+          <label class="field-group">
+            <span class="field-label">Header Color</span>
+            <input id="ui-header-color" class="ui-input" type="color" />
+          </label>
+          <label class="field-group">
+            <span class="field-label">Header Texture</span>
+            <select id="ui-header-texture" class="ui-select">
+              <option value="solid">solid</option>
+              <option value="gradient">gradient</option>
+              <option value="checkered">checkered</option>
+              <option value="smoothed">smoothed</option>
+              <option value="matte">matte</option>
+            </select>
+          </label>
+
+          <label class="field-group">
+            <span class="field-label">Section Color</span>
+            <input id="ui-section-color" class="ui-input" type="color" />
+          </label>
+          <label class="field-group">
+            <span class="field-label">Section Texture</span>
+            <select id="ui-section-texture" class="ui-select">
+              <option value="solid">solid</option>
+              <option value="gradient">gradient</option>
+              <option value="checkered">checkered</option>
+              <option value="smoothed">smoothed</option>
+              <option value="matte">matte</option>
+            </select>
+          </label>
+
+          <label class="field-group">
+            <span class="field-label">Background Color</span>
+            <input id="ui-background-color" class="ui-input" type="color" />
+          </label>
+          <label class="field-group">
+            <span class="field-label">Background Texture</span>
+            <select id="ui-background-texture" class="ui-select">
+              <option value="solid">solid</option>
+              <option value="gradient">gradient</option>
+              <option value="checkered">checkered</option>
+              <option value="smoothed">smoothed</option>
+              <option value="matte">matte</option>
+            </select>
+          </label>
+
+          <label class="field-group">
+            <span class="field-label">Dropdown Color</span>
+            <input id="ui-dropdown-color" class="ui-input" type="color" />
+          </label>
+          <label class="field-group">
+            <span class="field-label">Dropdown Texture</span>
+            <select id="ui-dropdown-texture" class="ui-select">
+              <option value="solid">solid</option>
+              <option value="gradient">gradient</option>
+              <option value="checkered">checkered</option>
+              <option value="smoothed">smoothed</option>
+              <option value="matte">matte</option>
+            </select>
+          </label>
+        </div>
+      </SectionCard>
+
+      <SectionCard title="Component Appearance" subtitle="Choose which surface each reusable component should use">
+        <div class="grid two profile-select-grid">
+          <label class="field-group">
+            <span class="field-label">Navbar Surface</span>
+            <select id="component-navbar-surface" class="ui-select">
+              <option value="header">header</option>
+              <option value="section">section</option>
+              <option value="background">background</option>
+              <option value="dropdown">dropdown</option>
+            </select>
+          </label>
+
+          <label class="field-group">
+            <span class="field-label">Hero Surface</span>
+            <select id="component-hero-surface" class="ui-select">
+              <option value="header">header</option>
+              <option value="section">section</option>
+              <option value="background">background</option>
+              <option value="dropdown">dropdown</option>
+            </select>
+          </label>
+
+          <label class="field-group">
+            <span class="field-label">Section Card Surface</span>
+            <select id="component-section-card-surface" class="ui-select">
+              <option value="section">section</option>
+              <option value="header">header</option>
+              <option value="background">background</option>
+              <option value="dropdown">dropdown</option>
+            </select>
+          </label>
+
+          <label class="field-group">
+            <span class="field-label">Quick Link Card Surface</span>
+            <select id="component-quick-link-card-surface" class="ui-select">
+              <option value="section">section</option>
+              <option value="header">header</option>
+              <option value="background">background</option>
+              <option value="dropdown">dropdown</option>
+            </select>
+          </label>
+
+          <label class="field-group">
+            <span class="field-label">Quote Card Surface</span>
+            <select id="component-quote-card-surface" class="ui-select">
+              <option value="section">section</option>
+              <option value="header">header</option>
+              <option value="background">background</option>
+              <option value="dropdown">dropdown</option>
+            </select>
+          </label>
+
+          <label class="field-group">
+            <span class="field-label">Stat Card Surface</span>
+            <select id="component-stat-card-surface" class="ui-select">
+              <option value="section">section</option>
+              <option value="header">header</option>
+              <option value="background">background</option>
+              <option value="dropdown">dropdown</option>
             </select>
           </label>
         </div>
@@ -436,7 +566,7 @@ import {
     </div>
   </section>
 
-  <script define:vars={{ pageKey: PROFILE_SETTINGS_PAGE_KEY, defaultProfileSettings: JSON.stringify(DEFAULT_PROFILE_SETTINGS) }}>
+  <script define:vars={{ pageKey: PROFILE_SETTINGS_PAGE_KEY, defaultProfileSettings: defaultProfileSettingsJson }}>
     (() => {
       const statusEl = document.getElementById("profile-settings-status");
       const previewRoot = document.getElementById("profile-preview-root");
@@ -455,14 +585,6 @@ import {
 
       function cloneDefaults() {
         return JSON.parse(defaultProfileSettings);
-      }
-
-      function normalizeString(value) {
-        return typeof value === "string" ? value : "";
-      }
-
-      function normalizeBoolean(value, fallback = false) {
-        return typeof value === "boolean" ? value : fallback;
       }
 
       function slugifyProfileValue(value) {
@@ -539,6 +661,82 @@ import {
         return username ? `@${username}` : "";
       }
 
+      function getDefaultTheme() {
+        const defaults = cloneDefaults();
+        const fallbackTheme = {
+          scope: "global",
+          mode: "system",
+          textSize: "md",
+          surfaces: {
+            header: { color: "#ffffff", texture: "solid" },
+            section: { color: "#ffffff", texture: "matte" },
+            background: { color: "#f8fafc", texture: "smoothed" },
+            dropdown: { color: "#ffffff", texture: "solid" },
+          },
+          components: {
+            navbar: { surface: "header" },
+            hero: { surface: "header" },
+            sectionCard: { surface: "section" },
+            quickLinkCard: { surface: "section" },
+            quoteCard: { surface: "section" },
+            statCard: { surface: "section" },
+          },
+        };
+
+        return {
+          ...fallbackTheme,
+          ...(defaults.theme || {}),
+          surfaces: {
+            ...fallbackTheme.surfaces,
+            ...(defaults.theme?.surfaces || {}),
+            header: {
+              ...fallbackTheme.surfaces.header,
+              ...(defaults.theme?.surfaces?.header || {}),
+            },
+            section: {
+              ...fallbackTheme.surfaces.section,
+              ...(defaults.theme?.surfaces?.section || {}),
+            },
+            background: {
+              ...fallbackTheme.surfaces.background,
+              ...(defaults.theme?.surfaces?.background || {}),
+            },
+            dropdown: {
+              ...fallbackTheme.surfaces.dropdown,
+              ...(defaults.theme?.surfaces?.dropdown || {}),
+            },
+          },
+          components: {
+            ...fallbackTheme.components,
+            ...(defaults.theme?.components || {}),
+            navbar: {
+              ...fallbackTheme.components.navbar,
+              ...(defaults.theme?.components?.navbar || {}),
+            },
+            hero: {
+              ...fallbackTheme.components.hero,
+              ...(defaults.theme?.components?.hero || {}),
+            },
+            sectionCard: {
+              ...fallbackTheme.components.sectionCard,
+              ...(defaults.theme?.components?.sectionCard || {}),
+            },
+            quickLinkCard: {
+              ...fallbackTheme.components.quickLinkCard,
+              ...(defaults.theme?.components?.quickLinkCard || {}),
+            },
+            quoteCard: {
+              ...fallbackTheme.components.quoteCard,
+              ...(defaults.theme?.components?.quoteCard || {}),
+            },
+            statCard: {
+              ...fallbackTheme.components.statCard,
+              ...(defaults.theme?.components?.statCard || {}),
+            },
+          },
+        };
+      }
+
       function refreshSnapshot(nextState) {
         const set = (id, value) => {
           const el = byId(id);
@@ -551,66 +749,65 @@ import {
         set("snapshot-theme", `${nextState.theme.mode} / ${nextState.theme.textSize}`);
       }
 
-      function normalizeState(raw) {
-        const defaults = cloneDefaults();
-        const source = raw && typeof raw === "object" ? raw : {};
+      function normalizeState(source, defaults = cloneDefaults()) {
+        const safeSource = source ?? {};
+        const defaultTheme = getDefaultTheme();
+        const safeTheme = safeSource.theme ?? {};
 
         return {
           ...defaults,
-          ...source,
-          username: normalizeString(source?.username || defaults.username),
-          handle: normalizeString(source?.handle || defaults.handle),
-          displayName: normalizeString(source?.displayName || defaults.displayName),
-          headline: normalizeString(source?.headline || defaults.headline),
-          location: normalizeString(source?.location || defaults.location),
-          bio: normalizeString(source?.bio || defaults.bio),
-          bannerUrl: normalizeString(source?.bannerUrl || defaults.bannerUrl),
-          avatarUrl: normalizeString(source?.avatarUrl || defaults.avatarUrl),
-          visibility: {
-            ...defaults.visibility,
-            ...(source?.visibility || {}),
-          },
-          portfolioFilters: {
-            ...defaults.portfolioFilters,
-            ...(source?.portfolioFilters || {}),
-          },
-          statsSources: {
-            ...defaults.statsSources,
-            ...(source?.statsSources || {}),
-          },
-          statsDisplay: {
-            ...defaults.statsDisplay,
-            ...(source?.statsDisplay || {}),
-            autoFormatted: normalizeBoolean(source?.statsDisplay?.autoFormatted, defaults.statsDisplay?.autoFormatted ?? true),
-            showOverview: normalizeBoolean(source?.statsDisplay?.showOverview, defaults.statsDisplay?.showOverview ?? true),
-            showSections: normalizeBoolean(source?.statsDisplay?.showSections, defaults.statsDisplay?.showSections ?? true),
-            showWorkouts: normalizeBoolean(source?.statsDisplay?.showWorkouts, defaults.statsDisplay?.showWorkouts ?? true),
-            showCardio: normalizeBoolean(source?.statsDisplay?.showCardio, defaults.statsDisplay?.showCardio ?? true),
-            showRecentSessions: normalizeBoolean(source?.statsDisplay?.showRecentSessions, defaults.statsDisplay?.showRecentSessions ?? true),
-            defaultRange: normalizeString(source?.statsDisplay?.defaultRange || defaults.statsDisplay?.defaultRange || "30d"),
-            defaultSection: normalizeString(source?.statsDisplay?.defaultSection || defaults.statsDisplay?.defaultSection || "all"),
-            defaultWorkout: normalizeString(source?.statsDisplay?.defaultWorkout || defaults.statsDisplay?.defaultWorkout || "all"),
-            defaultCardioType: normalizeString(source?.statsDisplay?.defaultCardioType || defaults.statsDisplay?.defaultCardioType || "all"),
-            defaultHobbyId: normalizeString(source?.statsDisplay?.defaultHobbyId || defaults.statsDisplay?.defaultHobbyId || "all"),
-            defaultHobbyStageId: normalizeString(source?.statsDisplay?.defaultHobbyStageId || defaults.statsDisplay?.defaultHobbyStageId || "all"),
-            portfolioMode: normalizeString(source?.statsDisplay?.portfolioMode || defaults.statsDisplay?.portfolioMode || "link"),
-            featuredFitnessMetrics: defaults.statsDisplay.featuredFitnessMetrics,
-            featuredCardioMetrics: defaults.statsDisplay.featuredCardioMetrics,
-            featuredHobbyMetrics: defaults.statsDisplay.featuredHobbyMetrics,
-          },
-          notifications: {
-            ...defaults.notifications,
-            ...(source?.notifications || {}),
-          },
+          ...safeSource,
           theme: {
-            ...defaults.theme,
-            ...(source?.theme || {}),
-            mode: normalizeString(source?.theme?.mode || defaults.theme.mode),
-            accent: normalizeString(source?.theme?.accent || defaults.theme.accent),
-            textSize: normalizeString(source?.theme?.textSize || defaults.theme.textSize),
-          },
-          account: {
-            email: normalizeString(source?.account?.email || defaults?.account?.email),
+            ...defaultTheme,
+            ...safeTheme,
+            surfaces: {
+              ...defaultTheme.surfaces,
+              ...(safeTheme.surfaces || {}),
+              header: {
+                ...defaultTheme.surfaces.header,
+                ...(safeTheme.surfaces?.header || {}),
+              },
+              section: {
+                ...defaultTheme.surfaces.section,
+                ...(safeTheme.surfaces?.section || {}),
+              },
+              background: {
+                ...defaultTheme.surfaces.background,
+                ...(safeTheme.surfaces?.background || {}),
+              },
+              dropdown: {
+                ...defaultTheme.surfaces.dropdown,
+                ...(safeTheme.surfaces?.dropdown || {}),
+              },
+            },
+            components: {
+              ...defaultTheme.components,
+              ...(safeTheme.components || {}),
+              navbar: {
+                ...defaultTheme.components.navbar,
+                ...(safeTheme.components?.navbar || {}),
+              },
+              hero: {
+                ...defaultTheme.components.hero,
+                ...(safeTheme.components?.hero || {}),
+              },
+              sectionCard: {
+                ...defaultTheme.components.sectionCard,
+                ...(safeTheme.components?.sectionCard || {}),
+              },
+              quickLinkCard: {
+                ...defaultTheme.components.quickLinkCard,
+                ...(safeTheme.components?.quickLinkCard || {}),
+              },
+              quoteCard: {
+                ...defaultTheme.components.quoteCard,
+                ...(safeTheme.components?.quoteCard || {}),
+              },
+              statCard: {
+                ...defaultTheme.components.statCard,
+                ...(safeTheme.components?.statCard || {}),
+              },
+            },
           },
         };
       }
@@ -657,15 +854,32 @@ import {
         setChecked("notifications-reminders", nextState.notifications.reminders);
         setChecked("notifications-marketing", nextState.notifications.marketing);
 
-        setValue("theme-mode", nextState.theme.mode);
-        setValue("theme-accent", nextState.theme.accent);
-        setValue("theme-text-size", nextState.theme.textSize);
+        setValue("ui-scope", nextState.theme.scope);
+        setValue("ui-mode", nextState.theme.mode);
+        setValue("ui-text-size", nextState.theme.textSize);
+
+        setValue("ui-header-color", nextState.theme.surfaces.header.color);
+        setValue("ui-header-texture", nextState.theme.surfaces.header.texture);
+        setValue("ui-section-color", nextState.theme.surfaces.section.color);
+        setValue("ui-section-texture", nextState.theme.surfaces.section.texture);
+        setValue("ui-background-color", nextState.theme.surfaces.background.color);
+        setValue("ui-background-texture", nextState.theme.surfaces.background.texture);
+        setValue("ui-dropdown-color", nextState.theme.surfaces.dropdown.color);
+        setValue("ui-dropdown-texture", nextState.theme.surfaces.dropdown.texture);
+
+        setValue("component-navbar-surface", nextState.theme.components.navbar.surface);
+        setValue("component-hero-surface", nextState.theme.components.hero.surface);
+        setValue("component-section-card-surface", nextState.theme.components.sectionCard.surface);
+        setValue("component-quick-link-card-surface", nextState.theme.components.quickLinkCard.surface);
+        setValue("component-quote-card-surface", nextState.theme.components.quoteCard.surface);
+        setValue("component-stat-card-surface", nextState.theme.components.statCard.surface);
 
         refreshSnapshot(nextState);
       }
 
       function collectState() {
         const defaults = cloneDefaults();
+        const defaultTheme = getDefaultTheme();
         const derivedUsername = deriveUsernameCandidate();
         const derivedHandle = deriveHandleCandidate(derivedUsername);
 
@@ -689,10 +903,12 @@ import {
             contact: getChecked("visibility-contact"),
           },
           statsSources: {
+            ...(defaults.statsSources || {}),
             fitness: getChecked("stats-fitness"),
             hobbies: getChecked("stats-hobbies"),
           },
           statsDisplay: {
+            ...defaults.statsDisplay,
             autoFormatted: getChecked("stats-display-auto"),
             showOverview: getChecked("stats-display-overview"),
             showSections: getChecked("stats-display-sections"),
@@ -705,9 +921,6 @@ import {
             defaultCardioType: getValue("stats-default-cardio-type") || "all",
             defaultHobbyId: getValue("stats-default-hobby-id") || "all",
             defaultHobbyStageId: getValue("stats-default-hobby-stage-id") || "all",
-            featuredFitnessMetrics: defaults.statsDisplay.featuredFitnessMetrics,
-            featuredCardioMetrics: defaults.statsDisplay.featuredCardioMetrics,
-            featuredHobbyMetrics: defaults.statsDisplay.featuredHobbyMetrics,
             portfolioMode: getValue("stats-portfolio-mode") || "link",
           },
           notifications: {
@@ -718,9 +931,48 @@ import {
             marketing: getChecked("notifications-marketing"),
           },
           theme: {
-            mode: getValue("theme-mode") || defaults.theme.mode,
-            accent: getValue("theme-accent") || defaults.theme.accent,
-            textSize: getValue("theme-text-size") || defaults.theme.textSize,
+            ...defaultTheme,
+            scope: getValue("ui-scope") || "global",
+            mode: getValue("ui-mode") || defaultTheme.mode,
+            textSize: getValue("ui-text-size") || defaultTheme.textSize,
+            surfaces: {
+              header: {
+                color: getValue("ui-header-color") || defaultTheme.surfaces.header.color,
+                texture: getValue("ui-header-texture") || defaultTheme.surfaces.header.texture,
+              },
+              section: {
+                color: getValue("ui-section-color") || defaultTheme.surfaces.section.color,
+                texture: getValue("ui-section-texture") || defaultTheme.surfaces.section.texture,
+              },
+              background: {
+                color: getValue("ui-background-color") || defaultTheme.surfaces.background.color,
+                texture: getValue("ui-background-texture") || defaultTheme.surfaces.background.texture,
+              },
+              dropdown: {
+                color: getValue("ui-dropdown-color") || defaultTheme.surfaces.dropdown.color,
+                texture: getValue("ui-dropdown-texture") || defaultTheme.surfaces.dropdown.texture,
+              },
+            },
+            components: {
+              navbar: {
+                surface: getValue("component-navbar-surface") || defaultTheme.components.navbar.surface,
+              },
+              hero: {
+                surface: getValue("component-hero-surface") || defaultTheme.components.hero.surface,
+              },
+              sectionCard: {
+                surface: getValue("component-section-card-surface") || defaultTheme.components.sectionCard.surface,
+              },
+              quickLinkCard: {
+                surface: getValue("component-quick-link-card-surface") || defaultTheme.components.quickLinkCard.surface,
+              },
+              quoteCard: {
+                surface: getValue("component-quote-card-surface") || defaultTheme.components.quoteCard.surface,
+              },
+              statCard: {
+                surface: getValue("component-stat-card-surface") || defaultTheme.components.statCard.surface,
+              },
+            },
           },
           account: {
             email: getValue("email"),
@@ -729,6 +981,15 @@ import {
             ...(defaults.portfolioFilters || {}),
           },
         };
+      }
+
+      function persistUiSettings(theme, currentPageKey) {
+        if (theme.scope === "global") {
+          localStorage.setItem("app-ui-settings", JSON.stringify(theme));
+          localStorage.removeItem(`app-ui-page-settings:${currentPageKey}`);
+        } else {
+          localStorage.setItem(`app-ui-page-settings:${currentPageKey}`, JSON.stringify(theme));
+        }
       }
 
       async function loadState() {
@@ -761,6 +1022,54 @@ import {
         }
       }
 
+      function applyTheme(nextState) {
+        const defaultTheme = getDefaultTheme();
+        const theme = nextState?.theme || defaultTheme;
+        const mode = theme.mode || defaultTheme.mode;
+        const textSize = theme.textSize || defaultTheme.textSize;
+        const surfaces = theme.surfaces || defaultTheme.surfaces;
+        const components = theme.components || defaultTheme.components;
+        const root = document.documentElement;
+
+        persistUiSettings(theme, pageKey);
+
+        root.dataset.theme = mode;
+        root.dataset.textSize = textSize;
+
+        root.dataset.headerTexture = surfaces.header?.texture || defaultTheme.surfaces.header.texture;
+        root.dataset.sectionTexture = surfaces.section?.texture || defaultTheme.surfaces.section.texture;
+        root.dataset.backgroundTexture = surfaces.background?.texture || defaultTheme.surfaces.background.texture;
+        root.dataset.dropdownTexture = surfaces.dropdown?.texture || defaultTheme.surfaces.dropdown.texture;
+
+        root.dataset.navbarSurface = components.navbar?.surface || defaultTheme.components.navbar.surface;
+        root.dataset.heroSurface = components.hero?.surface || defaultTheme.components.hero.surface;
+        root.dataset.sectionCardSurface = components.sectionCard?.surface || defaultTheme.components.sectionCard.surface;
+        root.dataset.quickLinkCardSurface = components.quickLinkCard?.surface || defaultTheme.components.quickLinkCard.surface;
+        root.dataset.quoteCardSurface = components.quoteCard?.surface || defaultTheme.components.quoteCard.surface;
+        root.dataset.statCardSurface = components.statCard?.surface || defaultTheme.components.statCard.surface;
+
+        const isDark = mode === "dark";
+
+        root.style.setProperty(
+          "--header-color",
+          isDark ? "#0f172a" : (surfaces.header?.color || defaultTheme.surfaces.header.color)
+        );
+
+        root.style.setProperty(
+          "--section-color",
+          isDark ? "#1e293b" : (surfaces.section?.color || defaultTheme.surfaces.section.color)
+        );
+
+        root.style.setProperty(
+          "--background-color",
+          isDark ? "#020617" : (surfaces.background?.color || defaultTheme.surfaces.background.color)
+        );
+
+        root.style.setProperty(
+          "--dropdown-color",
+          isDark ? "#111827" : (surfaces.dropdown?.color || defaultTheme.surfaces.dropdown.color)
+        );
+      }
       async function saveState(nextState = state, options = {}) {
         const { silent = false } = options;
 
@@ -780,8 +1089,8 @@ import {
         }
 
         try {
-          await persistState(state);
           applyTheme(state);
+          await persistState(state);
 
           if (!silent) {
             setStatus("Saved", "success");
@@ -799,20 +1108,6 @@ import {
             await saveState(state, options);
           }
         }
-      }
-
-      function applyTheme(nextState) {
-        const mode = nextState?.theme?.mode || "system";
-        const accent = nextState?.theme?.accent || "default";
-        const textSize = nextState?.theme?.textSize || "medium";
-
-        localStorage.setItem("profile-theme-mode", mode);
-        localStorage.setItem("profile-theme-accent", accent);
-        localStorage.setItem("profile-theme-text-size", textSize);
-
-        document.documentElement.dataset.theme = mode;
-        document.documentElement.dataset.textSize = textSize;
-        document.documentElement.dataset.accent = accent;
       }
 
       function escapeHtml(value) {
@@ -906,8 +1201,8 @@ import {
           clearTimeout(previewRefreshTimer);
         }
 
-        previewRefreshTimer = window.setTimeout(async () => {
-          await refreshPreview();
+        previewRefreshTimer = window.setTimeout(() => {
+          refreshPreview();
         }, 350);
       }
 
@@ -957,9 +1252,23 @@ import {
           "notifications-product",
           "notifications-reminders",
           "notifications-marketing",
-          "theme-mode",
-          "theme-accent",
-          "theme-text-size",
+          "ui-scope",
+          "ui-mode",
+          "ui-text-size",
+          "ui-header-color",
+          "ui-header-texture",
+          "ui-section-color",
+          "ui-section-texture",
+          "ui-background-color",
+          "ui-background-texture",
+          "ui-dropdown-color",
+          "ui-dropdown-texture",
+          "component-navbar-surface",
+          "component-hero-surface",
+          "component-section-card-surface",
+          "component-quick-link-card-surface",
+          "component-quote-card-surface",
+          "component-stat-card-surface",
         ];
 
         fieldIds.forEach((id) => {
@@ -979,9 +1288,9 @@ import {
         state = normalizeState(collectState());
         refreshSnapshot(state);
         setStatus("Saving...", "neutral");
-
+        applyTheme(state);
         await saveState(state);
-        await refreshPreview();
+        refreshPreview();
       });
 
       document.getElementById("refresh-preview-btn")?.addEventListener("click", async () => {
@@ -1033,7 +1342,7 @@ import {
     .field-label {
       font-size: 0.92rem;
       font-weight: 700;
-      color: #334155;
+      color: var(--text-label);
     }
 
     .ui-input,
@@ -1042,11 +1351,11 @@ import {
       width: 100%;
       min-width: 0;
       border-radius: 14px;
-      border: 1px solid rgba(15, 23, 42, 0.1);
-      background: rgba(255, 255, 255, 0.92);
+      border: 1px solid var(--border-medium);
+      background: var(--input-bg);
       padding: 0.9rem 1rem;
       font: inherit;
-      color: #0f172a;
+      color: var(--text-main);
       box-sizing: border-box;
       transition: border-color 0.18s ease, box-shadow 0.18s ease, background 0.18s ease;
     }
@@ -1055,9 +1364,8 @@ import {
     .ui-select:focus,
     .ui-textarea:focus {
       outline: none;
-      border-color: rgba(47, 93, 98, 0.45);
-      box-shadow: 0 0 0 4px rgba(47, 93, 98, 0.1);
-      background: rgba(255, 255, 255, 1);
+      border-color: var(--text-main);
+      box-shadow: 0 0 0 4px color-mix(in srgb, var(--text-main) 12%, transparent);
     }
 
     .ui-textarea {
@@ -1071,21 +1379,20 @@ import {
       padding: 0.82rem 1.15rem;
       font: inherit;
       font-weight: 700;
-      background: #2f5d62;
-      color: white;
+      background: var(--button-bg);
+      color: var(--button-text);
       cursor: pointer;
       transition: transform 0.18s ease, opacity 0.18s ease, box-shadow 0.18s ease;
     }
 
     .ui-button:hover {
       transform: translateY(-1px);
-      box-shadow: 0 12px 24px rgba(47, 93, 98, 0.16);
     }
 
     .ui-button-secondary {
-      background: rgba(255, 255, 255, 0.88);
-      color: #1e293b;
-      border: 1px solid rgba(15, 23, 42, 0.1);
+      background: var(--button-secondary-bg);
+      color: var(--button-secondary-text);
+      border: 1px solid var(--border-soft);
       box-shadow: none;
     }
 
@@ -1113,8 +1420,8 @@ import {
       width: 100%;
       padding: 1rem 1.05rem;
       border-radius: 18px;
-      border: 1px solid rgba(15, 23, 42, 0.08);
-      background: rgba(255, 255, 255, 0.78);
+      border: 1px solid var(--border-soft);
+      background: var(--card-bg);
       cursor: pointer;
       box-sizing: border-box;
       transition: transform 0.18s ease, border-color 0.18s ease, box-shadow 0.18s ease;
@@ -1122,8 +1429,7 @@ import {
 
     .settings-toggle-card:hover {
       transform: translateY(-1px);
-      border-color: rgba(47, 93, 98, 0.28);
-      box-shadow: 0 14px 26px rgba(15, 23, 42, 0.05);
+      box-shadow: var(--shadow);
     }
 
     .settings-toggle-copy {
@@ -1135,7 +1441,7 @@ import {
     .settings-toggle-title {
       display: block;
       font-weight: 700;
-      color: #0f172a;
+      color: var(--text-main);
       line-height: 1.35;
       word-break: break-word;
     }
@@ -1144,7 +1450,7 @@ import {
       display: block;
       font-size: 0.92rem;
       line-height: 1.45;
-      color: #64748b;
+      color: var(--text-muted);
       word-break: break-word;
     }
 
@@ -1153,7 +1459,7 @@ import {
       height: 1.1rem;
       flex: 0 0 auto;
       margin: 0;
-      accent-color: #2f5d62;
+      accent-color: var(--text-main);
       justify-self: end;
       align-self: center;
     }
@@ -1188,8 +1494,8 @@ import {
     .preview-stat-card {
       border-radius: 18px;
       padding: 1rem;
-      border: 1px solid rgba(15, 23, 42, 0.08);
-      background: rgba(255, 255, 255, 0.82);
+      border: 1px solid var(--border-soft);
+      background: var(--card-bg);
     }
 
     .profile-field-grid,

@@ -12,7 +12,7 @@ const {
 } = Astro.props;
 ---
 
-<section class="hero">
+<section class="hero page-hero surface-hero">
   <div class="hero-card hero-card-shared">
     {kicker && <p class="kicker">{kicker}</p>}
     <h1>{title}</h1>
@@ -26,12 +26,15 @@ const {
     display: flex;
     flex-direction: column;
     gap: 0.6rem;
+    background: var(--hero-surface-color, var(--header-color));
+    border-radius: 20px;
+    padding: 1.2rem;
+    border: 1px solid var(--border-soft);
+    box-shadow: var(--shadow);
+    color: var(--text-main);
   }
 
-  .hero-card-shared h1 {
-    margin: 0;
-  }
-
+  .hero-card-shared h1,
   .hero-card-shared p {
     margin: 0;
   }

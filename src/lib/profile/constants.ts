@@ -24,13 +24,24 @@ export const PROFILE_PORTFOLIO_CATEGORIES = [
 ] as const;
 
 export const PROFILE_THEME_OPTIONS = ["system", "light", "dark"] as const;
-export const PROFILE_TEXT_SIZE_OPTIONS = ["sm", "md", "lg"] as const;
+export const PROFILE_TEXT_SIZE_OPTIONS = ["sm", "md", "lg", "xl"] as const;
 export const PROFILE_TIME_RANGE_OPTIONS = ["7d", "30d", "90d", "6m", "1y", "all"] as const;
+
+export const PROFILE_UI_SCOPE_OPTIONS = ["global", "page"] as const;
+export const PROFILE_SURFACE_TEXTURE_OPTIONS = [
+  "solid",
+  "gradient",
+  "checkered",
+  "smoothed",
+  "matte",
+] as const;
 
 export type ProfileThemeMode = (typeof PROFILE_THEME_OPTIONS)[number];
 export type ProfileTextSize = (typeof PROFILE_TEXT_SIZE_OPTIONS)[number];
 export type ProfileStatSection = (typeof PROFILE_STAT_SECTIONS)[number];
 export type ProfileTimeRange = (typeof PROFILE_TIME_RANGE_OPTIONS)[number];
+export type ProfileUiScope = (typeof PROFILE_UI_SCOPE_OPTIONS)[number];
+export type ProfileSurfaceTexture = (typeof PROFILE_SURFACE_TEXTURE_OPTIONS)[number];
 
 export type ProfileBadge = {
   id: string;
@@ -68,10 +79,21 @@ export type ProfileNotifications = {
   marketing: boolean;
 };
 
+export type ProfileSurfaceSettings = {
+  color: string;
+  texture: ProfileSurfaceTexture;
+};
+
 export type ProfileThemeSettings = {
+  scope: ProfileUiScope;
   mode: ProfileThemeMode;
-  accent: string;
   textSize: ProfileTextSize;
+  surfaces: {
+    header: ProfileSurfaceSettings;
+    section: ProfileSurfaceSettings;
+    background: ProfileSurfaceSettings;
+    dropdown: ProfileSurfaceSettings;
+  };
 };
 
 export type ProfileStatsDisplaySettings = {
@@ -178,9 +200,27 @@ export const DEFAULT_PROFILE_SETTINGS: ProfileSettings = {
     marketing: false,
   },
   theme: {
+    scope: "global",
     mode: "system",
-    accent: "default",
     textSize: "md",
+    surfaces: {
+      header: {
+        color: "#ffffff",
+        texture: "solid",
+      },
+      section: {
+        color: "#ffffff",
+        texture: "solid",
+      },
+      background: {
+        color: "#ffffff",
+        texture: "solid",
+      },
+      dropdown: {
+        color: "#ffffff",
+        texture: "solid",
+      },
+    },
   },
 };
 

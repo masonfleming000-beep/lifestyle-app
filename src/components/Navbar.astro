@@ -20,7 +20,7 @@ const currentPage =
 const isHomePage = currentPath === "/";
 ---
 
-<header class="topbar">
+<header class="topbar surface-header">
   <div class="topbar-inner compact">
     <a href="/" class="brand">
       <span class="brand-mark">LIFE</span>
@@ -36,7 +36,7 @@ const isHomePage = currentPath === "/";
       <details class="menu-dropdown">
         <summary>Menu</summary>
 
-        <div class:list={["dropdown-panel", isHomePage && "dropdown-panel-home"]}>
+        <div class:list={["dropdown-panel", "surface-dropdown", isHomePage && "dropdown-panel-home"]}>
           <div id="dynamic-profile-link-wrap" class="dynamic-profile-link-wrap"></div>
 
           {links.map((link) => (
