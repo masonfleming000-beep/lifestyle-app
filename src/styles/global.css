@@ -3028,3 +3028,155 @@ img {
   color: #2f5d62;
 }
 
+.topbar {
+  width: 100%;
+  max-width: 100%;
+}
+
+.topbar-inner.compact {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.75rem;
+  width: 100%;
+  max-width: 100%;
+  padding: 0.75rem 0.75rem;
+}
+
+/* Critical: flex children must be allowed to shrink */
+.brand,
+.topbar-actions,
+.auth-status {
+  min-width: 0;
+}
+
+.brand {
+  display: flex;
+  align-items: center;
+  gap: 0.6rem;
+  flex: 1 1 auto;
+  overflow: hidden;
+  text-decoration: none;
+  color: inherit;
+}
+
+.brand > div {
+  min-width: 0;
+  overflow: hidden;
+}
+
+.brand-mark {
+  flex: 0 0 auto;
+}
+
+.brand-kicker,
+.brand h1 {
+  margin: 0;
+  line-height: 1.1;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.topbar-actions {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  flex: 0 1 auto;
+  max-width: 60%;
+  overflow: hidden;
+}
+
+.auth-status {
+  display: block;
+  max-width: 100%;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+/* Prevent the details element from stretching weirdly */
+.menu-dropdown {
+  flex: 0 0 auto;
+}
+
+.menu-dropdown summary {
+  list-style: none;
+  cursor: pointer;
+  white-space: nowrap;
+}
+
+.menu-dropdown summary::-webkit-details-marker {
+  display: none;
+}
+
+/* Make sure dropdown panel itself doesn't create overflow */
+.dropdown-panel {
+  max-width: min(20rem, calc(100vw - 1rem));
+  box-sizing: border-box;
+}
+
+/* Tablet/smaller phones */
+@media (max-width: 768px) {
+  .topbar-inner.compact {
+    gap: 0.5rem;
+    padding: 0.65rem 0.65rem;
+  }
+
+  .brand {
+    gap: 0.5rem;
+  }
+
+  .topbar-actions {
+    max-width: 52%;
+    gap: 0.4rem;
+  }
+
+  .auth-status {
+    font-size: 0.82rem;
+  }
+
+  .brand-kicker {
+    font-size: 0.7rem;
+  }
+
+  .brand h1 {
+    font-size: 1rem;
+  }
+
+  .menu-dropdown summary {
+    font-size: 0.9rem;
+    padding: 0.45rem 0.65rem;
+  }
+}
+
+/* Very small phones */
+@media (max-width: 560px) {
+  .topbar-actions {
+    max-width: 42%;
+  }
+
+  .brand-kicker {
+    display: none;
+  }
+
+  .auth-status {
+    font-size: 0.78rem;
+  }
+}
+
+/* Extra small phones: hide email pill completely */
+@media (max-width: 440px) {
+  .auth-status {
+    display: none;
+  }
+
+  .topbar-actions {
+    max-width: none;
+    overflow: visible;
+  }
+
+  .brand h1 {
+    font-size: 0.95rem;
+  }
+}
