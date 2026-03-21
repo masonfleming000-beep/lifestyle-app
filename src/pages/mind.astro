@@ -1,5 +1,6 @@
 ---
 import BaseLayout from "../layouts/BaseLayout.astro";
+import PageHero from "../components/PageHero.astro";
 import { yogaItems, soothingTechniques } from "../data/mind";
 
 const defaultMindData = JSON.stringify({
@@ -21,16 +22,11 @@ const defaultMindData = JSON.stringify({
 ---
 
 <BaseLayout title="Mind | Lifestyle App" description="Mind and recovery page">
-  <section class="hero">
-    <div class="hero-card">
-      <p class="kicker">Mind</p>
-      <h1>Recover, reset, and calm the system.</h1>
-      <p>
-        A cleaner version of your old mind page with yoga / rehab and soothing
-        techniques organized into dropdown sections.
-      </p>
-    </div>
-  </section>
+    <PageHero
+    kicker="Mind"
+    title="Recover, reset, and calm the system."
+    description="A cleaner version of your old mind page with yoga / rehab and soothing   techniques organized into dropdown sections."
+  />
 
   <section class="section">
     <article class="card soft">

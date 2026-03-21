@@ -68,6 +68,11 @@ const {
             quickLinkCard: { surface: "section" },
             quoteCard: { surface: "section" },
             statCard: { surface: "section" },
+            card: { surface: "section" },
+            dropdownCard: { surface: "dropdown" },
+            embed: { surface: "section" },
+            metric: { surface: "section" },
+            input: { surface: "section" },
           },
         };
 
@@ -130,6 +135,26 @@ const {
                 ...globalUi?.components?.statCard,
                 ...pageUi?.components?.statCard,
               },
+              card: {
+                ...globalUi?.components?.card,
+                ...pageUi?.components?.card,
+              },
+              dropdownCard: {
+                ...globalUi?.components?.dropdownCard,
+                ...pageUi?.components?.dropdownCard,
+              },
+              embed: {
+                ...globalUi?.components?.embed,
+                ...pageUi?.components?.embed,
+              },
+              metric: {
+                ...globalUi?.components?.metric,
+                ...pageUi?.components?.metric,
+              },
+              input: {
+                ...globalUi?.components?.input,
+                ...pageUi?.components?.input,
+              },
             },
           };
         }
@@ -189,6 +214,26 @@ const {
                 ...DEFAULT_UI.components.statCard,
                 ...(settings?.components?.statCard || {}),
               },
+              card: {
+                ...DEFAULT_UI.components.card,
+                ...(settings?.components?.card || {}),
+              },
+              dropdownCard: {
+                ...DEFAULT_UI.components.dropdownCard,
+                ...(settings?.components?.dropdownCard || {}),
+              },
+              embed: {
+                ...DEFAULT_UI.components.embed,
+                ...(settings?.components?.embed || {}),
+              },
+              metric: {
+                ...DEFAULT_UI.components.metric,
+                ...(settings?.components?.metric || {}),
+              },
+              input: {
+                ...DEFAULT_UI.components.input,
+                ...(settings?.components?.input || {}),
+              },
             },
           };
 
@@ -206,6 +251,11 @@ const {
           root.dataset.quickLinkCardSurface = ui.components.quickLinkCard?.surface || "section";
           root.dataset.quoteCardSurface = ui.components.quoteCard?.surface || "section";
           root.dataset.statCardSurface = ui.components.statCard?.surface || "section";
+          root.dataset.cardSurface = ui.components.card?.surface || "section";
+          root.dataset.dropdownCardSurface = ui.components.dropdownCard?.surface || "dropdown";
+          root.dataset.embedSurface = ui.components.embed?.surface || "section";
+          root.dataset.metricSurface = ui.components.metric?.surface || "section";
+          root.dataset.inputSurface = ui.components.input?.surface || "section";
 
           applySurfaceColor("header", ui.surfaces.header);
           applySurfaceColor("section", ui.surfaces.section);

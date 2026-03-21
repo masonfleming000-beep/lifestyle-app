@@ -1,21 +1,17 @@
 ---
 import BaseLayout from "../../layouts/BaseLayout.astro";
+import PageHero from "../../components/PageHero.astro";
 ---
 
 <BaseLayout
   title="Workout Builder | Lifestyle App"
   description="Build and track custom running workouts"
 >
-  <section class="hero">
-    <div class="hero-card">
-      <p class="kicker">Running</p>
-      <h1>Workout Builder</h1>
-      <p>
-        Choose a workout type, set your parameters, and track each step live as
-        you go.
-      </p>
-    </div>
-  </section>
+    <PageHero
+    kicker="Running"
+    title="Workout Builder"
+    description="Choose a workout type, set your parameters, and track each step live as   you go."
+  />
 
   <section class="section">
     <article class="card">

@@ -1,5 +1,6 @@
 ---
 import BaseLayout from "../layouts/BaseLayout.astro";
+import PageHero from "../components/PageHero.astro";
 
 const defaultWorkData = JSON.stringify({
   projects: [
@@ -13,15 +14,11 @@ const defaultWorkData = JSON.stringify({
 ---
 
 <BaseLayout title="Work | Lifestyle App" description="Work dashboard">
-  <section class="hero">
-    <div class="hero-card">
-      <p class="kicker">Work</p>
-      <h1>Work dashboard</h1>
-      <p>
-        Track projects, tasks, meetings, and the work that needs attention first.
-      </p>
-    </div>
-  </section>
+    <PageHero
+    kicker="Work"
+    title="Work dashboard"
+    description="Track projects, tasks, meetings, and the work that needs attention first."
+  />
 
   <section class="section">
     <div class="education-shell">

@@ -1,5 +1,6 @@
 ---
 import BaseLayout from "../layouts/BaseLayout.astro";
+import PageHero from "../components/PageHero.astro";
 import { hobbies as seedHobbies } from "../data/hobbies";
 
 const seed = JSON.stringify(seedHobbies);
@@ -8,15 +9,11 @@ const defaultHobbiesData = JSON.stringify({
 });
 ---
 <BaseLayout title="Hobbies | Lifestyle App" description="Interactive hobby tracking and progress">
-  <section class="hero">
-    <div class="hero-card">
-      <p class="kicker">Hobbies</p>
-      <h1>Track hobbies with real progress, stages, updates, library items, and stage-based logs.</h1>
-      <p>
-        This version lets the user add, edit, and delete hobbies with saved progress across refreshes.
-      </p>
-    </div>
-  </section>
+    <PageHero
+    kicker="Hobbies"
+    title="Track hobbies with real progress, stages, updates, library items, and stage-based logs."
+    description="This version lets the user add, edit, and delete hobbies with saved progress across refreshes."
+  />
 
   <section class="section">
     <div id="hobby-app" data-seed={seed}>

@@ -20,9 +20,9 @@
   --text-muted: #64748b;
   --text-label: #334155;
 
-  --card-bg: rgba(255, 255, 255, 0.88);
-  --card-bg-soft: rgba(255, 255, 255, 0.72);
-  --input-bg: rgba(255, 255, 255, 0.92);
+  --card-bg: #ffffff;
+  --card-bg-soft: #f8fafc;
+  --input-bg: #ffffff;
 
   --border-soft: rgba(15, 23, 42, 0.08);
   --border-medium: rgba(15, 23, 42, 0.14);
@@ -80,9 +80,9 @@
   --text-muted: #cbd5e1;
   --text-label: #e2e8f0;
 
-  --card-bg: rgba(30, 41, 59, 0.88);
-  --card-bg-soft: rgba(30, 41, 59, 0.72);
-  --input-bg: rgba(15, 23, 42, 0.92);
+  --card-bg: #1e293b;
+  --card-bg-soft: #243447;
+  --input-bg: #0f172a;
 
   --border-soft: rgba(148, 163, 184, 0.2);
   --border-medium: rgba(148, 163, 184, 0.3);
@@ -388,7 +388,6 @@ textarea {
 .inner-card,
 .input-card,
 .preview-card,
-.preview-stat-card,
 .note-card,
 .education-panel,
 .selector-card,
@@ -400,13 +399,20 @@ textarea {
 .schedule-item,
 .session-metrics,
 .save-toolbar,
-.metric,
-.stat-panel,
 .workout-step-card,
 .auth-note,
 .mind-form,
 .settings-toggle-card {
   background: var(--card-surface-color);
+}
+
+.quick-link-card,
+.link-card {
+  background: var(--quick-link-card-surface-color);
+}
+
+.quote-card {
+  background: var(--quote-card-surface-color);
 }
 
 .dropdown-card,
@@ -423,7 +429,8 @@ textarea {
 .exercise-metric,
 .stat-card,
 .preview-stat-card,
-.metric {
+.metric,
+.stat-panel {
   background: var(--metric-surface-color);
 }
 
@@ -648,6 +655,7 @@ textarea {
 }
 
 .hero-card {
+  background: var(--hero-surface-color);
   border: 1px solid var(--border-soft);
   border-radius: 28px;
   padding: 1.25rem;
@@ -693,7 +701,6 @@ textarea {
 }
 
 .dropdown-icon,
-.dropdown-arrow,
 .section-card-icon,
 .mind-summary-icon {
   width: 38px;
@@ -708,11 +715,26 @@ textarea {
   transition: transform 0.2s ease;
 }
 
+.dropdown-arrow {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 1.5rem;
+  color: var(--text-muted);
+  font-size: 1.45rem;
+  line-height: 1;
+  flex-shrink: 0;
+  transition: transform 0.2s ease;
+}
+
 .dropdown-card[open] .dropdown-icon,
-.dropdown-card[open] .dropdown-arrow,
 .mind-dropdown[open] .mind-summary-icon,
 .section-card[open] .section-card-icon {
   transform: rotate(45deg);
+}
+
+.dropdown-card[open] .dropdown-arrow {
+  transform: rotate(180deg);
 }
 
 .dropdown-body,
@@ -1457,4 +1479,17 @@ iframe {
   .brand h1 {
     font-size: 0.95rem;
   }
+}
+
+.link-card h3,
+.quick-link-card h3 {
+  margin: 0 0 0.4rem;
+  font-size: 1.25rem;
+}
+
+.link-card p,
+.quick-link-card p {
+  margin: 0;
+  color: var(--text-muted);
+  line-height: 1.55;
 }

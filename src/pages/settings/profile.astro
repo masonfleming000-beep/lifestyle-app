@@ -19,7 +19,7 @@ const defaultProfileSettingsJson = JSON.stringify(DEFAULT_PROFILE_SETTINGS);
 
   <section class="section">
     <div class="grid two profile-top-grid">
-      <article class="card">
+      <article class="card profile-fixed-section-card">
         <div class="section-header">
           <div>
             <h2 class="section-title">Account</h2>
@@ -51,7 +51,7 @@ const defaultProfileSettingsJson = JSON.stringify(DEFAULT_PROFILE_SETTINGS);
         </div>
       </article>
 
-      <article class="card soft">
+      <article class="card soft profile-fixed-section-card">
         <div class="section-header">
           <div>
             <h2 class="section-title">Profile snapshot</h2>
@@ -1680,4 +1680,19 @@ const defaultProfileSettingsJson = JSON.stringify(DEFAULT_PROFILE_SETTINGS);
       }
     }
   </style>
+
+  <style>
+    .profile-fixed-section-card {
+      background: var(--resolved-section-color);
+    }
+
+    .profile-fixed-section-card.soft {
+      background: color-mix(in srgb, var(--resolved-section-color) 94%, var(--resolved-background-color));
+    }
+
+    .profile-top-grid > * {
+      align-self: start;
+    }
+  </style>
+
 </BaseLayout>

@@ -411,11 +411,15 @@ const defaultCalendar = JSON.stringify(defaultCalendarEmbed);
         row.style.width = "100%";
 
         const label = document.createElement("label");
-        label.className = "todo-left";
+        label.className = "todo-left todo-left-custom";
         label.style.flex = "1";
+
+        const checkWrap = document.createElement("span");
+        checkWrap.className = "assignment-check-wrap today-check-wrap";
 
         const checkbox = document.createElement("input");
         checkbox.type = "checkbox";
+        checkbox.className = "assignment-check";
         checkbox.checked = !!todo.done;
 
         checkbox.addEventListener("change", async () => {
@@ -424,10 +428,15 @@ const defaultCalendar = JSON.stringify(defaultCalendarEmbed);
           await saveState();
         });
 
+        const checkVisual = document.createElement("span");
+        checkWrap.appendChild(checkbox);
+        checkWrap.appendChild(checkVisual);
+
         const text = document.createElement("span");
+        text.className = "today-check-text";
         text.textContent = todo.text;
 
-        label.appendChild(checkbox);
+        label.appendChild(checkWrap);
         label.appendChild(text);
 
         const deleteBtn = createDeleteButton(async () => {
@@ -467,11 +476,15 @@ const defaultCalendar = JSON.stringify(defaultCalendarEmbed);
         row.style.width = "100%";
 
         const label = document.createElement("label");
-        label.className = "routine-left";
+        label.className = "routine-left todo-left-custom";
         label.style.flex = "1";
+
+        const checkWrap = document.createElement("span");
+        checkWrap.className = "assignment-check-wrap today-check-wrap";
 
         const cb = document.createElement("input");
         cb.type = "checkbox";
+        cb.className = "assignment-check";
         cb.checked = !!item.done;
 
         cb.addEventListener("change", async () => {
@@ -480,10 +493,15 @@ const defaultCalendar = JSON.stringify(defaultCalendarEmbed);
           await saveState();
         });
 
+        const checkVisual = document.createElement("span");
+        checkWrap.appendChild(cb);
+        checkWrap.appendChild(checkVisual);
+
         const span = document.createElement("span");
+        span.className = "today-check-text";
         span.textContent = item.text;
 
-        label.appendChild(cb);
+        label.appendChild(checkWrap);
         label.appendChild(span);
 
         const deleteBtn = createDeleteButton(async () => {
@@ -708,4 +726,23 @@ const defaultCalendar = JSON.stringify(defaultCalendarEmbed);
 
     init();
   </script>
+
+
+  <style>
+    .todo-left-custom {
+      align-items: center;
+      gap: 0.9rem;
+    }
+
+    .today-check-wrap {
+      margin-top: 0;
+      flex: 0 0 auto;
+    }
+
+    .today-check-text {
+      line-height: 1.45;
+      font-size: 0.98rem;
+    }
+  </style>
+
 </BaseLayout>
