@@ -79,6 +79,9 @@ import BaseLayout from "../../layouts/BaseLayout.astro";
       <ul id="live-workout-steps" class="routine-list workout-live-list"></ul>
 
       <div class="workout-form-actions">
+        <button id="save-completed-workout-button" type="button" class="button-primary">
+          Save Completed Workout
+        </button>
         <button id="reset-workout-button" type="button" class="button-secondary">
           Reset Workout
         </button>
@@ -88,6 +91,9 @@ import BaseLayout from "../../layouts/BaseLayout.astro";
 
   <script is:inline>
     const pageKey = "cardio-workout-builder";
+
+    const fitnessHistoryPageKey = "fitness-history";
+    const profileStatsPageKey = "profile-stats";
 
     const defaultWorkoutTypes = {
       hiit: {
@@ -170,6 +176,8 @@ import BaseLayout from "../../layouts/BaseLayout.astro";
     let workoutTypes = cloneWorkoutTypes(defaultWorkoutTypes);
     let selectedType = "hiit";
     let activeWorkout = null;
+    let cardioHistory = [];
+    let weightliftingHistory = [];
     let isEditingWorkoutTypes = false;
     let hasLoadedInitialState = false;
     let isSaving = false;
@@ -184,6 +192,98 @@ import BaseLayout from "../../layouts/BaseLayout.astro";
     const liveWorkoutSummary = document.getElementById("live-workout-summary");
     const liveWorkoutSteps = document.getElementById("live-workout-steps");
     const resetWorkoutButton = document.getElementById("reset-workout-button");
+    const saveCompletedWorkoutButton = document.getElementById("save-completed-workout-button");
+
+    async function loadFitnessHistory() {
+      try {
+        const res = await fetch(`/api/state?pageKey=${encodeURIComponent(fitnessHistoryPageKey)}`, {
+          credentials: "include",
+          cache: "no-store",
+        });
+
+        if (!res.ok) return { weightliftingSessions: [], cardioSessions: [] };
+
+        const data = await res.json();
+        const history = data?.state ?? {};
+        return {
+          weightliftingSessions: Array.isArray(history?.weightliftingSessions)
+            ? history.weightliftingSessions
+            : [],
+          cardioSessions: Array.isArray(history?.cardioSessions) ? history.cardioSessions : [],
+        };
+      } catch (error) {
+        console.error("Failed to load fitness history:", error);
+        return { weightliftingSessions: [], cardioSessions: [] };
+      }
+    }
+
+    async function saveFitnessHistory(nextState) {
+      try {
+        await fetch("/api/state", {
+          method: "POST",
+          credentials: "include",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ pageKey: fitnessHistoryPageKey, state: nextState }),
+        });
+      } catch (error) {
+        console.error("Failed to save fitness history:", error);
+      }
+    }
+
+    async function loadProfileStats() {
+      try {
+        const res = await fetch(`/api/state?pageKey=${encodeURIComponent(profileStatsPageKey)}`, {
+          credentials: "include",
+          cache: "no-store",
+        });
+
+        if (!res.ok) return { fitness: {}, hobbies: {} };
+
+        const data = await res.json();
+        return data?.state ?? { fitness: {}, hobbies: {} };
+      } catch (error) {
+        console.error("Failed to load profile stats:", error);
+        return { fitness: {}, hobbies: {} };
+      }
+    }
+
+    function buildFitnessStats(historyState) {
+      const weightSessions = Array.isArray(historyState?.weightliftingSessions)
+        ? historyState.weightliftingSessions
+        : [];
+      const cardioSessions = Array.isArray(historyState?.cardioSessions) ? historyState.cardioSessions : [];
+      const latestDate = [...weightSessions, ...cardioSessions]
+        .map((item) => item?.dateTime || "")
+        .filter(Boolean)
+        .sort((a, b) => new Date(b).getTime() - new Date(a).getTime())[0] || "";
+
+      return {
+        totalWeightliftingSessions: weightSessions.length,
+        totalCardioSessions: cardioSessions.length,
+        totalFitnessSessions: weightSessions.length + cardioSessions.length,
+        lastWorkoutAt: latestDate,
+        updatedAt: new Date().toISOString(),
+      };
+    }
+
+    async function syncFitnessStats() {
+      const existingStats = await loadProfileStats();
+      await fetch("/api/state", {
+        method: "POST",
+        credentials: "include",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          pageKey: profileStatsPageKey,
+          state: {
+            ...existingStats,
+            fitness: buildFitnessStats({
+              weightliftingSessions: weightliftingHistory,
+              cardioSessions: cardioHistory,
+            }),
+          },
+        }),
+      });
+    }
 
     function cloneWorkoutTypes(types) {
       return JSON.parse(JSON.stringify(types));
@@ -922,6 +1022,40 @@ import BaseLayout from "../../layouts/BaseLayout.astro";
       renderLiveWorkout(workout);
     });
 
+    saveCompletedWorkoutButton?.addEventListener("click", async () => {
+      if (!activeWorkout) return;
+
+      const session = {
+        id:
+          typeof crypto !== "undefined" && crypto.randomUUID
+            ? crypto.randomUUID()
+            : `cardio-session-${Date.now()}-${Math.random().toString(16).slice(2)}` ,
+        type: "cardio",
+        dateTime: new Date().toISOString(),
+        workoutType: selectedType,
+        title: activeWorkout.title || "Workout",
+        summary: activeWorkout.summary || "",
+        steps: Array.isArray(activeWorkout.steps)
+          ? activeWorkout.steps.map((step) => ({
+              text: step.text || "",
+              target: step.target || "",
+              actual: step.actual || "",
+              done: !!step.done,
+            }))
+          : [],
+      };
+
+      cardioHistory = [session, ...cardioHistory];
+
+      await saveFitnessHistory({
+        weightliftingSessions: weightliftingHistory,
+        cardioSessions: cardioHistory,
+      });
+
+      await syncFitnessStats();
+      window.alert("Completed cardio workout saved.");
+    });
+
     resetWorkoutButton.addEventListener("click", () => {
       activeWorkout = null;
       liveWorkoutCard.hidden = true;
@@ -941,6 +1075,12 @@ import BaseLayout from "../../layouts/BaseLayout.astro";
           : getFirstWorkoutTypeKey();
 
       ensureSelectedTypeExists();
+
+      const historyState = await loadFitnessHistory();
+      weightliftingHistory = Array.isArray(historyState?.weightliftingSessions)
+        ? historyState.weightliftingSessions
+        : [];
+      cardioHistory = Array.isArray(historyState?.cardioSessions) ? historyState.cardioSessions : [];
 
       hasLoadedInitialState = true;
 

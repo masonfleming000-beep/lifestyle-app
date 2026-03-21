@@ -35,16 +35,28 @@ const {
     </main>
 
     <script>
-      import { App } from '@capacitor/app';
-      import { Browser } from '@capacitor/browser';
+      import { App } from "@capacitor/app";
+      import { Browser } from "@capacitor/browser";
 
-      App.addListener('appUrlOpen', async ({ url }: { url: string }) => {
-        if (url.startsWith('com.lifestyle.app://auth/success')) {
+      App.addListener("appUrlOpen", async ({ url }: { url: string }) => {
+        if (url.startsWith("com.lifestyle.app://auth/success")) {
           await Browser.close();
-          window.location.href = '/dashboard';
+          window.location.href = "/dashboard";
         }
       });
     </script>
 
+    <script is:inline>
+      (() => {
+        const root = document.documentElement;
+        const mode = localStorage.getItem("profile-theme-mode") || "system";
+        const accent = localStorage.getItem("profile-theme-accent") || "default";
+        const textSize = localStorage.getItem("profile-theme-text-size") || "md";
+
+        root.dataset.theme = mode;
+        root.dataset.accent = accent;
+        root.dataset.textSize = textSize;
+      })();
+    </script>
   </body>
 </html>

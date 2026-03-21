@@ -20,6 +20,14 @@ function json(data: unknown, status = 200) {
   });
 }
 
+function normalizeUsername(value: unknown) {
+  return String(value || "").trim().toLowerCase();
+}
+
+function isValidUsername(username: string) {
+  return /^[a-z0-9._-]{3,24}$/.test(username);
+}
+
 export const POST: APIRoute = async ({ request, cookies }) => {
   const rateLimit = consumeRateLimit({
     bucket: "auth-signup",
@@ -35,14 +43,22 @@ export const POST: APIRoute = async ({ request, cookies }) => {
   try {
     const body = await request.json().catch(() => null);
     const email = normalizeEmail(String(body?.email || ""));
+    const username = normalizeUsername(body?.username);
     const password = String(body?.password || "");
 
-    if (!email || !password) {
-      return json({ error: "Email and password are required." }, 400);
+    if (!email || !username || !password) {
+      return json({ error: "Email, username, and password are required." }, 400);
     }
 
     if (!validateEmail(email)) {
       return json({ error: "Invalid email address." }, 400);
+    }
+
+    if (!isValidUsername(username)) {
+      return json(
+        { error: "Username must be 3-24 characters and use only letters, numbers, periods, underscores, or hyphens." },
+        400
+      );
     }
 
     if (!validatePassword(password, email)) {
@@ -63,14 +79,20 @@ export const POST: APIRoute = async ({ request, cookies }) => {
 
     cookies.set(getSessionCookieName(), session.id, buildSessionCookieOptions(expires));
 
-    return json({
-      ok: true,
-      user: {
-        id: user.id,
-        email: user.email,
-        created_at: user.created_at,
+    return json(
+      {
+        ok: true,
+        user: {
+          id: user.id,
+          email: user.email,
+          username,
+          displayName: username,
+          handle: `@${username}`,
+          created_at: user.created_at,
+        },
       },
-    }, 201);
+      201
+    );
   } catch (error) {
     const message = error instanceof Error ? error.message : "Failed to sign up.";
     console.error("signup error:", message);

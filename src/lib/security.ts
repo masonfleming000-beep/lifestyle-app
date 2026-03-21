@@ -12,6 +12,16 @@ const ALLOWED_SIGNUP_EMAILS = new Set(
     .filter(Boolean)
 );
 
+const RESERVED_PAGE_KEYS = new Set([
+  "fitness-history",
+  "profile-stats",
+  "profile-settings",
+  "hobbies",
+  "cardio",
+  "weightlifting",
+  "workouts",
+]);
+
 export function normalizeEmail(email: string) {
   return email.trim().toLowerCase();
 }
@@ -199,7 +209,13 @@ export function buildSecurityHeaders(request: Request) {
 }
 
 export function isSafePageKey(value: unknown) {
-  return typeof value === "string" && /^[a-z0-9:_-]{1,64}$/i.test(value);
+  if (typeof value !== "string") return false;
+  if (!/^[a-z0-9:_-]{1,64}$/i.test(value)) return false;
+  return true;
+}
+
+export function isKnownAppPageKey(value: unknown) {
+  return typeof value === "string" && RESERVED_PAGE_KEYS.has(value);
 }
 
 export function isReasonableJsonSize(value: unknown, maxBytes = 50_000) {

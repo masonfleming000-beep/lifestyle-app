@@ -1,0 +1,702 @@
+---
+import BaseLayout from "../../layouts/BaseLayout.astro";
+import PageHero from "../../components/PageHero.astro";
+
+const username = Astro.params.username ?? "";
+---
+
+<BaseLayout title={`${username} | Public Profile`} description="Public profile page">
+  <div id="public-profile-page" data-username={username}>
+    <PageHero
+      kicker="Public Profile"
+      title="Profile"
+      description="A clean public view of work, highlights, achievements, and recent activity."
+    />
+
+    <section class="section">
+      <div id="public-profile-root" class="grid one">
+        <article class="card">
+          <p>Loading public profile...</p>
+        </article>
+      </div>
+    </section>
+  </div>
+
+  <script is:inline>
+    const pageRoot = document.getElementById("public-profile-page");
+    const root = document.getElementById("public-profile-root");
+    const username = pageRoot?.dataset?.username || "";
+
+    function escapeHtml(value) {
+      return String(value || "")
+        .replaceAll("&", "&amp;")
+        .replaceAll("<", "&lt;")
+        .replaceAll(">", "&gt;")
+        .replaceAll('"', "&quot;")
+        .replaceAll("'", "&#039;");
+    }
+
+    function safeArray(value) {
+      return Array.isArray(value) ? value : [];
+    }
+
+    function safeObject(value) {
+      return value && typeof value === "object" ? value : {};
+    }
+
+    function numberLike(value, fallback = 0) {
+      const num = Number(value);
+      return Number.isFinite(num) ? num : fallback;
+    }
+
+    function renderEmpty(message) {
+      root.innerHTML = `
+        <article class="card empty-profile-card">
+          <h2 class="section-title">Profile unavailable</h2>
+          <p>${escapeHtml(message)}</p>
+        </article>
+      `;
+    }
+
+    function renderBadge(badge) {
+      return `
+        <span class="profile-badge">
+          ${badge?.icon ? `<span>${escapeHtml(badge.icon)}</span>` : ""}
+          ${escapeHtml(badge?.label || "")}
+        </span>
+      `;
+    }
+
+    function renderPinned(items) {
+      if (!items.length) return "";
+      return `
+        <section class="section">
+          <div class="section-header">
+            <div>
+              <h2 class="section-title">Highlights</h2>
+              <p class="section-subtitle">Pinned work and featured items</p>
+            </div>
+          </div>
+          <div class="grid two">
+            ${items.map((item) => `
+              <article class="card content-card">
+                <p class="meta">${escapeHtml(item?.category || "Highlight")}</p>
+                <h3 class="card-title">${escapeHtml(item?.title || "Pinned item")}</h3>
+                ${item?.description ? `<p>${escapeHtml(item.description)}</p>` : ""}
+                ${item?.href ? `<p class="top-gap-sm"><a href="${escapeHtml(item.href)}">Open</a></p>` : ""}
+              </article>
+            `).join("")}
+          </div>
+        </section>
+      `;
+    }
+
+    function renderLegacyStats(items) {
+      if (!items.length) return "";
+      return `
+        <section class="section">
+          <div class="section-header">
+            <div>
+              <h2 class="section-title">Stats</h2>
+              <p class="section-subtitle">A quick snapshot across categories</p>
+            </div>
+          </div>
+          <div class="grid three">
+            ${items.map((item) => `
+              <article class="profile-stat-card">
+                <p class="stat-card-label">${escapeHtml(item?.label || "")}</p>
+                <h3 class="stat-card-value">${escapeHtml(item?.value || "")}</h3>
+                ${item?.description ? `<p class="stat-card-description">${escapeHtml(item.description)}</p>` : ""}
+              </article>
+            `).join("")}
+          </div>
+        </section>
+      `;
+    }
+
+    function renderMetricCards(items, title, subtitle) {
+      if (!items.length) return "";
+      return `
+        <section class="section">
+          <div class="section-header">
+            <div>
+              <h2 class="section-title">${escapeHtml(title)}</h2>
+              <p class="section-subtitle">${escapeHtml(subtitle)}</p>
+            </div>
+          </div>
+          <div class="grid three">
+            ${items.map((item) => `
+              <article class="profile-stat-card">
+                <p class="stat-card-label">${escapeHtml(item?.label || "")}</p>
+                <h3 class="stat-card-value">${escapeHtml(item?.value || "")}</h3>
+                ${item?.description ? `<p class="stat-card-description">${escapeHtml(item.description)}</p>` : ""}
+              </article>
+            `).join("")}
+          </div>
+        </section>
+      `;
+    }
+
+    function renderSectionComparison(sections) {
+      if (!sections.length) return "";
+      return `
+        <section class="section">
+          <div class="section-header">
+            <div>
+              <h2 class="section-title">Body Section Performance</h2>
+              <p class="section-subtitle">Compare lifting sections side by side</p>
+            </div>
+          </div>
+          <div class="grid three">
+            ${sections.map((section) => `
+              <article class="profile-stat-card section-comparison-card">
+                <p class="stat-card-label">${escapeHtml(section?.label || section?.section || "Section")}</p>
+                <h3 class="stat-card-value">${escapeHtml(section?.highlight || `${section?.totalWorkouts || 0} workouts`)}</h3>
+                <div class="mini-stat-list">
+                  <p><strong>Workouts:</strong> ${escapeHtml(section?.totalWorkouts ?? "0")}</p>
+                  <p><strong>Volume:</strong> ${escapeHtml(section?.totalVolume ?? "0")}</p>
+                  <p><strong>Avg Weight:</strong> ${escapeHtml(section?.avgWeight ?? "—")}</p>
+                  <p><strong>Avg Reps:</strong> ${escapeHtml(section?.avgReps ?? "—")}</p>
+                  <p><strong>Change:</strong> ${escapeHtml(section?.percentIncrease ?? "—")}</p>
+                  <p><strong>Last Trained:</strong> ${escapeHtml(section?.lastTrainedDate ?? "—")}</p>
+                </div>
+              </article>
+            `).join("")}
+          </div>
+        </section>
+      `;
+    }
+
+    function renderWorkoutDetail(workoutDetail) {
+      const bodySections = safeArray(workoutDetail?.sections);
+      if (!bodySections.length) return "";
+
+      return `
+        <section class="section">
+          <div class="section-header">
+            <div>
+              <h2 class="section-title">Workout Drilldown</h2>
+              <p class="section-subtitle">Section trends, specific workouts, and recent progress</p>
+            </div>
+          </div>
+
+          <div class="workout-detail-stack">
+            ${bodySections.map((section) => `
+              <article class="card detail-section-card">
+                <div class="section-header">
+                  <div>
+                    <h3 class="section-title">${escapeHtml(section?.label || section?.section || "Workout Section")}</h3>
+                    <p class="section-subtitle">${escapeHtml(section?.summary || "Workout performance and progress")}</p>
+                  </div>
+                </div>
+
+                <div class="grid two">
+                  ${safeArray(section?.workouts).map((workout) => `
+                    <article class="card nested-stat-card">
+                      <p class="meta">${escapeHtml(workout?.section || section?.label || "Workout")}</p>
+                      <h4 class="card-title">${escapeHtml(workout?.label || workout?.name || "Exercise")}</h4>
+                      <div class="mini-stat-list">
+                        <p><strong>Starting Weight:</strong> ${escapeHtml(workout?.startingWeight ?? "—")}</p>
+                        <p><strong>Current Weight:</strong> ${escapeHtml(workout?.currentWeight ?? "—")}</p>
+                        <p><strong>Starting Reps:</strong> ${escapeHtml(workout?.startingReps ?? "—")}</p>
+                        <p><strong>Current Reps:</strong> ${escapeHtml(workout?.currentReps ?? "—")}</p>
+                        <p><strong>Best Set:</strong> ${escapeHtml(workout?.bestSet ?? "—")}</p>
+                        <p><strong>Estimated 1RM:</strong> ${escapeHtml(workout?.estimatedOneRepMax ?? "—")}</p>
+                        <p><strong>Frequency:</strong> ${escapeHtml(workout?.frequency ?? "—")}</p>
+                        <p><strong>Weight Trend:</strong> ${escapeHtml(workout?.weightTrend ?? "—")}</p>
+                        <p><strong>Rep Trend:</strong> ${escapeHtml(workout?.repTrend ?? "—")}</p>
+                        <p><strong>Volume Trend:</strong> ${escapeHtml(workout?.volumeTrend ?? "—")}</p>
+                      </div>
+                    </article>
+                  `).join("")}
+                </div>
+              </article>
+            `).join("")}
+          </div>
+        </section>
+      `;
+    }
+
+    function renderCardioBreakdown(cardioDetail) {
+      const types = safeArray(cardioDetail?.types);
+      if (!types.length) return "";
+
+      return `
+        <section class="section">
+          <div class="section-header">
+            <div>
+              <h2 class="section-title">Cardio Breakdown</h2>
+              <p class="section-subtitle">By workout type with performance, volume, consistency, and adherence</p>
+            </div>
+          </div>
+
+          <div class="grid three">
+            ${types.map((type) => `
+              <article class="profile-stat-card cardio-type-card">
+                <p class="stat-card-label">${escapeHtml(type?.label || type?.type || "Cardio Type")}</p>
+                <h3 class="stat-card-value">${escapeHtml(type?.headlineValue || `${type?.totalSessions || 0} sessions`)}</h3>
+                <div class="mini-stat-list">
+                  <p><strong>Total Sessions:</strong> ${escapeHtml(type?.totalSessions ?? "0")}</p>
+                  <p><strong>Consistency:</strong> ${escapeHtml(type?.consistency ?? "—")}</p>
+                  <p><strong>Completion Rate:</strong> ${escapeHtml(type?.completionRate ?? "—")}</p>
+                  <p><strong>Last Workout:</strong> ${escapeHtml(type?.lastWorkout ?? "—")}</p>
+                  <p><strong>Core Metric:</strong> ${escapeHtml(type?.coreMetric ?? "—")}</p>
+                  <p><strong>Best Effort:</strong> ${escapeHtml(type?.bestEffort ?? "—")}</p>
+                  <p><strong>Improvement:</strong> ${escapeHtml(type?.improvement ?? "—")}</p>
+                  <p><strong>Total Volume:</strong> ${escapeHtml(type?.totalVolume ?? "—")}</p>
+                </div>
+              </article>
+            `).join("")}
+          </div>
+        </section>
+      `;
+    }
+
+    function renderRecentSessions(items, title, subtitle) {
+      if (!items.length) return "";
+      return `
+        <section class="section">
+          <div class="section-header">
+            <div>
+              <h2 class="section-title">${escapeHtml(title)}</h2>
+              <p class="section-subtitle">${escapeHtml(subtitle)}</p>
+            </div>
+          </div>
+          <div class="activity-stack">
+            ${items.map((item) => `
+              <article class="card content-card">
+                <h3 class="card-title">${escapeHtml(item?.title || item?.label || "Session")}</h3>
+                ${item?.date ? `<p class="meta">${escapeHtml(item.date)}</p>` : ""}
+                ${item?.summary ? `<p>${escapeHtml(item.summary)}</p>` : ""}
+                ${item?.href ? `<p class="top-gap-sm"><a href="${escapeHtml(item.href)}">Open</a></p>` : ""}
+              </article>
+            `).join("")}
+          </div>
+        </section>
+      `;
+    }
+
+    function renderFormattedStats(profile) {
+      const formatted = safeObject(profile?.formattedStats);
+      const settings = safeObject(profile?.statsDisplay);
+      const showOverview = settings?.showOverview !== false;
+      const showSections = settings?.showSections !== false;
+      const showWorkouts = settings?.showWorkouts !== false;
+      const showCardio = settings?.showCardio !== false;
+      const showRecent = settings?.showRecentSessions !== false;
+
+      const overview = safeArray(formatted?.overviewCards);
+      const fitnessOverview = safeArray(formatted?.fitnessOverviewCards);
+      const cardioOverview = safeArray(formatted?.cardioOverviewCards);
+      const hobbyOverview = safeArray(formatted?.hobbyOverviewCards);
+      const sectionComparison = safeArray(formatted?.fitnessSectionComparison);
+      const workoutDetail = safeObject(formatted?.fitnessWorkoutDetail);
+      const cardioDetail = safeObject(formatted?.cardioTypeBreakdown);
+      const recentLifting = safeArray(formatted?.recentWeightliftingSessions);
+      const recentCardio = safeArray(formatted?.recentCardioSessions);
+
+      return `
+        ${showOverview && overview.length ? renderMetricCards(overview, "Overview", "Fast profile summary for the selected ranges") : ""}
+        ${showOverview && fitnessOverview.length ? renderMetricCards(fitnessOverview, "Fitness Summary", "Workouts, volume, progress, and consistency") : ""}
+        ${showOverview && cardioOverview.length ? renderMetricCards(cardioOverview, "Cardio Summary", "Sessions, completion, favorite type, and activity trends") : ""}
+        ${showOverview && hobbyOverview.length ? renderMetricCards(hobbyOverview, "Hobby Summary", "Progress, activity, and hobby library totals") : ""}
+        ${showSections ? renderSectionComparison(sectionComparison) : ""}
+        ${showWorkouts ? renderWorkoutDetail(workoutDetail) : ""}
+        ${showCardio ? renderCardioBreakdown(cardioDetail) : ""}
+        ${showRecent && recentLifting.length ? renderRecentSessions(recentLifting, "Recent Weightlifting Sessions", "Latest saved weightlifting workouts") : ""}
+        ${showRecent && recentCardio.length ? renderRecentSessions(recentCardio, "Recent Cardio Sessions", "Latest saved cardio workouts") : ""}
+      `;
+    }
+
+    function renderPortfolioSection(title, items, category) {
+      if (!items.length) return "";
+
+      return `
+        <section class="portfolio-block" data-section="${escapeHtml(category)}">
+          <div class="section-header">
+            <div>
+              <h3 class="section-title">${escapeHtml(title)}</h3>
+              <p class="section-subtitle">${items.length} public item(s)</p>
+            </div>
+          </div>
+          <div class="grid two portfolio-group">
+            ${items.map((item) => `
+              <article class="card portfolio-public-card" data-category="${escapeHtml(category)}">
+                <p class="meta">${escapeHtml(item?.profileCategory || category)}</p>
+                <h4 class="card-title">${escapeHtml(item?.title || "Untitled")}</h4>
+                ${item?.subtitle ? `<p class="meta">${escapeHtml(item.subtitle)}</p>` : ""}
+                ${item?.description ? `<p>${escapeHtml(item.description)}</p>` : item?.body ? `<p>${escapeHtml(item.body)}</p>` : ""}
+                ${item?.impact ? `<p><strong>Impact:</strong> ${escapeHtml(item.impact)}</p>` : ""}
+                ${item?.link ? `<p class="top-gap-sm"><a href="${escapeHtml(item.link)}" target="_blank" rel="noreferrer">Open link</a></p>` : ""}
+              </article>
+            `).join("")}
+          </div>
+        </section>
+      `;
+    }
+
+    function renderPortfolio(portfolio, filters) {
+      const sections = [];
+
+      if (filters?.showProjects) sections.push(renderPortfolioSection("Projects", safeArray(portfolio?.projects), "projects"));
+      if (filters?.showExperience) sections.push(renderPortfolioSection("Experience", safeArray(portfolio?.experience), "experience"));
+      if (filters?.showSchool) sections.push(renderPortfolioSection("School", safeArray(portfolio?.school), "school"));
+      if (filters?.showStats) sections.push(renderPortfolioSection("Portfolio Stats", safeArray(portfolio?.stats), "stats"));
+      if (filters?.showTimeline) sections.push(renderPortfolioSection("Timeline", safeArray(portfolio?.timelineItems), "timeline"));
+      if (filters?.showRecommendations) sections.push(renderPortfolioSection("Recommendations", safeArray(portfolio?.recommendations), "recommendations"));
+      if (filters?.showStar) sections.push(renderPortfolioSection("STAR", safeArray(portfolio?.star), "star"));
+
+      if (!sections.length) return "";
+
+      return `
+        <section class="section">
+          <div class="section-header">
+            <div>
+              <h2 class="section-title">Portfolio</h2>
+              <p class="section-subtitle">Public work, experience, and highlights</p>
+            </div>
+          </div>
+
+          <div class="profile-filter-row">
+            <button type="button" class="profile-filter-btn is-active" data-filter="all">All</button>
+            <button type="button" class="profile-filter-btn" data-filter="projects">Projects</button>
+            <button type="button" class="profile-filter-btn" data-filter="experience">Experience</button>
+            <button type="button" class="profile-filter-btn" data-filter="school">School</button>
+            <button type="button" class="profile-filter-btn" data-filter="stats">Stats</button>
+            <button type="button" class="profile-filter-btn" data-filter="timeline">Timeline</button>
+            <button type="button" class="profile-filter-btn" data-filter="recommendations">Recommendations</button>
+            <button type="button" class="profile-filter-btn" data-filter="star">STAR</button>
+          </div>
+
+          <div class="portfolio-stack">
+            ${sections.join("")}
+          </div>
+        </section>
+      `;
+    }
+
+    function renderAchievements(badges) {
+      if (!badges.length) return "";
+      return `
+        <section class="section">
+          <div class="section-header">
+            <div>
+              <h2 class="section-title">Achievements</h2>
+              <p class="section-subtitle">Badges and public milestones</p>
+            </div>
+          </div>
+          <div class="badge-row">
+            ${badges.map(renderBadge).join("")}
+          </div>
+        </section>
+      `;
+    }
+
+    function renderActivity(activity) {
+      if (!activity.length) return "";
+      return `
+        <section class="section">
+          <div class="section-header">
+            <div>
+              <h2 class="section-title">Recent Activity</h2>
+              <p class="section-subtitle">Latest public updates</p>
+            </div>
+          </div>
+          <div class="activity-stack">
+            ${activity.map((item) => `
+              <article class="card content-card">
+                <h3 class="card-title">${escapeHtml(item?.label || "Activity")}</h3>
+                ${item?.date ? `<p class="meta">${escapeHtml(item.date)}</p>` : ""}
+                ${item?.href ? `<p class="top-gap-sm"><a href="${escapeHtml(item.href)}">Open</a></p>` : ""}
+              </article>
+            `).join("")}
+          </div>
+        </section>
+      `;
+    }
+
+    function renderProfile(profile) {
+      const badges = safeArray(profile?.badges);
+      const stats = safeArray(profile?.stats);
+      const pinned = safeArray(profile?.pinned);
+      const activity = safeArray(profile?.activity);
+      const portfolio = profile?.portfolio || {};
+      const visibility = profile?.visibility || {};
+      const filters = profile?.portfolioFilters || {};
+      const hasFormattedStats = safeObject(profile?.statsDisplay)?.autoFormatted !== false && safeObject(profile?.formattedStats);
+
+      root.innerHTML = `
+        <section class="section">
+          <article class="public-profile-shell">
+            <div
+              class="profile-banner"
+              style="${profile?.bannerUrl ? `background-image:url('${escapeHtml(profile.bannerUrl)}');` : ""}"
+            ></div>
+
+            <div class="profile-identity-body">
+              <div class="profile-avatar-wrap">
+                ${
+                  profile?.avatarUrl
+                    ? `<img class="profile-avatar" src="${escapeHtml(profile.avatarUrl)}" alt="${escapeHtml(profile?.displayName || profile?.username || "Profile")}"/>`
+                    : `<div class="profile-avatar profile-avatar-fallback">${escapeHtml((profile?.displayName || profile?.username || "U").slice(0, 1).toUpperCase())}</div>`
+                }
+              </div>
+
+              <div class="profile-identity-copy">
+                <div class="profile-name-row">
+                  <h2>${escapeHtml(profile?.displayName || profile?.username || "Profile")}</h2>
+                  ${profile?.handle ? `<span class="profile-handle">${escapeHtml(profile.handle)}</span>` : ""}
+                </div>
+
+                ${profile?.headline ? `<p class="profile-headline">${escapeHtml(profile.headline)}</p>` : ""}
+                ${profile?.location ? `<p class="meta">${escapeHtml(profile.location)}</p>` : ""}
+                ${visibility.bio !== false && profile?.bio ? `<p class="profile-bio">${escapeHtml(profile.bio)}</p>` : ""}
+              </div>
+            </div>
+          </article>
+        </section>
+
+        ${renderPinned(pinned)}
+        ${visibility.stats !== false ? (profile?.formattedStats ? renderFormattedStats(profile) : renderLegacyStats(stats)) : ""}
+        ${visibility.portfolio !== false ? renderPortfolio(portfolio, filters) : ""}
+        ${visibility.achievements !== false ? renderAchievements(badges) : ""}
+        ${visibility.activity !== false ? renderActivity(activity) : ""}
+      `;
+
+      bindPortfolioFilters();
+    }
+
+    function bindPortfolioFilters() {
+      const buttons = root.querySelectorAll(".profile-filter-btn");
+      const blocks = root.querySelectorAll(".portfolio-block");
+
+      buttons.forEach((button) => {
+        button.addEventListener("click", () => {
+          const filter = button.getAttribute("data-filter") || "all";
+
+          buttons.forEach((btn) => btn.classList.remove("is-active"));
+          button.classList.add("is-active");
+
+          blocks.forEach((block) => {
+            const category = block.getAttribute("data-section");
+            const show = filter === "all" || filter === category;
+            block.style.display = show ? "" : "none";
+          });
+        });
+      });
+    }
+
+    async function init() {
+      if (!username) {
+        renderEmpty("No username was provided.");
+        return;
+      }
+
+      try {
+        const response = await fetch(`/api/profile/public?username=${encodeURIComponent(username)}`, {
+          credentials: "include",
+          cache: "no-store",
+        });
+
+        const payload = await response.json().catch(() => ({}));
+
+        if (!response.ok || !payload?.ok || !payload?.profile) {
+          renderEmpty(payload?.error || "This public profile could not be loaded.");
+          return;
+        }
+
+        renderProfile(payload.profile);
+      } catch (error) {
+        console.error(error);
+        renderEmpty("Something went wrong while loading this profile.");
+      }
+    }
+
+    init();
+  </script>
+
+  <style>
+    .public-profile-shell {
+      overflow: hidden;
+      border-radius: 28px;
+      background: rgba(255, 255, 255, 0.84);
+      border: 1px solid rgba(15, 23, 42, 0.08);
+      box-shadow: 0 14px 40px rgba(15, 23, 42, 0.08);
+    }
+
+    .profile-banner {
+      min-height: 220px;
+      background: linear-gradient(135deg, #cfdef3 0%, #e0f2fe 50%, #f8fafc 100%);
+      background-size: cover;
+      background-position: center;
+    }
+
+    .profile-identity-body {
+      display: flex;
+      gap: 1.25rem;
+      padding: 1.5rem;
+      margin-top: -58px;
+      align-items: end;
+      flex-wrap: wrap;
+    }
+
+    .profile-avatar-wrap {
+      flex-shrink: 0;
+    }
+
+    .profile-avatar {
+      width: 116px;
+      height: 116px;
+      border-radius: 50%;
+      object-fit: cover;
+      border: 4px solid #fff;
+      box-shadow: 0 8px 28px rgba(15, 23, 42, 0.14);
+      background: #dbeafe;
+    }
+
+    .profile-avatar-fallback {
+      display: grid;
+      place-items: center;
+      font-size: 2rem;
+      font-weight: 800;
+      color: #0f172a;
+    }
+
+    .profile-identity-copy {
+      flex: 1;
+      min-width: 260px;
+    }
+
+    .profile-name-row {
+      display: flex;
+      align-items: center;
+      gap: 0.75rem;
+      flex-wrap: wrap;
+    }
+
+    .profile-name-row h2,
+    .profile-headline,
+    .profile-bio {
+      margin: 0;
+    }
+
+    .profile-handle {
+      display: inline-flex;
+      align-items: center;
+      padding: 0.4rem 0.7rem;
+      border-radius: 999px;
+      background: rgba(255,255,255,0.82);
+      border: 1px solid rgba(15, 23, 42, 0.08);
+      font-size: 0.92rem;
+      color: #475569;
+    }
+
+    .profile-headline {
+      margin-top: 0.35rem;
+      font-size: 1.05rem;
+      color: #243447;
+    }
+
+    .profile-bio {
+      margin-top: 0.75rem;
+      color: #4f6275;
+      max-width: 70ch;
+      line-height: 1.6;
+    }
+
+    .profile-stat-card {
+      border-radius: 20px;
+      padding: 1rem 1.1rem;
+      background: rgba(255,255,255,0.76);
+      border: 1px solid rgba(15, 23, 42, 0.08);
+    }
+
+    .portfolio-stack,
+    .workout-detail-stack {
+      display: grid;
+      gap: 1.5rem;
+    }
+
+    .portfolio-block,
+    .detail-section-card {
+      display: grid;
+      gap: 1rem;
+    }
+
+    .nested-stat-card {
+      background: rgba(248, 250, 252, 0.85);
+    }
+
+    .mini-stat-list {
+      display: grid;
+      gap: 0.35rem;
+      color: #475569;
+      font-size: 0.95rem;
+    }
+
+    .mini-stat-list p {
+      margin: 0;
+    }
+
+    .profile-filter-row {
+      display: flex;
+      gap: 0.65rem;
+      overflow-x: auto;
+      padding-bottom: 0.2rem;
+      margin-bottom: 1rem;
+    }
+
+    .profile-filter-btn,
+    .profile-badge {
+      border: 1px solid rgba(15, 23, 42, 0.08);
+      background: rgba(255,255,255,0.82);
+      border-radius: 999px;
+      padding: 0.65rem 0.95rem;
+      font: inherit;
+      white-space: nowrap;
+    }
+
+    .profile-filter-btn.is-active {
+      border-color: #2f5d62;
+      color: #2f5d62;
+      font-weight: 700;
+      background: rgba(47, 93, 98, 0.08);
+    }
+
+    .badge-row,
+    .activity-stack {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 0.75rem;
+    }
+
+    .content-card {
+      min-height: 100%;
+    }
+
+    .empty-profile-card {
+      text-align: center;
+      padding: 2rem;
+    }
+
+    .top-gap-sm {
+      margin-top: 0.65rem;
+    }
+
+    @media (max-width: 720px) {
+      .profile-identity-body {
+        margin-top: -40px;
+        padding: 1rem;
+      }
+
+      .profile-avatar {
+        width: 92px;
+        height: 92px;
+      }
+
+      .profile-banner {
+        min-height: 170px;
+      }
+    }
+  </style>
+</BaseLayout>

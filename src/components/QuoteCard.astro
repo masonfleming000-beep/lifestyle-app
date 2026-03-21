@@ -1,0 +1,37 @@
+---
+interface Props {
+  href: string;
+  title: string;
+  text?: string;
+}
+
+const { href, title, text = "" } = Astro.props;
+---
+
+<a href={href} class="quick-link-card">
+  <h3>{title}</h3>
+  {text && <p>{text}</p>}
+</a>
+
+<style>
+  .quick-link-card {
+    display: block;
+    text-decoration: none;
+    color: inherit;
+    padding: 1rem;
+    border-radius: 18px;
+    background: rgba(255, 255, 255, 0.86);
+    border: 1px solid rgba(15, 23, 42, 0.08);
+    box-shadow: 0 10px 30px rgba(15, 23, 42, 0.06);
+  }
+
+  .quick-link-card h3,
+  .quick-link-card p {
+    margin: 0;
+  }
+
+  .quick-link-card p {
+    margin-top: 0.35rem;
+    color: #5f6f82;
+  }
+</style>

@@ -1,0 +1,58 @@
+---
+interface Props {
+  label: string;
+  value: string | number;
+  description?: string;
+  href?: string;
+}
+
+const { label, value, description = "", href = "" } = Astro.props;
+const Tag = href ? "a" : "article";
+---
+
+<Tag class="stat-card" href={href || undefined}>
+  <div class="stat-card-top">
+    <p class="stat-card-label">{label}</p>
+    <h3 class="stat-card-value">{value}</h3>
+  </div>
+
+  {description && <p class="stat-card-description">{description}</p>}
+</Tag>
+
+<style>
+  .stat-card {
+    display: flex;
+    flex-direction: column;
+    gap: 0.5rem;
+    padding: 1rem;
+    border-radius: 18px;
+    background: rgba(255, 255, 255, 0.86);
+    border: 1px solid rgba(15, 23, 42, 0.08);
+    box-shadow: 0 10px 30px rgba(15, 23, 42, 0.06);
+    text-decoration: none;
+    color: inherit;
+    min-height: 124px;
+  }
+
+  .stat-card-label {
+    margin: 0;
+    font-size: 0.82rem;
+    letter-spacing: 0.04em;
+    text-transform: uppercase;
+    color: #516071;
+    font-weight: 700;
+  }
+
+  .stat-card-value {
+    margin: 0.1rem 0 0;
+    font-size: 1.8rem;
+    line-height: 1.1;
+    color: #102033;
+  }
+
+  .stat-card-description {
+    margin: 0;
+    color: #5f6f82;
+    font-size: 0.95rem;
+  }
+</style>

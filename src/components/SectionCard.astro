@@ -1,0 +1,29 @@
+---
+interface Props {
+  title: string;
+  subtitle?: string;
+  open?: boolean;
+}
+
+const { title, subtitle = "", open = false } = Astro.props;
+---
+
+<details class="dropdown-card section-card-shell" open={open}>
+  <summary class="dropdown-summary">
+    <div>
+      <h2 class="section-title">{title}</h2>
+      {subtitle && <p class="section-subtitle">{subtitle}</p>}
+    </div>
+    <span class="dropdown-icon">+</span>
+  </summary>
+
+  <div class="dropdown-body">
+    <slot />
+  </div>
+</details>
+
+<style>
+  .section-card-shell {
+    width: 100%;
+  }
+</style>

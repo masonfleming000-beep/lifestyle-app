@@ -1,0 +1,817 @@
+---
+import BaseLayout from "../../layouts/BaseLayout.astro";
+import PageHero from "../../components/PageHero.astro";
+import SectionCard from "../../components/SectionCard.astro";
+import {
+  PROFILE_SETTINGS_PAGE_KEY,
+  DEFAULT_PROFILE_SETTINGS,
+  PROFILE_THEME_OPTIONS,
+  PROFILE_TEXT_SIZE_OPTIONS,
+} from "../../lib/profile/constants";
+---
+
+<BaseLayout title="Profile Settings | Lifestyle App" description="Manage your profile and visibility settings">
+  <PageHero
+    kicker="Profile Settings"
+    title="Profile settings"
+    description="Manage your account details, public profile, privacy controls, and appearance in one place."
+  />
+
+  <section class="section">
+    <div class="grid two profile-top-grid">
+      <article class="card">
+        <div class="section-header">
+          <div>
+            <h2 class="section-title">Account</h2>
+            <p class="section-subtitle">Login identity and recovery settings.</p>
+          </div>
+        </div>
+
+        <div class="form-stack">
+          <label class="field-group">
+            <span class="field-label">Email</span>
+            <input id="email" class="ui-input" type="email" placeholder="you@example.com" />
+          </label>
+
+          <label class="field-group">
+            <span class="field-label">Username</span>
+            <input id="username" class="ui-input" type="text" placeholder="mason" />
+          </label>
+
+          <label class="field-group">
+            <span class="field-label">Handle</span>
+            <input id="handle" class="ui-input" type="text" placeholder="@mason" />
+          </label>
+
+          <div class="button-row">
+            <button id="change-password-btn" type="button" class="ui-button ui-button-secondary">
+              Change Password
+            </button>
+          </div>
+        </div>
+      </article>
+
+      <article class="card soft">
+        <div class="section-header">
+          <div>
+            <h2 class="section-title">Profile snapshot</h2>
+            <p class="section-subtitle">Quick summary of how your public profile is configured.</p>
+          </div>
+        </div>
+
+        <div class="summary-grid compact-summary">
+          <div class="summary-metric">
+            <p class="metric-label">Display Name</p>
+            <p class="summary-value" id="snapshot-display-name">—</p>
+          </div>
+          <div class="summary-metric">
+            <p class="metric-label">Headline</p>
+            <p class="summary-value" id="snapshot-headline">—</p>
+          </div>
+          <div class="summary-metric">
+            <p class="metric-label">Location</p>
+            <p class="summary-value" id="snapshot-location">—</p>
+          </div>
+          <div class="summary-metric">
+            <p class="metric-label">Theme</p>
+            <p class="summary-value" id="snapshot-theme">—</p>
+          </div>
+        </div>
+      </article>
+    </div>
+  </section>
+
+  <section class="section">
+    <div class="grid one">
+      <SectionCard title="Public Profile" subtitle="What people see on your profile" open={true}>
+        <div class="form-stack">
+          <div class="grid two">
+            <label class="field-group">
+              <span class="field-label">Display Name</span>
+              <input id="displayName" class="ui-input" type="text" placeholder="Mason Fleming" />
+            </label>
+
+            <label class="field-group">
+              <span class="field-label">Headline</span>
+              <input id="headline" class="ui-input" type="text" placeholder="Builder, athlete, student, engineer" />
+            </label>
+
+            <label class="field-group">
+              <span class="field-label">Location</span>
+              <input id="location" class="ui-input" type="text" placeholder="West Lafayette, IN" />
+            </label>
+
+            <label class="field-group">
+              <span class="field-label">Avatar URL</span>
+              <input id="avatarUrl" class="ui-input" type="url" placeholder="https://..." />
+            </label>
+          </div>
+
+          <label class="field-group">
+            <span class="field-label">Banner URL</span>
+            <input id="bannerUrl" class="ui-input" type="url" placeholder="https://..." />
+          </label>
+
+          <label class="field-group">
+            <span class="field-label">Bio</span>
+            <textarea id="bio" class="ui-textarea" rows="5" placeholder="Write a short bio"></textarea>
+          </label>
+        </div>
+      </SectionCard>
+
+      <SectionCard title="Privacy & Visibility" subtitle="Control what the public profile shows">
+        <div class="toggle-card-grid">
+          <label class="toggle-card"><input id="visibility-profile" type="checkbox" /><span>Public profile enabled</span></label>
+          <label class="toggle-card"><input id="visibility-bio" type="checkbox" /><span>Show bio</span></label>
+          <label class="toggle-card"><input id="visibility-stats" type="checkbox" /><span>Show stats</span></label>
+          <label class="toggle-card"><input id="visibility-portfolio" type="checkbox" /><span>Show portfolio</span></label>
+          <label class="toggle-card"><input id="visibility-activity" type="checkbox" /><span>Show recent activity</span></label>
+          <label class="toggle-card"><input id="visibility-achievements" type="checkbox" /><span>Show achievements</span></label>
+          <label class="toggle-card"><input id="visibility-contact" type="checkbox" /><span>Show contact section</span></label>
+        </div>
+      </SectionCard>
+
+      <SectionCard title="Portfolio Sections" subtitle="Choose which portfolio sections appear publicly">
+        <div class="toggle-card-grid">
+          <label class="toggle-card"><input id="portfolio-projects" type="checkbox" /><span>Projects</span></label>
+          <label class="toggle-card"><input id="portfolio-experience" type="checkbox" /><span>Experience</span></label>
+          <label class="toggle-card"><input id="portfolio-school" type="checkbox" /><span>School</span></label>
+          <label class="toggle-card"><input id="portfolio-stats" type="checkbox" /><span>Stats</span></label>
+          <label class="toggle-card"><input id="portfolio-timeline" type="checkbox" /><span>Timeline</span></label>
+          <label class="toggle-card"><input id="portfolio-recommendations" type="checkbox" /><span>Recommendations</span></label>
+          <label class="toggle-card"><input id="portfolio-star" type="checkbox" /><span>STAR</span></label>
+        </div>
+      </SectionCard>
+
+      <SectionCard title="Stats Sources" subtitle="Choose which app areas contribute public stats">
+        <div class="toggle-card-grid">
+          <label class="toggle-card"><input id="stats-fitness" type="checkbox" /><span>Fitness</span></label>
+          <label class="toggle-card"><input id="stats-career" type="checkbox" /><span>Career</span></label>
+          <label class="toggle-card"><input id="stats-mind" type="checkbox" /><span>Mind</span></label>
+          <label class="toggle-card"><input id="stats-education" type="checkbox" /><span>Education</span></label>
+          <label class="toggle-card"><input id="stats-work" type="checkbox" /><span>Work</span></label>
+          <label class="toggle-card"><input id="stats-nutrition" type="checkbox" /><span>Nutrition</span></label>
+          <label class="toggle-card"><input id="stats-hobbies" type="checkbox" /><span>Hobbies</span></label>
+        </div>
+      </SectionCard>
+
+      <SectionCard title="Stats Display & Formatting" subtitle="Control how fitness and hobby stats are shown on the public profile">
+        <div class="form-stack">
+          <div class="toggle-card-grid">
+            <label class="toggle-card"><input id="stats-display-auto" type="checkbox" /><span>Use formatted stats layout</span></label>
+            <label class="toggle-card"><input id="stats-display-overview" type="checkbox" /><span>Show overview cards</span></label>
+            <label class="toggle-card"><input id="stats-display-sections" type="checkbox" /><span>Show body section comparison</span></label>
+            <label class="toggle-card"><input id="stats-display-workouts" type="checkbox" /><span>Show workout detail drilldown</span></label>
+            <label class="toggle-card"><input id="stats-display-cardio" type="checkbox" /><span>Show cardio type breakdown</span></label>
+            <label class="toggle-card"><input id="stats-display-recent" type="checkbox" /><span>Show recent saved sessions</span></label>
+          </div>
+
+          <div class="grid three">
+            <label class="field-group">
+              <span class="field-label">Default Time Range</span>
+              <select id="stats-default-range" class="ui-select">
+                <option value="7d">7 days</option>
+                <option value="30d">30 days</option>
+                <option value="90d">90 days</option>
+                <option value="6m">6 months</option>
+                <option value="1y">1 year</option>
+                <option value="all">All time</option>
+              </select>
+            </label>
+
+            <label class="field-group">
+              <span class="field-label">Default Lifting Section</span>
+              <select id="stats-default-section" class="ui-select">
+                <option value="all">All sections</option>
+                <option value="shoulders">Shoulders</option>
+                <option value="chest">Chest</option>
+                <option value="back">Back</option>
+                <option value="legs">Legs</option>
+                <option value="arms">Arms</option>
+                <option value="core">Core</option>
+                <option value="cardio">Cardio</option>
+              </select>
+            </label>
+
+            <label class="field-group">
+              <span class="field-label">Default Cardio Type</span>
+              <select id="stats-default-cardio-type" class="ui-select">
+                <option value="all">All cardio</option>
+                <option value="steady">Steady</option>
+                <option value="tempo">Tempo</option>
+                <option value="intervals">Intervals</option>
+                <option value="hiit">HIIT</option>
+                <option value="fartlek">Fartlek</option>
+                <option value="hills">Hills</option>
+                <option value="power">Power</option>
+                <option value="recovery">Recovery</option>
+                <option value="long-run">Long Run</option>
+              </select>
+            </label>
+          </div>
+
+          <div class="grid two">
+            <label class="field-group">
+              <span class="field-label">Featured Fitness Metrics</span>
+              <textarea
+                id="stats-featured-fitness"
+                class="ui-textarea"
+                rows="5"
+                placeholder="One metric key per line&#10;totalWorkouts&#10;totalVolume&#10;avgWeight&#10;consistencyStreak"
+              ></textarea>
+            </label>
+
+            <label class="field-group">
+              <span class="field-label">Featured Cardio Metrics</span>
+              <textarea
+                id="stats-featured-cardio"
+                class="ui-textarea"
+                rows="5"
+                placeholder="One metric key per line&#10;totalSessions&#10;completionRate&#10;avgDistance&#10;favoriteWorkoutType"
+              ></textarea>
+            </label>
+          </div>
+        </div>
+      </SectionCard>
+
+      <SectionCard title="Notifications" subtitle="Choose how profile-related updates reach you">
+        <div class="toggle-card-grid">
+          <label class="toggle-card"><input id="notifications-email" type="checkbox" /><span>Email</span></label>
+          <label class="toggle-card"><input id="notifications-push" type="checkbox" /><span>Push</span></label>
+          <label class="toggle-card"><input id="notifications-product" type="checkbox" /><span>Product updates</span></label>
+          <label class="toggle-card"><input id="notifications-reminders" type="checkbox" /><span>Reminders</span></label>
+          <label class="toggle-card"><input id="notifications-marketing" type="checkbox" /><span>Marketing</span></label>
+        </div>
+      </SectionCard>
+
+      <SectionCard title="Theme" subtitle="Apply profile preferences across the app">
+        <div class="grid three">
+          <label class="field-group">
+            <span class="field-label">Color Mode</span>
+            <select id="theme-mode" class="ui-select">
+              {PROFILE_THEME_OPTIONS.map((option) => (
+                <option value={option}>{option}</option>
+              ))}
+            </select>
+          </label>
+
+          <label class="field-group">
+            <span class="field-label">Accent</span>
+            <input id="theme-accent" class="ui-input" type="text" placeholder="default" />
+          </label>
+
+          <label class="field-group">
+            <span class="field-label">Text Size</span>
+            <select id="theme-text-size" class="ui-select">
+              {PROFILE_TEXT_SIZE_OPTIONS.map((option) => (
+                <option value={option}>{option}</option>
+              ))}
+            </select>
+          </label>
+        </div>
+      </SectionCard>
+
+      <SectionCard title="Subscription" subtitle="Current plan and perks">
+        <div class="form-stack">
+          <label class="field-group">
+            <span class="field-label">Current Plan</span>
+            <input id="subscription-plan" class="ui-input" type="text" placeholder="Free / Pro / Elite" />
+          </label>
+
+          <label class="field-group">
+            <span class="field-label">Perks</span>
+            <textarea id="subscription-perks" class="ui-textarea" rows="4" placeholder="One perk per line"></textarea>
+          </label>
+        </div>
+      </SectionCard>
+    </div>
+  </section>
+
+  <section class="section">
+    <div class="profile-settings-actions card">
+      <div id="profile-settings-status" class="save-status neutral">Loading...</div>
+      <button id="save-profile-settings-btn" type="button" class="ui-button">Save Profile Settings</button>
+    </div>
+  </section>
+
+  <script define:vars={{ pageKey: PROFILE_SETTINGS_PAGE_KEY, defaultProfileSettings: JSON.stringify(DEFAULT_PROFILE_SETTINGS) }}>
+    (() => {
+      const statusEl = document.getElementById("profile-settings-status");
+
+      function setStatus(text, mode = "neutral") {
+        if (!statusEl) return;
+        statusEl.textContent = text;
+        statusEl.className = `save-status ${mode}`;
+      }
+
+      function cloneDefaults() {
+        return JSON.parse(defaultProfileSettings);
+      }
+
+      function normalizeString(value) {
+        return typeof value === "string" ? value : "";
+      }
+
+      function slugifyProfileValue(value) {
+        return String(value || "")
+          .trim()
+          .toLowerCase()
+          .replace(/^@+/, "")
+          .replace(/[^a-z0-9._-]+/g, ".")
+          .replace(/\.{2,}/g, ".")
+          .replace(/^\.+|\.+$/g, "");
+      }
+
+      function deriveUsernameCandidate() {
+        const explicitUsername = slugifyProfileValue(getValue("username"));
+        if (explicitUsername) return explicitUsername;
+
+        const explicitHandle = slugifyProfileValue(getValue("handle"));
+        if (explicitHandle) return explicitHandle;
+
+        const email = getValue("email");
+        const emailLocal = slugifyProfileValue(email.split("@")[0] || "");
+        if (emailLocal) return emailLocal;
+
+        const displayName = slugifyProfileValue(getValue("displayName"));
+        if (displayName) return displayName;
+
+        return "";
+      }
+
+      function deriveHandleCandidate(username) {
+        const explicitHandle = slugifyProfileValue(getValue("handle"));
+        if (explicitHandle) return `@${explicitHandle}`;
+        return username ? `@${username}` : "";
+      }
+
+      function normalizeBoolean(value, fallback = false) {
+        return typeof value === "boolean" ? value : fallback;
+      }
+
+      function normalizeArray(value) {
+        return Array.isArray(value) ? value : [];
+      }
+
+      function normalizeMultilineToArray(value, fallback = []) {
+        if (Array.isArray(value)) {
+          return value.map((item) => String(item || "").trim()).filter(Boolean);
+        }
+
+        if (typeof value === "string") {
+          return value
+            .split("\n")
+            .map((item) => item.trim())
+            .filter(Boolean);
+        }
+
+        return fallback;
+      }
+
+      function arrayToMultiline(value) {
+        return normalizeArray(value).join("\n");
+      }
+
+      function normalizeState(raw) {
+        const defaults = cloneDefaults();
+        const state = raw && typeof raw === "object" ? raw : {};
+
+        return {
+          ...defaults,
+          displayName: normalizeString(state.displayName),
+          username: normalizeString(state.username),
+          handle: normalizeString(state.handle),
+          bio: normalizeString(state.bio),
+          bannerUrl: normalizeString(state.bannerUrl),
+          avatarUrl: normalizeString(state.avatarUrl),
+          location: normalizeString(state.location),
+          headline: normalizeString(state.headline),
+          pinnedItemIds: normalizeArray(state.pinnedItemIds),
+          badges: normalizeArray(state.badges),
+          featuredStatIds: normalizeArray(state.featuredStatIds),
+          visibility: {
+            profile: normalizeBoolean(state?.visibility?.profile, defaults.visibility.profile),
+            bio: normalizeBoolean(state?.visibility?.bio, defaults.visibility.bio),
+            stats: normalizeBoolean(state?.visibility?.stats, defaults.visibility.stats),
+            portfolio: normalizeBoolean(state?.visibility?.portfolio, defaults.visibility.portfolio),
+            activity: normalizeBoolean(state?.visibility?.activity, defaults.visibility.activity),
+            achievements: normalizeBoolean(state?.visibility?.achievements, defaults.visibility.achievements),
+            contact: normalizeBoolean(state?.visibility?.contact, defaults.visibility.contact),
+          },
+          portfolioFilters: {
+            showProjects: normalizeBoolean(state?.portfolioFilters?.showProjects, defaults.portfolioFilters.showProjects),
+            showExperience: normalizeBoolean(state?.portfolioFilters?.showExperience, defaults.portfolioFilters.showExperience),
+            showSchool: normalizeBoolean(state?.portfolioFilters?.showSchool, defaults.portfolioFilters.showSchool),
+            showStats: normalizeBoolean(state?.portfolioFilters?.showStats, defaults.portfolioFilters.showStats),
+            showTimeline: normalizeBoolean(state?.portfolioFilters?.showTimeline, defaults.portfolioFilters.showTimeline),
+            showRecommendations: normalizeBoolean(state?.portfolioFilters?.showRecommendations, defaults.portfolioFilters.showRecommendations),
+            showStar: normalizeBoolean(state?.portfolioFilters?.showStar, defaults.portfolioFilters.showStar),
+          },
+          statsSources: {
+            fitness: normalizeBoolean(state?.statsSources?.fitness, defaults.statsSources.fitness),
+            career: normalizeBoolean(state?.statsSources?.career, defaults.statsSources.career),
+            mind: normalizeBoolean(state?.statsSources?.mind, defaults.statsSources.mind),
+            education: normalizeBoolean(state?.statsSources?.education, defaults.statsSources.education),
+            work: normalizeBoolean(state?.statsSources?.work, defaults.statsSources.work),
+            nutrition: normalizeBoolean(state?.statsSources?.nutrition, defaults.statsSources.nutrition),
+            hobbies: normalizeBoolean(state?.statsSources?.hobbies, defaults.statsSources.hobbies),
+          },
+          statsDisplay: {
+            autoFormatted: normalizeBoolean(state?.statsDisplay?.autoFormatted, true),
+            showOverview: normalizeBoolean(state?.statsDisplay?.showOverview, true),
+            showSections: normalizeBoolean(state?.statsDisplay?.showSections, true),
+            showWorkouts: normalizeBoolean(state?.statsDisplay?.showWorkouts, true),
+            showCardio: normalizeBoolean(state?.statsDisplay?.showCardio, true),
+            showRecentSessions: normalizeBoolean(state?.statsDisplay?.showRecentSessions, true),
+            defaultRange: normalizeString(state?.statsDisplay?.defaultRange) || "30d",
+            defaultSection: normalizeString(state?.statsDisplay?.defaultSection) || "all",
+            defaultCardioType: normalizeString(state?.statsDisplay?.defaultCardioType) || "all",
+            featuredFitnessMetrics: normalizeMultilineToArray(
+              state?.statsDisplay?.featuredFitnessMetrics,
+              ["totalWorkouts", "totalVolume", "avgWeight", "consistencyStreak"]
+            ),
+            featuredCardioMetrics: normalizeMultilineToArray(
+              state?.statsDisplay?.featuredCardioMetrics,
+              ["totalSessions", "completionRate", "favoriteWorkoutType", "totalVolume"]
+            ),
+          },
+          notifications: {
+            email: normalizeBoolean(state?.notifications?.email, defaults.notifications.email),
+            push: normalizeBoolean(state?.notifications?.push, defaults.notifications.push),
+            product: normalizeBoolean(state?.notifications?.product, defaults.notifications.product),
+            reminders: normalizeBoolean(state?.notifications?.reminders, defaults.notifications.reminders),
+            marketing: normalizeBoolean(state?.notifications?.marketing, defaults.notifications.marketing),
+          },
+          theme: {
+            mode: normalizeString(state?.theme?.mode) || defaults.theme.mode,
+            accent: normalizeString(state?.theme?.accent) || defaults.theme.accent,
+            textSize: normalizeString(state?.theme?.textSize) || defaults.theme.textSize,
+          },
+          subscription: {
+            plan: normalizeString(state?.subscription?.plan),
+            perks: normalizeString(state?.subscription?.perks),
+          },
+          account: {
+            email: normalizeString(state?.account?.email),
+          },
+        };
+      }
+
+      function byId(id) {
+        return document.getElementById(id);
+      }
+
+      function setValue(id, value) {
+        const el = byId(id);
+        if (!el) return;
+        el.value = value ?? "";
+      }
+
+      function setChecked(id, value) {
+        const el = byId(id);
+        if (!el) return;
+        el.checked = !!value;
+      }
+
+      function getValue(id) {
+        return String(byId(id)?.value || "").trim();
+      }
+
+      function getChecked(id) {
+        return !!byId(id)?.checked;
+      }
+
+      function refreshSnapshot(state) {
+        const set = (id, value) => {
+          const el = byId(id);
+          if (el) el.textContent = value || "—";
+        };
+
+        set("snapshot-display-name", state.displayName);
+        set("snapshot-headline", state.headline);
+        set("snapshot-location", state.location);
+        set("snapshot-theme", `${state.theme.mode} / ${state.theme.textSize}`);
+      }
+
+      function applyState(state) {
+        setValue("email", state?.account?.email || "");
+        const derivedUsername =
+          normalizeString(state.username) ||
+          slugifyProfileValue(state.handle) ||
+          slugifyProfileValue((state?.account?.email || "").split("@")[0] || "") ||
+          slugifyProfileValue(state.displayName);
+
+        const derivedHandle =
+          normalizeString(state.handle) || (derivedUsername ? `@${derivedUsername}` : "");
+
+        setValue("username", derivedUsername);
+        setValue("handle", derivedHandle);
+        setValue("displayName", state.displayName);
+        setValue("headline", state.headline);
+        setValue("location", state.location);
+        setValue("bio", state.bio);
+        setValue("bannerUrl", state.bannerUrl);
+        setValue("avatarUrl", state.avatarUrl);
+
+        setChecked("visibility-profile", state.visibility.profile);
+        setChecked("visibility-bio", state.visibility.bio);
+        setChecked("visibility-stats", state.visibility.stats);
+        setChecked("visibility-portfolio", state.visibility.portfolio);
+        setChecked("visibility-activity", state.visibility.activity);
+        setChecked("visibility-achievements", state.visibility.achievements);
+        setChecked("visibility-contact", state.visibility.contact);
+
+        setChecked("portfolio-projects", state.portfolioFilters.showProjects);
+        setChecked("portfolio-experience", state.portfolioFilters.showExperience);
+        setChecked("portfolio-school", state.portfolioFilters.showSchool);
+        setChecked("portfolio-stats", state.portfolioFilters.showStats);
+        setChecked("portfolio-timeline", state.portfolioFilters.showTimeline);
+        setChecked("portfolio-recommendations", state.portfolioFilters.showRecommendations);
+        setChecked("portfolio-star", state.portfolioFilters.showStar);
+
+        setChecked("stats-fitness", state.statsSources.fitness);
+        setChecked("stats-career", state.statsSources.career);
+        setChecked("stats-mind", state.statsSources.mind);
+        setChecked("stats-education", state.statsSources.education);
+        setChecked("stats-work", state.statsSources.work);
+        setChecked("stats-nutrition", state.statsSources.nutrition);
+        setChecked("stats-hobbies", state.statsSources.hobbies);
+
+        setChecked("stats-display-auto", state.statsDisplay.autoFormatted);
+        setChecked("stats-display-overview", state.statsDisplay.showOverview);
+        setChecked("stats-display-sections", state.statsDisplay.showSections);
+        setChecked("stats-display-workouts", state.statsDisplay.showWorkouts);
+        setChecked("stats-display-cardio", state.statsDisplay.showCardio);
+        setChecked("stats-display-recent", state.statsDisplay.showRecentSessions);
+        setValue("stats-default-range", state.statsDisplay.defaultRange);
+        setValue("stats-default-section", state.statsDisplay.defaultSection);
+        setValue("stats-default-cardio-type", state.statsDisplay.defaultCardioType);
+        setValue("stats-featured-fitness", arrayToMultiline(state.statsDisplay.featuredFitnessMetrics));
+        setValue("stats-featured-cardio", arrayToMultiline(state.statsDisplay.featuredCardioMetrics));
+
+        setChecked("notifications-email", state.notifications.email);
+        setChecked("notifications-push", state.notifications.push);
+        setChecked("notifications-product", state.notifications.product);
+        setChecked("notifications-reminders", state.notifications.reminders);
+        setChecked("notifications-marketing", state.notifications.marketing);
+
+        setValue("theme-mode", state.theme.mode);
+        setValue("theme-accent", state.theme.accent);
+        setValue("theme-text-size", state.theme.textSize);
+
+        setValue("subscription-plan", state?.subscription?.plan || "");
+        setValue("subscription-perks", state?.subscription?.perks || "");
+
+        refreshSnapshot(state);
+      }
+
+      function collectState() {
+        const defaults = cloneDefaults();
+        const derivedUsername = deriveUsernameCandidate();
+        const derivedHandle = deriveHandleCandidate(derivedUsername);
+
+        return {
+          ...defaults,
+          displayName: getValue("displayName"),
+          username: derivedUsername,
+          handle: derivedHandle,
+          bio: getValue("bio"),
+          bannerUrl: getValue("bannerUrl"),
+          avatarUrl: getValue("avatarUrl"),
+          location: getValue("location"),
+          headline: getValue("headline"),
+          visibility: {
+            profile: getChecked("visibility-profile"),
+            bio: getChecked("visibility-bio"),
+            stats: getChecked("visibility-stats"),
+            portfolio: getChecked("visibility-portfolio"),
+            activity: getChecked("visibility-activity"),
+            achievements: getChecked("visibility-achievements"),
+            contact: getChecked("visibility-contact"),
+          },
+          portfolioFilters: {
+            showProjects: getChecked("portfolio-projects"),
+            showExperience: getChecked("portfolio-experience"),
+            showSchool: getChecked("portfolio-school"),
+            showStats: getChecked("portfolio-stats"),
+            showTimeline: getChecked("portfolio-timeline"),
+            showRecommendations: getChecked("portfolio-recommendations"),
+            showStar: getChecked("portfolio-star"),
+          },
+          statsSources: {
+            fitness: getChecked("stats-fitness"),
+            career: getChecked("stats-career"),
+            mind: getChecked("stats-mind"),
+            education: getChecked("stats-education"),
+            work: getChecked("stats-work"),
+            nutrition: getChecked("stats-nutrition"),
+            hobbies: getChecked("stats-hobbies"),
+          },
+          statsDisplay: {
+            autoFormatted: getChecked("stats-display-auto"),
+            showOverview: getChecked("stats-display-overview"),
+            showSections: getChecked("stats-display-sections"),
+            showWorkouts: getChecked("stats-display-workouts"),
+            showCardio: getChecked("stats-display-cardio"),
+            showRecentSessions: getChecked("stats-display-recent"),
+            defaultRange: getValue("stats-default-range") || "30d",
+            defaultSection: getValue("stats-default-section") || "all",
+            defaultCardioType: getValue("stats-default-cardio-type") || "all",
+            featuredFitnessMetrics: getValue("stats-featured-fitness")
+              .split("\n")
+              .map((item) => item.trim())
+              .filter(Boolean),
+            featuredCardioMetrics: getValue("stats-featured-cardio")
+              .split("\n")
+              .map((item) => item.trim())
+              .filter(Boolean),
+          },
+          notifications: {
+            email: getChecked("notifications-email"),
+            push: getChecked("notifications-push"),
+            product: getChecked("notifications-product"),
+            reminders: getChecked("notifications-reminders"),
+            marketing: getChecked("notifications-marketing"),
+          },
+          theme: {
+            mode: getValue("theme-mode") || defaults.theme.mode,
+            accent: getValue("theme-accent") || defaults.theme.accent,
+            textSize: getValue("theme-text-size") || defaults.theme.textSize,
+          },
+          subscription: {
+            plan: getValue("subscription-plan"),
+            perks: getValue("subscription-perks"),
+          },
+          account: {
+            email: getValue("email"),
+          },
+        };
+      }
+
+      async function loadState() {
+        try {
+          const response = await fetch(`/api/state?pageKey=${encodeURIComponent(pageKey)}`, {
+            credentials: "include",
+            cache: "no-store",
+          });
+          if (!response.ok) return null;
+          const payload = await response.json();
+          return payload?.state ?? null;
+        } catch (error) {
+          console.error("Failed to load profile settings:", error);
+          return null;
+        }
+      }
+
+      async function saveState(state) {
+        const response = await fetch("/api/state", {
+          method: "POST",
+          credentials: "include",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ pageKey, state }),
+        });
+
+        if (!response.ok) {
+          throw new Error("Failed to save profile settings");
+        }
+      }
+
+      document.getElementById("save-profile-settings-btn")?.addEventListener("click", async () => {
+        const state = collectState();
+        setStatus("Saving...", "neutral");
+
+        try {
+          await saveState(state);
+          localStorage.setItem("profile-theme-mode", state.theme.mode);
+          localStorage.setItem("profile-theme-accent", state.theme.accent);
+          localStorage.setItem("profile-theme-text-size", state.theme.textSize);
+          document.documentElement.dataset.theme = state.theme.mode;
+          document.documentElement.dataset.textSize = state.theme.textSize;
+          document.documentElement.dataset.accent = state.theme.accent || "default";
+          refreshSnapshot(state);
+          setStatus("Saved", "success");
+        } catch (error) {
+          console.error(error);
+          setStatus("Unable to save", "error");
+        }
+      });
+
+      document.getElementById("change-password-btn")?.addEventListener("click", () => {
+        window.location.href = "/forgot-password";
+      });
+
+      async function init() {
+        setStatus("Loading...", "neutral");
+        const saved = await loadState();
+        const normalized = normalizeState(saved);
+        applyState(normalized);
+        setStatus("Ready", "success");
+      }
+
+      init();
+    })();
+  </script>
+
+  <style>
+    .profile-top-grid {
+      align-items: start;
+    }
+
+    .form-stack {
+      display: grid;
+      gap: 1rem;
+    }
+
+    .field-group {
+      display: grid;
+      gap: 0.45rem;
+    }
+
+    .field-label {
+      font-size: 0.92rem;
+      font-weight: 700;
+      color: #334155;
+    }
+
+    .ui-input,
+    .ui-select,
+    .ui-textarea {
+      width: 100%;
+      border-radius: 14px;
+      border: 1px solid rgba(15, 23, 42, 0.1);
+      background: rgba(255, 255, 255, 0.9);
+      padding: 0.85rem 1rem;
+      font: inherit;
+      color: #0f172a;
+    }
+
+    .ui-textarea {
+      resize: vertical;
+      min-height: 120px;
+    }
+
+    .ui-button {
+      border: none;
+      border-radius: 999px;
+      padding: 0.8rem 1.15rem;
+      font: inherit;
+      font-weight: 700;
+      background: #2f5d62;
+      color: white;
+      cursor: pointer;
+    }
+
+    .ui-button-secondary {
+      background: rgba(255, 255, 255, 0.85);
+      color: #1e293b;
+      border: 1px solid rgba(15, 23, 42, 0.1);
+    }
+
+    .button-row {
+      display: flex;
+      gap: 0.75rem;
+      flex-wrap: wrap;
+    }
+
+    .toggle-card-grid {
+      display: grid;
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+      gap: 0.85rem;
+    }
+
+    .toggle-card {
+      display: flex;
+      align-items: center;
+      gap: 0.7rem;
+      padding: 0.95rem 1rem;
+      border-radius: 16px;
+      border: 1px solid rgba(15, 23, 42, 0.08);
+      background: rgba(255, 255, 255, 0.74);
+      transition: transform 0.18s ease, border-color 0.18s ease;
+    }
+
+    .toggle-card:hover {
+      transform: translateY(-1px);
+      border-color: rgba(47, 93, 98, 0.35);
+    }
+
+    .compact-summary {
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+    }
+
+    .profile-settings-actions {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      gap: 1rem;
+      flex-wrap: wrap;
+    }
+
+    @media (max-width: 720px) {
+      .toggle-card-grid,
+      .compact-summary {
+        grid-template-columns: 1fr;
+      }
+    }
+  </style>
+</BaseLayout>

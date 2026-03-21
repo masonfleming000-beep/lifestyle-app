@@ -23,6 +23,7 @@ function normalizeState(value: unknown) {
       return null;
     }
   }
+
   return value;
 }
 
@@ -55,17 +56,19 @@ export const GET: APIRoute = async ({ cookies, url }) => {
       `;
 
       const saved = rows[0] ?? null;
+      const normalized = saved ? normalizeState(saved.state) : null;
 
       return json({
         ok: true,
         pageKey,
-        state: saved ? normalizeState(saved.state) : null,
+        state: normalized,
         updated_at: saved ? saved.updated_at : null,
       });
     } finally {
       await sql.end();
     }
-  } catch {
+  } catch (error) {
+    console.error("GET /api/state failed:", error);
     return json({ ok: false, error: "Failed to fetch state." }, 500);
   }
 };
@@ -79,7 +82,6 @@ export const POST: APIRoute = async ({ cookies, request }) => {
     }
 
     const body = await request.json().catch(() => null);
-
     const pageKey = body?.pageKey;
     const state = body?.state;
 
@@ -110,18 +112,20 @@ export const POST: APIRoute = async ({ cookies, request }) => {
         returning state, updated_at
       `;
 
-      const saved = rows[0];
+      const saved = rows[0] ?? null;
+      const normalized = saved ? normalizeState(saved.state) : null;
 
       return json({
         ok: true,
         pageKey,
-        state: normalizeState(saved?.state ?? null),
+        state: normalized,
         updated_at: saved?.updated_at ?? null,
       });
     } finally {
       await sql.end();
     }
-  } catch {
+  } catch (error) {
+    console.error("POST /api/state failed:", error);
     return json({ ok: false, error: "Failed to save state." }, 500);
   }
 };

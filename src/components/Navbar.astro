@@ -9,11 +9,13 @@ const links = [
   { href: "/work", label: "Work" },
   { href: "/career", label: "Career" },
   { href: "/hobbies", label: "Hobbies" },
+  { href: "/settings/profile", label: "Settings" },
 ];
 
 const currentPath = Astro.url.pathname;
 const currentPage =
-  links.find((link) => link.href === currentPath)?.label ?? "Menu";
+  links.find((link) => link.href === currentPath)?.label ??
+  (currentPath.startsWith("/profile/") ? "My Profile" : "Menu");
 
 const isHomePage = currentPath === "/";
 ---
@@ -33,7 +35,10 @@ const isHomePage = currentPath === "/";
 
       <details class="menu-dropdown">
         <summary>Menu</summary>
+
         <div class:list={["dropdown-panel", isHomePage && "dropdown-panel-home"]}>
+          <div id="dynamic-profile-link-wrap" class="dynamic-profile-link-wrap"></div>
+
           {links.map((link) => (
             <a
               href={link.href}
@@ -55,36 +60,57 @@ const isHomePage = currentPath === "/";
 </header>
 
 <script>
-  // CHANGED: navbar now checks /api/me and shows login state from backend session
   const authStatusEl = document.getElementById("auth-status");
   const loginLink = document.getElementById("login-link");
   const signupLink = document.getElementById("signup-link");
   const logoutBtn = document.getElementById("logout-btn");
+  const profileLinkWrap = document.getElementById("dynamic-profile-link-wrap");
 
   function setLoggedOut() {
     if (authStatusEl) authStatusEl.textContent = "Not signed in";
     if (loginLink) loginLink.style.display = "";
     if (signupLink) signupLink.style.display = "";
     if (logoutBtn) logoutBtn.style.display = "none";
+    if (profileLinkWrap) profileLinkWrap.innerHTML = "";
   }
 
-  function setLoggedIn(email: string) {
-    if (authStatusEl) authStatusEl.textContent = email;
+  /**
+   * @param {{ email?: string, username?: string, displayName?: string, handle?: string, avatarUrl?: string } | null} user
+   */
+  function setLoggedIn(user) {
+    const display =
+      (user && user.displayName) ||
+      (user && user.username) ||
+      (user && user.handle) ||
+      (user && user.email) ||
+      "Signed in";
+
+    if (authStatusEl) authStatusEl.textContent = display;
     if (loginLink) loginLink.style.display = "none";
     if (signupLink) signupLink.style.display = "none";
     if (logoutBtn) logoutBtn.style.display = "block";
+
+    if (profileLinkWrap && user && user.username) {
+      const isActive = window.location.pathname === `/profile/${user.username}`;
+      profileLinkWrap.innerHTML = `
+        <a href="/profile/${encodeURIComponent(user.username)}" class="${isActive ? "is-active" : ""}">
+          My Profile
+        </a>
+      `;
+    }
   }
 
   async function loadCurrentUser() {
     try {
       const response = await fetch("/api/me", {
-        credentials: "include", // CHANGED: read current backend session
+        credentials: "include",
+        cache: "no-store",
       });
 
       const data = await response.json().catch(() => ({}));
 
-      if (data?.ok && data?.user?.email) {
-        setLoggedIn(data.user.email);
+      if (data && data.ok && data.user && data.user.email) {
+        setLoggedIn(data.user);
       } else {
         setLoggedOut();
       }
@@ -94,18 +120,26 @@ const isHomePage = currentPath === "/";
     }
   }
 
-  logoutBtn?.addEventListener("click", async () => {
-    try {
-      await fetch("/api/auth/logout", {
-        method: "POST",
-        credentials: "include", // CHANGED: log out backend session
-      });
-    } catch (error) {
-      console.error("Logout failed:", error);
-    }
+  if (logoutBtn) {
+    logoutBtn.addEventListener("click", async () => {
+      try {
+        await fetch("/api/auth/logout", {
+          method: "POST",
+          credentials: "include",
+        });
+      } catch (error) {
+        console.error("Logout failed:", error);
+      }
 
-    window.location.href = "/login";
-  });
+      window.location.href = "/login";
+    });
+  }
 
   loadCurrentUser();
 </script>
+
+<style>
+  .dynamic-profile-link-wrap {
+    display: contents;
+  }
+</style>

@@ -433,6 +433,8 @@ const defaultHobbiesData = JSON.stringify({
               },
             }),
           });
+
+          await syncHobbyStats();
         } catch (error) {
           console.error("Failed to save hobbies state:", error);
         } finally {
@@ -443,6 +445,72 @@ const defaultHobbiesData = JSON.stringify({
             await saveState();
           }
         }
+      }
+
+      const profileStatsPageKey = "profile-stats";
+
+      async function loadProfileStats() {
+        try {
+          const res = await fetch(`/api/state?pageKey=${encodeURIComponent(profileStatsPageKey)}`, {
+            credentials: "include",
+            cache: "no-store",
+          });
+
+          if (!res.ok) return { fitness: {}, hobbies: {} };
+
+          const data = await res.json();
+          return data?.state ?? { fitness: {}, hobbies: {} };
+        } catch (error) {
+          console.error("Failed to load profile stats:", error);
+          return { fitness: {}, hobbies: {} };
+        }
+      }
+
+      function buildHobbyStats() {
+        const totalStages = hobbies.reduce((sum, hobby) => sum + (hobby?.stages?.length || 0), 0);
+        const completedStages = hobbies.reduce(
+          (sum, hobby) =>
+            sum +
+            (Array.isArray(hobby?.stages)
+              ? hobby.stages.filter((stage) => stage?.status === "Completed").length
+              : 0),
+          0
+        );
+        const totalLogEntries = hobbies.reduce(
+          (sum, hobby) => sum + (Array.isArray(hobby?.activityLog) ? hobby.activityLog.length : 0),
+          0
+        );
+        const totalLibraryItems = hobbies.reduce(
+          (sum, hobby) => sum + (Array.isArray(hobby?.library) ? hobby.library.length : 0),
+          0
+        );
+        const totalHoursSpent = hobbies.reduce((sum, hobby) => sum + Number(hobby?.hoursSpent || 0), 0);
+
+        return {
+          totalHobbies: hobbies.length,
+          totalStages,
+          completedStages,
+          totalLogEntries,
+          totalLibraryItems,
+          totalHoursSpent,
+          updatedAt: new Date().toISOString(),
+        };
+      }
+
+      async function syncHobbyStats() {
+        const existingStats = await loadProfileStats();
+        await fetch("/api/state", {
+          method: "POST",
+          credentials: "include",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            pageKey: profileStatsPageKey,
+            state: {
+              ...existingStats,
+              hobbies: buildHobbyStats(),
+            },
+          }),
+        });
       }
 
       const hobbySelect = document.getElementById("hobby-select");
@@ -1531,6 +1599,7 @@ const defaultHobbiesData = JSON.stringify({
         selectedId = hobbies[0]?.id ?? null;
         hasLoadedInitialState = true;
         render();
+        await syncHobbyStats();
       }
 
       init();

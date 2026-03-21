@@ -24,7 +24,16 @@ import BaseLayout from "../layouts/BaseLayout.astro";
         <form id="signup-form" class="auth-form">
           <label for="email">Email</label>
           <input id="email" name="email" type="email" required />
-
+          <label for="username">Username</label>
+          <input
+            id="username"
+            name="username"
+            type="text"
+            minlength="3"
+            maxlength="24"
+            pattern="[a-zA-Z0-9._-]+"
+            required
+          />
           <label for="password">Password</label>
           <input
             id="password"
@@ -107,10 +116,11 @@ import BaseLayout from "../layouts/BaseLayout.astro";
 
       const formData = new FormData(signupForm);
       const email = String(formData.get("email") || "").trim();
+      const username = String(formData.get("username") || "").trim();
       const password = String(formData.get("password") || "");
 
-      if (!email || !password) {
-        setMessage("Email and password are required.", true);
+      if (!email || !username || !password) {
+        setMessage("Email, username, and password are required.", true);
         return;
       }
 
@@ -125,7 +135,7 @@ import BaseLayout from "../layouts/BaseLayout.astro";
           headers: {
             "Content-Type": "application/json",
           },
-          body: JSON.stringify({ email, password }),
+          body: JSON.stringify({ email, username, password }),
         });
 
         const data = await response.json().catch(() => ({}));

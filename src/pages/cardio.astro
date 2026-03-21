@@ -89,12 +89,13 @@ const defaultStravaValue = JSON.stringify(defaultStravaEmbed);
 
   <section class="section">
     <article class="card">
-      <h2 class="section-title">Recent Sessions</h2>
-      <ul class="list-clean">
-        {recentSessions.map((session) => (
-          <li><strong>{session.title}</strong> — {session.detail}</li>
-        ))}
-      </ul>
+      <div class="section-header">
+        <div>
+          <h2 class="section-title">Recent Sessions</h2>
+          <p class="section-subtitle">Saved cardio workouts from your workout builder.</p>
+        </div>
+      </div>
+      <div id="saved-cardio-sessions"></div>
     </article>
   </section>
 
@@ -150,6 +151,8 @@ const defaultStravaValue = JSON.stringify(defaultStravaEmbed);
     }}
   >
     const pageKey = "cardio";
+    const fitnessHistoryPageKey = "fitness-history";
+    const profileStatsPageKey = "profile-stats";
 
     const warmupListEl = document.getElementById("cardio-warmup-list");
     const cooldownListEl = document.getElementById("cardio-cooldown-list");
@@ -202,6 +205,99 @@ const defaultStravaValue = JSON.stringify(defaultStravaEmbed);
     let hasLoadedInitialState = false;
     let isSaving = false;
     let pendingSave = false;
+    let cardioHistory = [];
+    let weightliftingHistory = [];
+
+    async function loadFitnessHistory() {
+      try {
+        const res = await fetch(`/api/state?pageKey=${encodeURIComponent(fitnessHistoryPageKey)}`, {
+          credentials: "include",
+          cache: "no-store",
+        });
+
+        if (!res.ok) return { weightliftingSessions: [], cardioSessions: [] };
+
+        const data = await res.json();
+        const history = data?.state ?? {};
+        return {
+          weightliftingSessions: Array.isArray(history?.weightliftingSessions)
+            ? history.weightliftingSessions
+            : [],
+          cardioSessions: Array.isArray(history?.cardioSessions) ? history.cardioSessions : [],
+        };
+      } catch (error) {
+        console.error("Failed to load fitness history:", error);
+        return { weightliftingSessions: [], cardioSessions: [] };
+      }
+    }
+
+    async function saveFitnessHistory(nextState) {
+      try {
+        await fetch("/api/state", {
+          method: "POST",
+          credentials: "include",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ pageKey: fitnessHistoryPageKey, state: nextState }),
+        });
+      } catch (error) {
+        console.error("Failed to save fitness history:", error);
+      }
+    }
+
+    async function loadProfileStats() {
+      try {
+        const res = await fetch(`/api/state?pageKey=${encodeURIComponent(profileStatsPageKey)}`, {
+          credentials: "include",
+          cache: "no-store",
+        });
+
+        if (!res.ok) return { fitness: {}, hobbies: {} };
+
+        const data = await res.json();
+        return data?.state ?? { fitness: {}, hobbies: {} };
+      } catch (error) {
+        console.error("Failed to load profile stats:", error);
+        return { fitness: {}, hobbies: {} };
+      }
+    }
+
+    function buildFitnessStats(historyState) {
+      const weightSessions = Array.isArray(historyState?.weightliftingSessions)
+        ? historyState.weightliftingSessions
+        : [];
+      const cardioSessions = Array.isArray(historyState?.cardioSessions) ? historyState.cardioSessions : [];
+      const latestDate = [...weightSessions, ...cardioSessions]
+        .map((item) => item?.dateTime || "")
+        .filter(Boolean)
+        .sort((a, b) => new Date(b).getTime() - new Date(a).getTime())[0] || "";
+
+      return {
+        totalWeightliftingSessions: weightSessions.length,
+        totalCardioSessions: cardioSessions.length,
+        totalFitnessSessions: weightSessions.length + cardioSessions.length,
+        lastWorkoutAt: latestDate,
+        updatedAt: new Date().toISOString(),
+      };
+    }
+
+    async function syncFitnessStats() {
+      const existingStats = await loadProfileStats();
+      await fetch("/api/state", {
+        method: "POST",
+        credentials: "include",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          pageKey: profileStatsPageKey,
+          state: {
+            ...existingStats,
+            fitness: buildFitnessStats({
+              weightliftingSessions: weightliftingHistory,
+              cardioSessions: cardioHistory,
+            }),
+          },
+        }),
+      });
+    }
 
     function uniqueStrings(items = []) {
       return [...new Set(items.filter(Boolean))];
@@ -821,6 +917,7 @@ const defaultStravaValue = JSON.stringify(defaultStravaEmbed);
 
           state.stravaEmbed = src;
           renderStrava();
+      renderSavedCardioSessions();
           await saveState();
         });
 
@@ -864,6 +961,87 @@ const defaultStravaValue = JSON.stringify(defaultStravaEmbed);
 
       stravaContainerEl.appendChild(shell);
       stravaContainerEl.appendChild(actions);
+    }
+
+    function renderSavedCardioSessions() {
+      const container = document.getElementById("saved-cardio-sessions");
+      if (!container) return;
+
+      if (!cardioHistory.length) {
+        if (Array.isArray(recentSessions) && recentSessions.length) {
+          container.innerHTML = `
+            <ul class="list-clean">
+              ${recentSessions
+                .map((session) => `<li><strong>${session.title}</strong> — ${session.detail}</li>`)
+                .join("")}
+            </ul>
+          `;
+          return;
+        }
+
+        container.innerHTML = `<p class="section-subtitle">No saved cardio sessions yet.</p>`;
+        return;
+      }
+
+      container.innerHTML = `
+        <div class="stack-list">
+          ${cardioHistory
+            .map((session) => `
+              <details class="dropdown-card">
+                <summary>
+                  <div>
+                    <p class="kicker">Cardio</p>
+                    <h3 class="card-title">${session.title}</h3>
+                    <p class="section-subtitle">${new Date(session.dateTime).toLocaleString()}</p>
+                  </div>
+                  <span class="dropdown-arrow">⌄</span>
+                </summary>
+                <div class="dropdown-content">
+                  <p>${session.summary || ""}</p>
+                  <ul class="list-clean">
+                    ${(session.steps || [])
+                      .map((step) => `
+                        <li>
+                          <strong>${step.text || ""}</strong><br />
+                          Target: ${step.target || "-"}<br />
+                          Actual: ${step.actual || "-"}<br />
+                          Done: ${step.done ? "Yes" : "No"}
+                        </li>
+                      `)
+                      .join("")}
+                  </ul>
+                  <div class="mind-item-actions">
+                    <button
+                      type="button"
+                      class="danger-btn"
+                      data-delete-cardio-session="${session.id}"
+                    >
+                      Remove Past Workout
+                    </button>
+                  </div>
+                </div>
+              </details>
+            `)
+            .join("")}
+        </div>
+      `;
+
+      container.querySelectorAll("[data-delete-cardio-session]").forEach((btn) => {
+        btn.addEventListener("click", async () => {
+          const sessionId = btn.getAttribute("data-delete-cardio-session");
+          if (!sessionId) return;
+
+          cardioHistory = cardioHistory.filter((x) => x.id !== sessionId);
+
+          await saveFitnessHistory({
+            weightliftingSessions: weightliftingHistory,
+            cardioSessions: cardioHistory,
+          });
+
+          await syncFitnessStats();
+          renderSavedCardioSessions();
+        });
+      });
     }
 
     function renderAll() {
@@ -925,6 +1103,12 @@ const defaultStravaValue = JSON.stringify(defaultStravaEmbed);
 
       const saved = await loadState();
       state = normalizeCardioState(saved);
+
+      const historyState = await loadFitnessHistory();
+      cardioHistory = Array.isArray(historyState?.cardioSessions) ? historyState.cardioSessions : [];
+      weightliftingHistory = Array.isArray(historyState?.weightliftingSessions)
+        ? historyState.weightliftingSessions
+        : [];
 
       hasLoadedInitialState = true;
       renderAll();

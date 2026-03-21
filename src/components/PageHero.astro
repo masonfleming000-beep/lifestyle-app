@@ -1,0 +1,38 @@
+---
+interface Props {
+  kicker?: string;
+  title: string;
+  description?: string;
+}
+
+const {
+  kicker = "",
+  title,
+  description = "",
+} = Astro.props;
+---
+
+<section class="hero">
+  <div class="hero-card hero-card-shared">
+    {kicker && <p class="kicker">{kicker}</p>}
+    <h1>{title}</h1>
+    {description && <p>{description}</p>}
+    <slot />
+  </div>
+</section>
+
+<style>
+  .hero-card-shared {
+    display: flex;
+    flex-direction: column;
+    gap: 0.6rem;
+  }
+
+  .hero-card-shared h1 {
+    margin: 0;
+  }
+
+  .hero-card-shared p {
+    margin: 0;
+  }
+</style>

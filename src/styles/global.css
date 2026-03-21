@@ -3084,9 +3084,9 @@ img {
   gap: 0.5rem;
   flex: 0 1 auto;
   max-width: 60%;
-  overflow: hidden;
+  overflow: visible;
+  position: relative;
 }
-
 .auth-status {
   display: block;
   max-width: 100%;
@@ -3180,3 +3180,71 @@ img {
     font-size: 0.95rem;
   }
 }
+
+/* Profile Styles */
+
+.profile-container {
+  max-width: 900px;
+  margin: auto;
+  padding: 20px;
+}
+
+.stats-grid {
+  display: flex;
+  gap: 12px;
+  flex-wrap: wrap;
+}
+
+.form-group label {
+  display: block;
+  margin-bottom: 5px;
+  font-weight: 500;
+}
+
+input, select {
+  width: 100%;
+  padding: 8px;
+  border-radius: 6px;
+  border: 1px solid #ccc;
+}
+
+.toggle {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 8px 0;
+}
+
+.menu-dropdown {
+  position: relative;
+}
+
+.menu-summary {
+  cursor: pointer;
+  user-select: none;
+  list-style: none;
+}
+
+.menu-summary::-webkit-details-marker {
+  display: none;
+}
+
+.dropdown-panel {
+  position: absolute;
+  right: 0;
+  top: calc(100% + 8px);
+  min-width: 220px;
+  background: white;
+  border: 1px solid #ddd;
+  border-radius: 12px;
+  padding: 10px;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  z-index: 9999;
+}
+
+.menu-dropdown:not([open]) .dropdown-panel {
+  display: none;
+}
+
