@@ -51,6 +51,7 @@ export type ProfileBadge = {
 
 export type ProfileVisibilitySettings = {
   profile: boolean;
+  avatar: boolean;
   bio: boolean;
   stats: boolean;
   portfolio: boolean;
@@ -84,6 +85,10 @@ export type ProfileSurfaceSettings = {
   texture: ProfileSurfaceTexture;
 };
 
+export type ProfileThemeComponentSettings = {
+  surface: "header" | "section" | "background" | "dropdown";
+};
+
 export type ProfileThemeSettings = {
   scope: ProfileUiScope;
   mode: ProfileThemeMode;
@@ -93,6 +98,19 @@ export type ProfileThemeSettings = {
     section: ProfileSurfaceSettings;
     background: ProfileSurfaceSettings;
     dropdown: ProfileSurfaceSettings;
+  };
+  components: {
+    navbar: ProfileThemeComponentSettings;
+    hero: ProfileThemeComponentSettings;
+    sectionCard: ProfileThemeComponentSettings;
+    quickLinkCard: ProfileThemeComponentSettings;
+    quoteCard: ProfileThemeComponentSettings;
+    statCard: ProfileThemeComponentSettings;
+    card: ProfileThemeComponentSettings;
+    dropdownCard: ProfileThemeComponentSettings;
+    embed: ProfileThemeComponentSettings;
+    metric: ProfileThemeComponentSettings;
+    input: ProfileThemeComponentSettings;
   };
 };
 
@@ -122,6 +140,12 @@ export type ProfileSettings = {
   bio: string;
   bannerUrl: string;
   avatarUrl: string;
+  avatarFileDataUrl: string;
+  avatarSize: number;
+  avatarZoom: number;
+  avatarPositionX: number;
+  avatarPositionY: number;
+  avatarVisible: boolean;
   location: string;
   headline: string;
   pinnedItemIds: string[];
@@ -142,6 +166,12 @@ export const DEFAULT_PROFILE_SETTINGS: ProfileSettings = {
   bio: "",
   bannerUrl: "",
   avatarUrl: "",
+  avatarFileDataUrl: "",
+  avatarSize: 116,
+  avatarZoom: 1,
+  avatarPositionX: 50,
+  avatarPositionY: 50,
+  avatarVisible: true,
   location: "",
   headline: "",
   pinnedItemIds: [],
@@ -149,6 +179,7 @@ export const DEFAULT_PROFILE_SETTINGS: ProfileSettings = {
   featuredStatIds: [],
   visibility: {
     profile: true,
+    avatar: true,
     bio: true,
     stats: true,
     portfolio: true,
@@ -220,6 +251,19 @@ export const DEFAULT_PROFILE_SETTINGS: ProfileSettings = {
         color: "#ffffff",
         texture: "solid",
       },
+    },
+    components: {
+      navbar: { surface: "header" },
+      hero: { surface: "header" },
+      sectionCard: { surface: "section" },
+      quickLinkCard: { surface: "section" },
+      quoteCard: { surface: "section" },
+      statCard: { surface: "section" },
+      card: { surface: "section" },
+      dropdownCard: { surface: "dropdown" },
+      embed: { surface: "section" },
+      metric: { surface: "section" },
+      input: { surface: "section" },
     },
   },
 };

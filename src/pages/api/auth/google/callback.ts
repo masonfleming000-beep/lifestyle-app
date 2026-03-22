@@ -14,6 +14,8 @@ export const prerender = false;
 type GoogleTokenResponse = {
   access_token?: string;
   id_token?: string;
+  error?: string;
+  error_description?: string;
 };
 
 type GoogleUserInfo = {
@@ -22,14 +24,44 @@ type GoogleUserInfo = {
   email_verified?: boolean;
 };
 
-function decodeState(value: string | null) {
+type DecodedState = {
+  state: string;
+  mobile?: boolean;
+};
+
+function decodeState(value: string | null): DecodedState | null {
   if (!value) return null;
+
   try {
     const json = Buffer.from(value, "base64url").toString("utf8");
-    return JSON.parse(json) as { state: string; mobile?: boolean };
+    return JSON.parse(json) as DecodedState;
   } catch {
     return null;
   }
+}
+
+function normalizeBaseUrl(value: string | undefined): string {
+  return String(value || "").trim().replace(/\/+$/, "");
+}
+
+function getGoogleRedirectUri(): string {
+  const explicitRedirect =
+    import.meta.env.GOOGLE_REDIRECT_URI ||
+    import.meta.env.GOOGLE_REDIRECT_URL;
+
+  if (explicitRedirect) {
+    return String(explicitRedirect).trim();
+  }
+
+  const baseUrl = normalizeBaseUrl(
+    import.meta.env.APP_URL || import.meta.env.PUBLIC_APP_URL
+  );
+
+  if (!baseUrl) {
+    return "";
+  }
+
+  return `${baseUrl}/api/auth/callback/google`;
 }
 
 export const GET: APIRoute = async ({ url, cookies, redirect }) => {
@@ -38,16 +70,21 @@ export const GET: APIRoute = async ({ url, cookies, redirect }) => {
   const returned = decodeState(encodedState);
   const storedState = cookies.get("google_oauth_state")?.value;
 
-  const clientId = import.meta.env.GOOGLE_CLIENT_ID || import.meta.env.PUBLIC_GOOGLE_CLIENT_ID;
+  const clientId =
+    import.meta.env.GOOGLE_CLIENT_ID ||
+    import.meta.env.PUBLIC_GOOGLE_CLIENT_ID;
   const clientSecret = import.meta.env.GOOGLE_CLIENT_SECRET;
-  const redirectUri = import.meta.env.GOOGLE_REDIRECT_URI;
+  const redirectUri = getGoogleRedirectUri();
 
   if (!code || !returned?.state || !storedState || returned.state !== storedState) {
     return new Response("Invalid OAuth state.", { status: 400 });
   }
 
   if (!clientId || !clientSecret || !redirectUri) {
-    return new Response("Google OAuth is not configured.", { status: 500 });
+    return new Response(
+      "Google OAuth is not configured. Missing client ID, client secret, or redirect URI.",
+      { status: 500 }
+    );
   }
 
   cookies.delete("google_oauth_state", { path: "/" });
@@ -67,7 +104,21 @@ export const GET: APIRoute = async ({ url, cookies, redirect }) => {
   });
 
   if (!tokenRes.ok) {
-    return new Response("Failed to exchange code.", { status: 500 });
+    let details = "";
+
+    try {
+      const errorData = (await tokenRes.json()) as GoogleTokenResponse;
+      if (errorData.error || errorData.error_description) {
+        details = ` ${errorData.error || ""} ${errorData.error_description || ""}`.trim();
+      }
+    } catch {
+      // ignore JSON parse errors
+    }
+
+    return new Response(
+      `Failed to exchange Google authorization code.${details ? ` ${details}` : ""}`,
+      { status: 500 }
+    );
   }
 
   const tokenData = (await tokenRes.json()) as GoogleTokenResponse;
@@ -77,11 +128,14 @@ export const GET: APIRoute = async ({ url, cookies, redirect }) => {
     return new Response("Missing access token.", { status: 500 });
   }
 
-  const userRes = await fetch("https://openidconnect.googleapis.com/v1/userinfo", {
-    headers: {
-      Authorization: `Bearer ${accessToken}`,
-    },
-  });
+  const userRes = await fetch(
+    "https://openidconnect.googleapis.com/v1/userinfo",
+    {
+      headers: {
+        Authorization: `Bearer ${accessToken}`,
+      },
+    }
+  );
 
   if (!userRes.ok) {
     return new Response("Failed to fetch Google profile.", { status: 500 });
@@ -90,7 +144,9 @@ export const GET: APIRoute = async ({ url, cookies, redirect }) => {
   const payload = (await userRes.json()) as GoogleUserInfo;
 
   const googleSub = String(payload.sub || "").trim();
-  const email = String(payload.email || "").trim().toLowerCase();
+  const email = String(payload.email || "")
+    .trim()
+    .toLowerCase();
   const emailVerified = Boolean(payload.email_verified);
 
   if (!googleSub || !email) {
@@ -108,7 +164,9 @@ export const GET: APIRoute = async ({ url, cookies, redirect }) => {
   } else if (!user.google_sub) {
     user = await linkGoogleToExistingUser(user.id, googleSub);
   } else if (user.google_sub !== googleSub) {
-    return new Response("Email already linked to another Google account.", { status: 409 });
+    return new Response("Email already linked to another Google account.", {
+      status: 409,
+    });
   }
 
   if (!user) {

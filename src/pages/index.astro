@@ -1,4 +1,9 @@
 ---
+/**
+ * Main homepage/dashboard for the app.
+ * Introduces the lifestyle system and provides quick access
+ * to major sections like Today, Fitness, Nutrition, Mind, and more.
+ */
 import BaseLayout from "../layouts/BaseLayout.astro";
 import { quotes, morals } from "../data/home";
 
@@ -27,14 +32,33 @@ const defaultMorals = JSON.stringify(morals);
   </section>
 
   <section class="section">
-    <div class="section-header">
+    <div class="section-header nav-header">
       <div>
         <h2 class="section-title">Navigate</h2>
         <p class="section-subtitle">Choose a section.</p>
       </div>
+
+      <div class="view-switcher" role="group" aria-label="Navigation layout">
+        <button
+          type="button"
+          class="view-btn is-active"
+          data-view-btn="grid"
+          aria-pressed="true"
+        >
+          Grid
+        </button>
+        <button
+          type="button"
+          class="view-btn"
+          data-view-btn="list"
+          aria-pressed="false"
+        >
+          List
+        </button>
+      </div>
     </div>
 
-    <div class="grid two quick-links-grid">
+    <div id="nav-cards" class="quick-links-grid quick-links-grid--grid">
       {navCards.map((card) => (
         <a href={card.href} class="link-card quick-link-card">
           <div class="quick-link-card-inner">
@@ -113,6 +137,7 @@ const defaultMorals = JSON.stringify(morals);
 
   <script define:vars={{ defaultQuotes, defaultMorals }}>
     const pageKey = "home";
+    const navViewStorageKey = "home-nav-view";
 
     const quotesList = document.getElementById("quotes-list");
     const remindersList = document.getElementById("reminders-list");
@@ -126,6 +151,9 @@ const defaultMorals = JSON.stringify(morals);
     const reminderTitleInput = document.getElementById("reminder-title");
     const reminderTextInput = document.getElementById("reminder-text");
     const restoreRemindersBtn = document.getElementById("restore-reminders-btn");
+
+    const navCardsContainer = document.getElementById("nav-cards");
+    const viewButtons = document.querySelectorAll("[data-view-btn]");
 
     const defaultQuoteItems = JSON.parse(defaultQuotes);
     const defaultMoralItems = JSON.parse(defaultMorals);
@@ -233,6 +261,35 @@ const defaultMorals = JSON.stringify(morals);
         .replaceAll(">", "&gt;")
         .replaceAll('"', "&quot;")
         .replaceAll("'", "&#039;");
+    }
+
+    function setNavView(view) {
+      if (!navCardsContainer) return;
+
+      const normalizedView = view === "list" ? "list" : "grid";
+
+      navCardsContainer.classList.remove("quick-links-grid--grid", "quick-links-grid--list");
+      navCardsContainer.classList.add(`quick-links-grid--${normalizedView}`);
+
+      viewButtons.forEach((button) => {
+        const isActive = button.getAttribute("data-view-btn") === normalizedView;
+        button.classList.toggle("is-active", isActive);
+        button.setAttribute("aria-pressed", String(isActive));
+      });
+
+      localStorage.setItem(navViewStorageKey, normalizedView);
+    }
+
+    function initNavView() {
+      const savedView = localStorage.getItem(navViewStorageKey);
+      setNavView(savedView === "list" ? "list" : "grid");
+
+      viewButtons.forEach((button) => {
+        button.addEventListener("click", () => {
+          const view = button.getAttribute("data-view-btn");
+          setNavView(view);
+        });
+      });
     }
 
     function renderQuotes() {
@@ -399,6 +456,7 @@ const defaultMorals = JSON.stringify(morals);
       state.quotes = dedupeBy(state.quotes, quoteKey);
       state.morals = dedupeBy(state.morals, moralKey);
 
+      initNavView();
       renderQuotes();
       renderMorals();
     }
@@ -407,8 +465,58 @@ const defaultMorals = JSON.stringify(morals);
   </script>
 
   <style>
+    .nav-header {
+      display: flex;
+      align-items: flex-end;
+      justify-content: space-between;
+      gap: 1rem;
+      flex-wrap: wrap;
+    }
+
+    .view-switcher {
+      display: inline-flex;
+      align-items: center;
+      gap: 0.35rem;
+      padding: 0.3rem;
+      border-radius: 999px;
+      background: rgba(255, 255, 255, 0.06);
+      border: 1px solid rgba(255, 255, 255, 0.1);
+    }
+
+    .view-btn {
+      border: 0;
+      cursor: pointer;
+      padding: 0.6rem 0.95rem;
+      border-radius: 999px;
+      font: inherit;
+      color: inherit;
+      background: transparent;
+      transition: background 0.18s ease, transform 0.18s ease;
+    }
+
+    .view-btn:hover,
+    .view-btn:focus-visible {
+      background: rgba(255, 255, 255, 0.08);
+    }
+
+    .view-btn.is-active {
+      background: rgba(255, 255, 255, 0.16);
+    }
+
     .quick-links-grid {
       align-items: stretch;
+    }
+
+    .quick-links-grid--grid {
+      display: grid;
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+      gap: 1rem;
+    }
+
+    .quick-links-grid--list {
+      display: grid;
+      grid-template-columns: 1fr;
+      gap: 0.85rem;
     }
 
     .quick-link-card {
@@ -429,6 +537,11 @@ const defaultMorals = JSON.stringify(morals);
       height: 100%;
       padding: 1.15rem 1.2rem;
       border-radius: inherit;
+    }
+
+    .quick-links-grid--list .quick-link-card-inner {
+      min-height: 92px;
+      padding: 1rem 1.1rem;
     }
 
     .quick-link-copy {
@@ -468,6 +581,19 @@ const defaultMorals = JSON.stringify(morals);
     }
 
     @media (max-width: 720px) {
+      .nav-header {
+        align-items: stretch;
+      }
+
+      .view-switcher {
+        width: 100%;
+        justify-content: flex-start;
+      }
+
+      .quick-links-grid--grid {
+        grid-template-columns: 1fr;
+      }
+
       .quick-link-card-inner {
         min-height: 110px;
         padding: 1rem;
