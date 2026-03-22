@@ -566,9 +566,9 @@ const defaultProfileSettingsJson = JSON.stringify(DEFAULT_PROFILE_SETTINGS);
           <label class="field-group">
             <span class="field-label">Color Mode</span>
             <select id="ui-mode" class="ui-select">
+              <option value="custom">custom</option>
               <option value="light">light</option>
               <option value="dark">dark</option>
-              <option value="system">system</option>
             </select>
           </label>
 
@@ -881,11 +881,42 @@ const defaultProfileSettingsJson = JSON.stringify(DEFAULT_PROFILE_SETTINGS);
         return username ? `@${username}` : "";
       }
 
+      const THEME_COLOR_FIELD_IDS = [
+        "ui-header-color",
+        "ui-section-color",
+        "ui-background-color",
+        "ui-dropdown-color",
+      ];
+
+      function normalizeThemeMode(mode) {
+        if (mode === "dark" || mode === "light" || mode === "custom") return mode;
+        return "custom";
+      }
+
+      function getEffectiveThemeColors(mode, surfaces, defaultSurfaces) {
+        if (mode === "light") {
+          return defaultSurfaces;
+        }
+
+        return surfaces;
+      }
+
+      function updateThemeModeUi(mode) {
+        const disableColorInputs = normalizeThemeMode(mode) === "light";
+
+        THEME_COLOR_FIELD_IDS.forEach((id) => {
+          const input = byId(id);
+          if (!input) return;
+          input.disabled = disableColorInputs;
+          input.title = disableColorInputs ? "Light mode uses fixed default colors." : "";
+        });
+      }
+
       function getDefaultTheme() {
         const defaults = cloneDefaults();
         const fallbackTheme = {
           scope: "global",
-          mode: "system",
+          mode: "custom",
           textSize: "md",
           surfaces: {
             header: { color: "#ffffff", texture: "solid" },
@@ -1225,7 +1256,7 @@ const defaultProfileSettingsJson = JSON.stringify(DEFAULT_PROFILE_SETTINGS);
         setChecked("notifications-marketing", nextState.notifications.marketing);
 
         setValue("ui-scope", nextState.theme.scope);
-        setValue("ui-mode", nextState.theme.mode);
+        setValue("ui-mode", normalizeThemeMode(nextState.theme.mode));
         setValue("ui-text-size", nextState.theme.textSize);
 
         setValue("ui-header-color", nextState.theme.surfaces.header.color);
@@ -1444,9 +1475,9 @@ const defaultProfileSettingsJson = JSON.stringify(DEFAULT_PROFILE_SETTINGS);
       function applyTheme(nextState) {
         const defaultTheme = getDefaultTheme();
         const theme = nextState?.theme || defaultTheme;
-        const mode = theme.mode || defaultTheme.mode;
+        const mode = normalizeThemeMode(theme.mode || defaultTheme.mode);
         const textSize = theme.textSize || defaultTheme.textSize;
-        const surfaces = theme.surfaces || defaultTheme.surfaces;
+        const surfaces = getEffectiveThemeColors(mode, theme.surfaces || defaultTheme.surfaces, defaultTheme.surfaces);
         const components = theme.components || defaultTheme.components;
         const root = document.documentElement;
 
@@ -1471,6 +1502,8 @@ const defaultProfileSettingsJson = JSON.stringify(DEFAULT_PROFILE_SETTINGS);
         root.dataset.embedSurface = components.embed?.surface || defaultTheme.components.embed.surface;
         root.dataset.metricSurface = components.metric?.surface || defaultTheme.components.metric.surface;
         root.dataset.inputSurface = components.input?.surface || defaultTheme.components.input.surface;
+
+        updateThemeModeUi(mode);
 
         const isDark = mode === "dark";
 

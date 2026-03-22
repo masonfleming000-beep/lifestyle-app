@@ -20,7 +20,7 @@ const {
 ---
 
 <!doctype html>
-<html lang="en" data-theme="system" data-text-size="md">
+<html lang="en" data-theme="custom" data-text-size="md">
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
@@ -59,7 +59,7 @@ const {
 
         const DEFAULT_UI = {
           scope: "global",
-          mode: "system",
+          mode: "light",
           textSize: "md",
           surfaces: {
             header: { color: "#ffffff", texture: "solid" },
@@ -165,8 +165,21 @@ const {
           };
         }
 
+        function normalizeThemeMode(mode) {
+          if (mode === "dark" || mode === "light" || mode === "custom") return mode;
+          return "custom";
+        }
+
         function applySurfaceColor(name, config) {
           root.style.setProperty(`--${name}-color`, config?.color || "");
+        }
+
+        function getEffectiveSurfaces(mode, surfaces) {
+          if (mode === "light") {
+            return DEFAULT_UI.surfaces;
+          }
+
+          return surfaces;
         }
 
         function applyUiSettings(settings) {
@@ -243,13 +256,16 @@ const {
             },
           };
 
-          root.dataset.theme = ui.mode || "system";
+          const resolvedMode = normalizeThemeMode(ui.mode);
+          const effectiveSurfaces = getEffectiveSurfaces(resolvedMode, ui.surfaces);
+
+          root.dataset.theme = resolvedMode;
           root.dataset.textSize = ui.textSize || "md";
 
-          root.dataset.headerTexture = ui.surfaces.header?.texture || "solid";
-          root.dataset.sectionTexture = ui.surfaces.section?.texture || "matte";
-          root.dataset.backgroundTexture = ui.surfaces.background?.texture || "smoothed";
-          root.dataset.dropdownTexture = ui.surfaces.dropdown?.texture || "solid";
+          root.dataset.headerTexture = effectiveSurfaces.header?.texture || "solid";
+          root.dataset.sectionTexture = effectiveSurfaces.section?.texture || "matte";
+          root.dataset.backgroundTexture = effectiveSurfaces.background?.texture || "smoothed";
+          root.dataset.dropdownTexture = effectiveSurfaces.dropdown?.texture || "solid";
 
           root.dataset.navbarSurface = ui.components.navbar?.surface || "header";
           root.dataset.heroSurface = ui.components.hero?.surface || "header";
@@ -263,10 +279,10 @@ const {
           root.dataset.metricSurface = ui.components.metric?.surface || "section";
           root.dataset.inputSurface = ui.components.input?.surface || "section";
 
-          applySurfaceColor("header", ui.surfaces.header);
-          applySurfaceColor("section", ui.surfaces.section);
-          applySurfaceColor("background", ui.surfaces.background);
-          applySurfaceColor("dropdown", ui.surfaces.dropdown);
+          applySurfaceColor("header", effectiveSurfaces.header);
+          applySurfaceColor("section", effectiveSurfaces.section);
+          applySurfaceColor("background", effectiveSurfaces.background);
+          applySurfaceColor("dropdown", effectiveSurfaces.dropdown);
         }
 
         const globalUi = safeParse(localStorage.getItem("app-ui-settings"), DEFAULT_UI);

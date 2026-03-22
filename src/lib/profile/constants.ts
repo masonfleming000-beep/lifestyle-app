@@ -23,7 +23,7 @@ export const PROFILE_PORTFOLIO_CATEGORIES = [
   "star",
 ] as const;
 
-export const PROFILE_THEME_OPTIONS = ["system", "light", "dark"] as const;
+export const PROFILE_THEME_OPTIONS = ["custom", "light", "dark"] as const;
 export const PROFILE_TEXT_SIZE_OPTIONS = ["sm", "md", "lg", "xl"] as const;
 export const PROFILE_TIME_RANGE_OPTIONS = ["7d", "30d", "90d", "6m", "1y", "all"] as const;
 
@@ -243,7 +243,7 @@ export const DEFAULT_PROFILE_SETTINGS: ProfileSettings = {
   },
   theme: {
     scope: "global",
-    mode: "system",
+    mode: "light",
     textSize: "md",
     surfaces: {
       header: {
