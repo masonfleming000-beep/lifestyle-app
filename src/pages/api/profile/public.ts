@@ -342,7 +342,6 @@ function parseCardioMetricsFromStep(step: any) {
 
   const heartRate = decimalMatch(/(\d+(?:\.\d+)?)\s*(?:bpm)\b/);
   addMetric("heartRate", "Heart Rate", heartRate);
- 
 
   const calories = decimalMatch(/(\d+(?:\.\d+)?)\s*(?:cal|kcal|calories)\b/);
   addMetric("calories", "Calories", calories);
@@ -390,9 +389,23 @@ function normalizeProfileSettings(raw: any) {
   return {
     ...defaults,
     ...safeObject(raw),
+    avatarUrl: stringValue(raw?.avatarUrl),
+    avatarFileDataUrl: stringValue(raw?.avatarFileDataUrl),
+    avatarSize: numberValue(raw?.avatarSize, defaults.avatarSize ?? 116),
+    avatarZoom: numberValue(raw?.avatarZoom, defaults.avatarZoom ?? 1),
+    avatarPositionX: numberValue(raw?.avatarPositionX, defaults.avatarPositionX ?? 50),
+    avatarPositionY: numberValue(raw?.avatarPositionY, defaults.avatarPositionY ?? 50),
+    avatarVisible: normalizeBoolean(raw?.avatarVisible, defaults.avatarVisible ?? true),
+    avatarAlignment: stringValue(raw?.avatarAlignment) || defaults.avatarAlignment || "left",
+    avatarShape: stringValue(raw?.avatarShape) || defaults.avatarShape || "circle",
+    avatarUseCircularCrop: normalizeBoolean(
+      raw?.avatarUseCircularCrop,
+      defaults.avatarUseCircularCrop ?? true
+    ),
     visibility: {
       ...defaults.visibility,
       ...safeObject(raw?.visibility),
+      avatar: normalizeBoolean(raw?.visibility?.avatar, defaults.visibility?.avatar ?? true),
     },
     portfolioFilters: {
       ...defaults.portfolioFilters,
@@ -818,7 +831,21 @@ export const GET: APIRoute = async ({ url, cookies }) => {
         handle: stringValue(profileSettings?.handle) || `@${normalizedUsername}`,
         bio: stringValue(profileSettings?.bio),
         bannerUrl: stringValue(profileSettings?.bannerUrl),
+
         avatarUrl: stringValue(profileSettings?.avatarUrl),
+        avatarFileDataUrl: stringValue(profileSettings?.avatarFileDataUrl),
+        avatarSize: numberValue(profileSettings?.avatarSize, DEFAULT_PROFILE_SETTINGS.avatarSize ?? 116),
+        avatarZoom: numberValue(profileSettings?.avatarZoom, DEFAULT_PROFILE_SETTINGS.avatarZoom ?? 1),
+        avatarPositionX: numberValue(profileSettings?.avatarPositionX, DEFAULT_PROFILE_SETTINGS.avatarPositionX ?? 50),
+        avatarPositionY: numberValue(profileSettings?.avatarPositionY, DEFAULT_PROFILE_SETTINGS.avatarPositionY ?? 50),
+        avatarVisible: normalizeBoolean(profileSettings?.avatarVisible, DEFAULT_PROFILE_SETTINGS.avatarVisible ?? true),
+        avatarAlignment: stringValue(profileSettings?.avatarAlignment) || DEFAULT_PROFILE_SETTINGS.avatarAlignment || "left",
+        avatarShape: stringValue(profileSettings?.avatarShape) || DEFAULT_PROFILE_SETTINGS.avatarShape || "circle",
+        avatarUseCircularCrop: normalizeBoolean(
+          profileSettings?.avatarUseCircularCrop,
+          DEFAULT_PROFILE_SETTINGS.avatarUseCircularCrop ?? true
+        ),
+
         headline: stringValue(profileSettings?.headline),
         location: stringValue(profileSettings?.location),
         badges: buildBadges(profileSettings, portfolio),
@@ -832,6 +859,7 @@ export const GET: APIRoute = async ({ url, cookies }) => {
           achievements: normalizeBoolean(profileSettings?.visibility?.achievements, true),
           contact: normalizeBoolean(profileSettings?.visibility?.contact, false),
           bio: normalizeBoolean(profileSettings?.visibility?.bio, true),
+          avatar: normalizeBoolean(profileSettings?.visibility?.avatar, true),
         },
         displayConfig: profileSettings?.statsDisplay || DEFAULT_PROFILE_SETTINGS.statsDisplay,
         interactiveData: {
@@ -850,4 +878,3 @@ export const GET: APIRoute = async ({ url, cookies }) => {
     await sql.end();
   }
 };
-

@@ -40,28 +40,26 @@ function decodeState(value: string | null): DecodedState | null {
   }
 }
 
-function normalizeBaseUrl(value: string | undefined): string {
-  return String(value || "").trim().replace(/\/+$/, "");
-}
-
-function getGoogleRedirectUri(): string {
-  const explicitRedirect =
-    import.meta.env.GOOGLE_REDIRECT_URI ||
-    import.meta.env.GOOGLE_REDIRECT_URL;
+function getGoogleRedirectUri(url: URL): string {
+  const explicitRedirect = import.meta.env.GOOGLE_REDIRECT_URI;
 
   if (explicitRedirect) {
     return String(explicitRedirect).trim();
   }
 
-  const baseUrl = normalizeBaseUrl(
-    import.meta.env.APP_URL || import.meta.env.PUBLIC_APP_URL
-  );
+  return `${url.origin}/api/auth/google/callback`;
+}
 
-  if (!baseUrl) {
-    return "";
+function getCookieDomain(hostname: string): string | undefined {
+  if (hostname === "localhost" || /^\d{1,3}(\.\d{1,3}){3}$/.test(hostname)) {
+    return undefined;
   }
 
-  return `${baseUrl}/api/auth/callback/google`;
+  if (hostname === "www.hublifeapp.com" || hostname === "hublifeapp.com") {
+    return ".hublifeapp.com";
+  }
+
+  return undefined;
 }
 
 export const GET: APIRoute = async ({ url, cookies, redirect }) => {
@@ -70,15 +68,19 @@ export const GET: APIRoute = async ({ url, cookies, redirect }) => {
   const returned = decodeState(encodedState);
   const storedState = cookies.get("google_oauth_state")?.value;
 
+  console.log("google callback debug", {
+    hostname: url.hostname,
+    codeExists: Boolean(code),
+    encodedState: encodedState || null,
+    returnedState: returned?.state || null,
+    storedState: storedState || null,
+  });
+
   const clientId =
     import.meta.env.GOOGLE_CLIENT_ID ||
     import.meta.env.PUBLIC_GOOGLE_CLIENT_ID;
   const clientSecret = import.meta.env.GOOGLE_CLIENT_SECRET;
-  const redirectUri = getGoogleRedirectUri();
-
-  if (!code || !returned?.state || !storedState || returned.state !== storedState) {
-    return new Response("Invalid OAuth state.", { status: 400 });
-  }
+  const redirectUri = getGoogleRedirectUri(url);
 
   if (!clientId || !clientSecret || !redirectUri) {
     return new Response(
@@ -87,7 +89,28 @@ export const GET: APIRoute = async ({ url, cookies, redirect }) => {
     );
   }
 
-  cookies.delete("google_oauth_state", { path: "/" });
+  if (!code) {
+    return new Response("Missing Google authorization code.", { status: 400 });
+  }
+
+  if (!returned?.state) {
+    return new Response("Missing or invalid OAuth state payload.", { status: 400 });
+  }
+
+  if (!storedState) {
+    return new Response("Missing OAuth state cookie.", { status: 400 });
+  }
+
+  if (returned.state !== storedState) {
+    return new Response("OAuth state mismatch.", { status: 400 });
+  }
+
+  const cookieDomain = getCookieDomain(url.hostname);
+
+  cookies.delete("google_oauth_state", {
+    path: "/",
+    ...(cookieDomain ? { domain: cookieDomain } : {}),
+  });
 
   const tokenRes = await fetch("https://oauth2.googleapis.com/token", {
     method: "POST",
@@ -109,10 +132,10 @@ export const GET: APIRoute = async ({ url, cookies, redirect }) => {
     try {
       const errorData = (await tokenRes.json()) as GoogleTokenResponse;
       if (errorData.error || errorData.error_description) {
-        details = ` ${errorData.error || ""} ${errorData.error_description || ""}`.trim();
+        details = `${errorData.error || ""} ${errorData.error_description || ""}`.trim();
       }
     } catch {
-      // ignore JSON parse errors
+      // ignore parse failure
     }
 
     return new Response(
@@ -128,14 +151,11 @@ export const GET: APIRoute = async ({ url, cookies, redirect }) => {
     return new Response("Missing access token.", { status: 500 });
   }
 
-  const userRes = await fetch(
-    "https://openidconnect.googleapis.com/v1/userinfo",
-    {
-      headers: {
-        Authorization: `Bearer ${accessToken}`,
-      },
-    }
-  );
+  const userRes = await fetch("https://openidconnect.googleapis.com/v1/userinfo", {
+    headers: {
+      Authorization: `Bearer ${accessToken}`,
+    },
+  });
 
   if (!userRes.ok) {
     return new Response("Failed to fetch Google profile.", { status: 500 });
@@ -144,9 +164,7 @@ export const GET: APIRoute = async ({ url, cookies, redirect }) => {
   const payload = (await userRes.json()) as GoogleUserInfo;
 
   const googleSub = String(payload.sub || "").trim();
-  const email = String(payload.email || "")
-    .trim()
-    .toLowerCase();
+  const email = String(payload.email || "").trim().toLowerCase();
   const emailVerified = Boolean(payload.email_verified);
 
   if (!googleSub || !email) {
@@ -186,5 +204,5 @@ export const GET: APIRoute = async ({ url, cookies, redirect }) => {
     return redirect("com.lifestyle.app://auth/success", 302);
   }
 
-  return redirect("/dashboard", 302);
+  return redirect("/", 302);
 };

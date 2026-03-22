@@ -542,12 +542,56 @@ const username = Astro.params.username ?? "";
       `;
     }
 
+    function renderAvatar(profile, visibility) {
+      const avatarVisible = profile?.avatarVisible !== false && visibility?.avatar !== false;
+      if (!avatarVisible) return "";
+
+      const displayName = profile?.displayName || profile?.username || "Profile";
+      const avatarSource = profile?.avatarFileDataUrl || profile?.avatarUrl || "";
+      const initial = String(profile?.displayName || profile?.username || "U").slice(0, 1).toUpperCase();
+      const size = Number(profile?.avatarSize || 116);
+      const zoom = Number(profile?.avatarZoom || 1);
+      const posX = Number(profile?.avatarPositionX ?? 50);
+      const posY = Number(profile?.avatarPositionY ?? 50);
+      const alignment = profile?.avatarAlignment || "left";
+      const useCircle = profile?.avatarUseCircularCrop !== false || profile?.avatarShape === "circle";
+
+      return `
+        <div class="profile-avatar-wrap ${escapeHtml(alignment)}">
+          <div
+            class="profile-avatar-frame ${useCircle ? "circle" : "square"}"
+            style="width:${size}px;height:${size}px;"
+          >
+            ${
+              avatarSource
+                ? `
+                  <div
+                    class="profile-avatar-image"
+                    style="
+                      background-image:url('${escapeHtml(avatarSource)}');
+                      background-size:${zoom * 100}%;
+                      background-position:${posX}% ${posY}%;
+                    "
+                    aria-label="${escapeHtml(displayName)}"
+                    role="img"
+                  ></div>
+                `
+                : `
+                  <div class="profile-avatar-fallback">
+                    ${escapeHtml(initial)}
+                  </div>
+                `
+            }
+          </div>
+        </div>
+      `;
+    }
+
     function renderProfile(profile) {
       const badges = safeArray(profile?.badges);
       const pinned = safeArray(profile?.pinned);
       const activity = safeArray(profile?.activity);
       const visibility = profile?.visibility || {};
-      const displayConfig = safeObject(profile?.displayConfig);
 
       root.innerHTML = `
         <section class="section">
@@ -558,13 +602,7 @@ const username = Astro.params.username ?? "";
             ></div>
 
             <div class="profile-identity-body">
-              <div class="profile-avatar-wrap">
-                ${
-                  profile?.avatarUrl
-                    ? `<img class="profile-avatar" src="${escapeHtml(profile.avatarUrl)}" alt="${escapeHtml(profile?.displayName || profile?.username || "Profile")}"/>`
-                    : `<div class="profile-avatar profile-avatar-fallback">${escapeHtml((profile?.displayName || profile?.username || "U").slice(0, 1).toUpperCase())}</div>`
-                }
-              </div>
+              ${renderAvatar(profile, visibility)}
 
               <div class="profile-identity-copy">
                 <div class="profile-name-row">
@@ -588,7 +626,7 @@ const username = Astro.params.username ?? "";
         ${visibility.activity !== false ? renderActivity(activity) : ""}
       `;
 
-      bindControls(profile, displayConfig);
+      bindControls(profile);
     }
 
     function bindControls(profile) {
@@ -685,22 +723,52 @@ const username = Astro.params.username ?? "";
       gap: 1.25rem;
       padding: 1.5rem;
       margin-top: -58px;
-      align-items: end;
+      align-items: flex-end;
       flex-wrap: wrap;
     }
 
     .profile-avatar-wrap {
-      flex-shrink: 0;
+      display: flex;
+      flex: 0 0 auto;
     }
 
-    .profile-avatar {
-      width: 116px;
-      height: 116px;
-      border-radius: 50%;
-      object-fit: cover;
+    .profile-avatar-wrap.left {
+      justify-content: flex-start;
+    }
+
+    .profile-avatar-wrap.center {
+      justify-content: center;
+    }
+
+    .profile-avatar-wrap.right {
+      justify-content: flex-end;
+    }
+
+    .profile-avatar-frame {
+      overflow: hidden;
       border: 4px solid #fff;
       box-shadow: 0 8px 28px rgba(15, 23, 42, 0.14);
       background: #dbeafe;
+      position: relative;
+      flex: 0 0 auto;
+    }
+
+    .profile-avatar-frame.circle {
+      border-radius: 50%;
+    }
+
+    .profile-avatar-frame.square {
+      border-radius: 20px;
+    }
+
+    .profile-avatar-image,
+    .profile-avatar-fallback {
+      position: absolute;
+      inset: 0;
+    }
+
+    .profile-avatar-image {
+      background-repeat: no-repeat;
     }
 
     .profile-avatar-fallback {
@@ -861,13 +929,12 @@ const username = Astro.params.username ?? "";
         padding: 1rem;
       }
 
-      .profile-avatar {
-        width: 92px;
-        height: 92px;
-      }
-
       .profile-banner {
         min-height: 170px;
+      }
+
+      .profile-avatar-fallback {
+        font-size: 1.6rem;
       }
     }
   </style>

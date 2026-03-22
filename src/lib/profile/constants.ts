@@ -36,12 +36,17 @@ export const PROFILE_SURFACE_TEXTURE_OPTIONS = [
   "matte",
 ] as const;
 
+export const PROFILE_AVATAR_ALIGNMENT_OPTIONS = ["left", "center", "right"] as const;
+export const PROFILE_AVATAR_SHAPE_OPTIONS = ["circle", "square"] as const;
+
 export type ProfileThemeMode = (typeof PROFILE_THEME_OPTIONS)[number];
 export type ProfileTextSize = (typeof PROFILE_TEXT_SIZE_OPTIONS)[number];
 export type ProfileStatSection = (typeof PROFILE_STAT_SECTIONS)[number];
 export type ProfileTimeRange = (typeof PROFILE_TIME_RANGE_OPTIONS)[number];
 export type ProfileUiScope = (typeof PROFILE_UI_SCOPE_OPTIONS)[number];
 export type ProfileSurfaceTexture = (typeof PROFILE_SURFACE_TEXTURE_OPTIONS)[number];
+export type ProfileAvatarAlignment = (typeof PROFILE_AVATAR_ALIGNMENT_OPTIONS)[number];
+export type ProfileAvatarShape = (typeof PROFILE_AVATAR_SHAPE_OPTIONS)[number];
 
 export type ProfileBadge = {
   id: string;
@@ -146,6 +151,9 @@ export type ProfileSettings = {
   avatarPositionX: number;
   avatarPositionY: number;
   avatarVisible: boolean;
+  avatarAlignment: ProfileAvatarAlignment;
+  avatarShape: ProfileAvatarShape;
+  avatarUseCircularCrop: boolean;
   location: string;
   headline: string;
   pinnedItemIds: string[];
@@ -172,6 +180,9 @@ export const DEFAULT_PROFILE_SETTINGS: ProfileSettings = {
   avatarPositionX: 50,
   avatarPositionY: 50,
   avatarVisible: true,
+  avatarAlignment: "left",
+  avatarShape: "circle",
+  avatarUseCircularCrop: true,
   location: "",
   headline: "",
   pinnedItemIds: [],

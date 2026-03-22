@@ -1,9 +1,4 @@
 ---
-/**
- * Login page.
- * Handles user sign-in flow and account access
- * for returning users of the lifestyle app.
- */
 import BaseLayout from "../layouts/BaseLayout.astro";
 
 const message = Astro.url.searchParams.get("message");
@@ -27,9 +22,9 @@ const message = Astro.url.searchParams.get("message");
           Sign in with email and password or continue with Google.
         </p>
 
-
-
-        <p id="login-message" class="auth-note" style="display:none;"></p>
+        <p id="login-message" class="auth-note" style={message ? "" : "display:none;"}>
+          {message || ""}
+        </p>
 
         <form id="login-form" class="auth-form">
           <label for="email">Email</label>
@@ -43,6 +38,10 @@ const message = Astro.url.searchParams.get("message");
           </button>
         </form>
 
+        <a href="/api/auth/google/start" class="auth-button google-button">
+          Continue with Google
+        </a>
+
         <p class="auth-footer">
           Don’t have an account?
           <a href="/signup">Create one</a>
@@ -51,68 +50,9 @@ const message = Astro.url.searchParams.get("message");
         <p class="auth-footer">
           <a href="/forgot-password">Forgot password?</a>
         </p>
-
-        <div
-          id="g_id_onload"
-          data-client_id={import.meta.env.PUBLIC_GOOGLE_CLIENT_ID}
-          data-callback="handleGoogleLogin">
-        </div>
-
-        <div
-          class="g_id_signin"
-          data-type="standard"
-          data-size="large"
-          data-theme="outline"
-          data-text="continue_with"
-          data-shape="rectangular"
-          data-logo_alignment="left">
-        </div>
       </div>
     </div>
   </section>
-
-  <script src="https://accounts.google.com/gsi/client" async defer></script>
-
-  <script is:inline>
-    window.handleGoogleLogin = async (response) => {
-      const loginMessage = document.getElementById("login-message");
-
-      const setMessage = (text, isError = false) => {
-        if (!loginMessage) return;
-        loginMessage.textContent = text;
-        loginMessage.style.display = text ? "block" : "none";
-        loginMessage.style.color = isError ? "#b42318" : "";
-      };
-
-      try {
-        setMessage("");
-
-        const res = await fetch("/api/auth/google", {
-          method: "POST",
-          credentials: "include",
-          headers: {
-            "Content-Type": "application/json",
-          },
-          body: JSON.stringify({
-            credential: response.credential,
-          }),
-        });
-
-        const data = await res.json().catch(() => ({}));
-
-        if (!res.ok || !data.user) {
-          setMessage(data.error || "Google sign-in failed.", true);
-          return;
-        }
-
-        setMessage("Google login successful. Redirecting...");
-        window.location.href = "/";
-      } catch (err) {
-        console.error("Google login error:", err);
-        setMessage("Google login request failed.", true);
-      }
-    };
-  </script>
 
   <script is:inline>
     const loginForm = document.getElementById("login-form");
@@ -120,7 +60,6 @@ const message = Astro.url.searchParams.get("message");
 
     function setMessage(text, isError = false) {
       if (!loginMessage) return;
-
       loginMessage.textContent = text;
       loginMessage.style.display = text ? "block" : "none";
       loginMessage.style.color = isError ? "#b42318" : "";
@@ -140,7 +79,6 @@ const message = Astro.url.searchParams.get("message");
       }
 
       const submitButton = loginForm.querySelector('button[type="submit"]');
-
       if (submitButton) submitButton.disabled = true;
 
       try {
