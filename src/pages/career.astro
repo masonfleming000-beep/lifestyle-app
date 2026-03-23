@@ -1,98 +1,12 @@
 ---
-/**
- * Career page.
- * Serves as a hub for professional goals, planning,
- * and career-related resources or personal development content.
- */
 import BaseLayout from "../layouts/BaseLayout.astro";
-import Button from "../components/Button.astro";
-import PageHero from "../components/PageHero.astro";
-import QuickLinkCard from "../components/QuickLinkCard.astro";
-import SectionHeader from "../components/SectionHeader.astro";
-import SurfaceCard from "../components/SurfaceCard.astro";
+import DeclarativePage from "../components/config/DeclarativePage.astro";
+import { careerPageConfig } from "../config/pages/career";
 ---
 
-<BaseLayout title="Career | Lifestyle App" description="Career hub">
-  <PageHero
-    kicker="Career"
-    title="Build once. Curate later."
-    description="Use the information side to add, organize, and manage your career content. Use the portfolio side to show only the pieces you want public-facing."
-  >
-    <div class="career-hero-actions">
-      <Button href="/career/information" variant="primary">Open Information</Button>
-      <Button href="/career/portfolio">Open Portfolio</Button>
-    </div>
-  </PageHero>
-
-  <section class="section">
-    <SectionHeader
-      title="Career workspace"
-      subtitle="Use shared entry points to manage source content and preview what is public-facing."
-      kicker="Navigation"
-      align="center"
-    />
-
-    <div class="grid two">
-      <QuickLinkCard
-        href="/career/information"
-        title="Information"
-        text="Add and manage projects, work experience, school development, story, stats, timeline, STAR moments, and more."
-      />
-
-      <QuickLinkCard
-        href="/career/portfolio"
-        title="Portfolio"
-        text="Public-facing view. Only displays the items you choose to show."
-      />
-    </div>
-  </section>
-
-  <section class="section">
-    <SurfaceCard className="career-overview-card">
-      <SectionHeader
-        title="How this works"
-        subtitle="The page flow stays simple: maintain your source material once, then selectively surface it in your portfolio."
-        kicker="Workflow"
-      />
-
-      <ol class="career-steps list-clean">
-        <li>Add or update your source content in the Information page.</li>
-        <li>Mark the items you want public as visible in portfolio.</li>
-        <li>Open Portfolio to preview what visitors will actually see.</li>
-        <li>Keep iterating without duplicating the same content across pages.</li>
-      </ol>
-
-      <div class="career-action-row">
-        <Button href="/career/information" variant="primary">Manage Content</Button>
-        <Button href="/career/portfolio">Preview Portfolio</Button>
-      </div>
-    </SurfaceCard>
-  </section>
-
-  <style>
-    .career-hero-actions,
-    .career-action-row {
-      display: flex;
-      flex-wrap: wrap;
-      gap: 0.75rem;
-      margin-top: 0.4rem;
-    }
-
-    .career-overview-card {
-      display: grid;
-      gap: 1rem;
-    }
-
-    .career-steps {
-      display: grid;
-      gap: 0.7rem;
-      margin: 0;
-      padding-left: 1.25rem;
-      color: var(--text-main);
-    }
-
-    .career-steps li {
-      line-height: 1.55;
-    }
-  </style>
+<BaseLayout
+  title={careerPageConfig.meta.title}
+  description={careerPageConfig.meta.description}
+>
+  <DeclarativePage config={careerPageConfig} />
 </BaseLayout>

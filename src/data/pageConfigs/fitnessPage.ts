@@ -31,8 +31,8 @@ export const fitnessPageConfig: ConfigDrivenPage = {
       subtitle: "Edit, add, delete, or restore your default weekly notes.",
       surface: "card",
       mode: "list",
-      listId: "fitness-weekly-notes-list",
-      editButtonId: "fitness-weekly-notes-edit-btn",
+      listId: "weekly-notes-list",
+      editButtonId: "weekly-notes-edit-btn",
       emptyText: "No training notes yet.",
     },
   ],
@@ -42,8 +42,8 @@ export const fitnessEditableSections: EditableCollectionControllerSection[] = [
   {
     key: "weeklyNotes",
     mode: "list",
-    listId: "fitness-weekly-notes-list",
-    editButtonId: "fitness-weekly-notes-edit-btn",
+    listId: "weekly-notes-list",
+    editButtonId: "weekly-notes-edit-btn",
     defaults: [...weeklySplit],
   },
 ];

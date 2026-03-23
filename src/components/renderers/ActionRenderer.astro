@@ -1,34 +1,26 @@
 ---
-import Button from "../ui/Button.astro";
-
-interface ActionConfig {
-  label: string;
-  id?: string;
-  type?: "button" | "submit" | "reset";
-  variant?: "primary" | "secondary" | "danger";
-  size?: "sm" | "md";
-  hidden?: boolean;
-  dataAction?: string;
-  class?: string;
-}
+import ActionBar from "../ActionBar.astro";
+import type { ActionAlign, ActionItemConfig } from "../../types/ui";
 
 interface Props {
-  actions?: ActionConfig[];
+  actions?: ActionItemConfig[];
+  align?: ActionAlign;
+  wrap?: boolean;
+  className?: string;
+  hidden?: boolean;
+  id?: string;
 }
 
-const { actions = [] } = Astro.props;
+const {
+  actions = [],
+  align = "start",
+  wrap = true,
+  className = "",
+  hidden = false,
+  id,
+} = Astro.props;
 ---
 
-{actions.map((action) => (
-  <Button
-    id={action.id}
-    type={action.type || "button"}
-    variant={action.variant || "secondary"}
-    size={action.size || "md"}
-    hidden={action.hidden}
-    dataAction={action.dataAction}
-    class={action.class}
-  >
-    {action.label}
-  </Button>
-))}
+<div id={id || undefined} class:list={[className, hidden && "today-form-hidden"]}>
+  <ActionBar actions={actions} align={align} wrap={wrap} />
+</div>

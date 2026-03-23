@@ -1,0 +1,28 @@
+---
+import SectionLeafRenderer from "./SectionLeafRenderer.astro";
+import type { GridColumns, RendererSectionConfig } from "../../types/ui";
+
+interface Props {
+  section: RendererSectionConfig;
+}
+
+const { section } = Astro.props;
+
+function gridClass(columns?: GridColumns) {
+  if (columns === 1) return "declarative-grid-1";
+  if (columns === 3) return "declarative-grid-3";
+  return "declarative-grid-2";
+}
+---
+
+{section.kind === "group" ? (
+  <section class="section">
+    <div class:list={["grid", gridClass(section.columns)]}>
+      {section.children.map((child) => <SectionLeafRenderer section={child} />)}
+    </div>
+  </section>
+) : (
+  <section class="section">
+    <SectionLeafRenderer section={section} />
+  </section>
+)}

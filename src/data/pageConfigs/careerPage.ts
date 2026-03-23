@@ -18,15 +18,15 @@ export const careerPageConfig: ConfigDrivenPage = {
       columns: 2,
       items: [
         {
-          href: "/career/portfolio",
-          title: "Portfolio",
-          text: "Public-facing view. Only displays the items you choose to show.",
-        },
-        {
           href: "/career/information",
           title: "Information",
           text:
             "Add and manage projects, work experience, school development, story, stats, timeline, STAR moments, and more.",
+        },
+        {
+          href: "/career/portfolio",
+          title: "Portfolio",
+          text: "Public-facing view. Only displays the items you choose to show.",
         },
       ],
     },
@@ -36,10 +36,10 @@ export const careerPageConfig: ConfigDrivenPage = {
       title: "How this works",
       surface: "card",
       items: [
-        "Add content in the Information page.",
-        "Mark items as visible in portfolio when you want them public.",
-        "Portfolio automatically reads and displays only selected content.",
-        "Each section uses a layout that fits what it contains.",
+        "Add or update your source content in the Information page.",
+        "Mark the items you want public as visible in portfolio.",
+        "Open Portfolio to preview what visitors will actually see.",
+        "Keep iterating without duplicating the same content across pages.",
       ],
     },
   ],

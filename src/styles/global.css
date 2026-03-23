@@ -1498,3 +1498,150 @@ iframe {
   color: var(--text-muted);
   line-height: 1.55;
 }
+
+
+.shared-checkbox-input,
+.workout-step-checkbox,
+.assignment-check,
+.group-hit-checkbox,
+.settings-checkbox,
+.today-checkbox,
+.checkbox-row input[type="checkbox"] {
+  inline-size: 1.05rem;
+  block-size: 1.05rem;
+  min-inline-size: 1.05rem;
+  min-block-size: 1.05rem;
+  margin: 0;
+  accent-color: var(--accent-color, #4f7cff);
+  vertical-align: top;
+  flex: 0 0 1.05rem;
+}
+
+.workout-step-header,
+.checkbox-row,
+.assignment-main,
+.routine-item > label,
+.group-hit-label,
+.settings-toggle-row {
+  align-items: flex-start;
+}
+
+.workout-step-header {
+  display: grid;
+  grid-template-columns: 1.05rem minmax(0, 1fr);
+  gap: 0.875rem;
+}
+
+.workout-step-copy {
+  min-width: 0;
+}
+
+.workout-step-card {
+  list-style: none;
+}
+
+.workout-live-list {
+  margin: 0;
+  padding: 0;
+}
+.checklist-card-toggle input,
+.assignment-check,
+.routine-left input[type="checkbox"],
+.checkbox-row input[type="checkbox"],
+.group-hit-checkbox,
+.settings-checkbox,
+.today-checkbox,
+.workout-step-checkbox,
+input[type="checkbox"] {
+  appearance: none;
+  -webkit-appearance: none;
+  inline-size: 1.1rem;
+  block-size: 1.1rem;
+  min-inline-size: 1.1rem;
+  min-block-size: 1.1rem;
+  margin: 0.12rem 0 0;
+  flex: 0 0 1.1rem;
+  border: 1.5px solid var(--border-medium);
+  border-radius: 0.38rem;
+  background: var(--input-bg);
+  box-shadow: 0 1px 2px rgba(15, 23, 42, 0.08);
+  display: inline-grid;
+  place-content: center;
+  cursor: pointer;
+  transition:
+    border-color 160ms ease,
+    background-color 160ms ease,
+    box-shadow 160ms ease,
+    transform 160ms ease;
+}
+
+.checklist-card-toggle input::before,
+.assignment-check::before,
+.routine-left input[type="checkbox"]::before,
+.checkbox-row input[type="checkbox"]::before,
+.group-hit-checkbox::before,
+.settings-checkbox::before,
+.today-checkbox::before,
+.workout-step-checkbox::before,
+input[type="checkbox"]::before {
+  content: "";
+  inline-size: 0.62rem;
+  block-size: 0.62rem;
+  transform: scale(0);
+  transform-origin: center;
+  transition: transform 160ms ease;
+  background: var(--button-text);
+  clip-path: polygon(14% 44%, 0 58%, 42% 100%, 100% 20%, 84% 6%, 38% 62%);
+}
+
+.checklist-card-toggle input:hover,
+.assignment-check:hover,
+.routine-left input[type="checkbox"]:hover,
+.checkbox-row input[type="checkbox"]:hover,
+.group-hit-checkbox:hover,
+.settings-checkbox:hover,
+.today-checkbox:hover,
+.workout-step-checkbox:hover,
+input[type="checkbox"]:hover {
+  border-color: var(--text-main);
+  box-shadow: 0 0 0 0.18rem rgba(15, 23, 42, 0.08);
+}
+
+.checklist-card-toggle input:checked,
+.assignment-check:checked,
+.routine-left input[type="checkbox"]:checked,
+.checkbox-row input[type="checkbox"]:checked,
+.group-hit-checkbox:checked,
+.settings-checkbox:checked,
+.today-checkbox:checked,
+.workout-step-checkbox:checked,
+input[type="checkbox"]:checked {
+  background: var(--text-main);
+  border-color: var(--text-main);
+}
+
+.checklist-card-toggle input:checked::before,
+.assignment-check:checked::before,
+.routine-left input[type="checkbox"]:checked::before,
+.checkbox-row input[type="checkbox"]:checked::before,
+.group-hit-checkbox:checked::before,
+.settings-checkbox:checked::before,
+.today-checkbox:checked::before,
+.workout-step-checkbox:checked::before,
+input[type="checkbox"]:checked::before {
+  transform: scale(1);
+}
+
+.checklist-card-toggle input:focus-visible,
+.assignment-check:focus-visible,
+.routine-left input[type="checkbox"]:focus-visible,
+.checkbox-row input[type="checkbox"]:focus-visible,
+.group-hit-checkbox:focus-visible,
+.settings-checkbox:focus-visible,
+.today-checkbox:focus-visible,
+.workout-step-checkbox:focus-visible,
+input[type="checkbox"]:focus-visible {
+  outline: none;
+  border-color: var(--text-main);
+  box-shadow: 0 0 0 0.22rem rgba(15, 23, 42, 0.12);
+}

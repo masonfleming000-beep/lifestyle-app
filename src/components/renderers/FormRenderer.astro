@@ -1,40 +1,18 @@
 ---
-import FormCard from "../FormCard.astro";
+import ActionRenderer from "./ActionRenderer.astro";
+import FieldRenderer from "./FieldRenderer.astro";
+import type { RendererFormConfig } from "../../types/ui";
 
 interface Props {
-  formId?: string;
-  class?: string;
-  title?: string;
-  subtitle?: string;
-  kicker?: string;
-  submitLabel?: string;
-  submitVariant?: "primary" | "secondary";
-  compact?: boolean;
+  form?: RendererFormConfig;
 }
 
-const {
-  formId,
-  class: className = "",
-  title = "",
-  subtitle = "",
-  kicker = "",
-  submitLabel = "Save",
-  submitVariant = "primary",
-  compact = true,
-} = Astro.props;
+const { form } = Astro.props;
 ---
 
-<div class:list={["form-renderer", className]}>
-  <FormCard
-    formId={formId}
-    title={title}
-    subtitle={subtitle}
-    kicker={kicker}
-    submitLabel={submitLabel}
-    submitVariant={submitVariant}
-    compact={compact}
-  >
-    <slot />
-    <slot name="actions" slot="actions" />
-  </FormCard>
-</div>
+{form && (
+  <form id={form.id} class:list={["todo-form", "today-form", form.className, form.hidden && "today-form-hidden"]}>
+    {form.fields.map((field) => <FieldRenderer field={field} />)}
+    {form.actions?.length ? <ActionRenderer actions={form.actions} /> : null}
+  </form>
+)}

@@ -31,14 +31,18 @@ const defaultWorkData = JSON.stringify({
 
   <section class="section">
     <div class="education-shell">
-      <SurfaceCard className="education-panel">
-        <SectionHeader
-          title="Due This Week"
-          subtitle="Closest deadlines first."
-          align="start"
-        />
-        <div id="due-this-week" class="education-list"></div>
-      </SurfaceCard>
+      <details class="dropdown-card surface-dropdown education-panel" open>
+        <summary>
+          <div>
+            <h2 class="section-title">Due This Week</h2>
+            <p class="section-subtitle">Closest deadlines first.</p>
+          </div>
+          <span class="dropdown-arrow">⌄</span>
+        </summary>
+        <div class="dropdown-content">
+          <div id="due-this-week" class="education-list"></div>
+        </div>
+      </details>
 
       <SurfaceCard className="education-panel">
         <SectionHeader
@@ -49,14 +53,18 @@ const defaultWorkData = JSON.stringify({
         <div id="meetings-list" class="education-list"></div>
       </SurfaceCard>
 
-      <SurfaceCard className="education-panel">
-        <SectionHeader
-          title="All Upcoming Tasks"
-          subtitle="Sorted by due date and time."
-          align="start"
-        />
-        <div id="all-upcoming" class="education-list"></div>
-      </SurfaceCard>
+      <details class="dropdown-card surface-dropdown education-panel" open>
+        <summary>
+          <div>
+            <h2 class="section-title">All Upcoming Tasks</h2>
+            <p class="section-subtitle">Sorted by due date and time.</p>
+          </div>
+          <span class="dropdown-arrow">⌄</span>
+        </summary>
+        <div class="dropdown-content">
+          <div id="all-upcoming" class="education-list"></div>
+        </div>
+      </details>
 
       <FormCard
         title="Add Task"

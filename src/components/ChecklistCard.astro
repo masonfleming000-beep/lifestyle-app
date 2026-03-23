@@ -22,6 +22,7 @@ interface Props {
   mode?: "checklist" | "list";
   compact?: boolean;
   padded?: boolean;
+  listDataKey?: string;
 }
 
 const {
@@ -36,6 +37,7 @@ const {
   mode = "checklist",
   compact = false,
   padded = true,
+  listDataKey = "",
 } = Astro.props;
 
 const normalizedItems = items.map((item, index) => {
@@ -51,12 +53,15 @@ const normalizedItems = items.map((item, index) => {
 });
 ---
 
-<article id={id || undefined} class:list={[
-  "checklist-card",
-  "surface-section",
-  compact && "checklist-card-compact",
-  padded && "checklist-card-padded",
-]}>
+<article
+  id={id || undefined}
+  class:list={[
+    "checklist-card",
+    "surface-section",
+    compact && "checklist-card-compact",
+    padded && "checklist-card-padded",
+  ]}
+>
   <div class="checklist-card-header">
     <div class="checklist-card-heading">
       {kicker && <p class="kicker">{kicker}</p>}
@@ -73,16 +78,23 @@ const normalizedItems = items.map((item, index) => {
 
   {
     normalizedItems.length > 0 ? (
-      <ul id={listId || undefined} class:list={[
-        "checklist-card-list",
-        mode === "checklist" ? "routine-list" : "list-clean",
-      ]}>
+      <ul
+        id={listId || undefined}
+        data-section-key={listDataKey || undefined}
+        class:list={[
+          "checklist-card-list",
+          mode === "checklist" ? "routine-list" : "list-clean",
+        ]}
+      >
         {normalizedItems.map((item) => (
-          <li class:list={[
-            "checklist-card-item",
-            mode === "checklist" ? "routine-item" : "todo-item",
-            item.done && "is-done",
-          ]} data-item-id={String(item.id)}>
+          <li
+            class:list={[
+              "checklist-card-item",
+              mode === "checklist" ? "routine-item" : "todo-item",
+              item.done && "is-done",
+            ]}
+            data-item-id={String(item.id)}
+          >
             {mode === "checklist" ? (
               <label class="checklist-card-toggle">
                 <input type="checkbox" checked={item.done} />
@@ -179,9 +191,7 @@ const normalizedItems = items.map((item, index) => {
   }
 
   .checklist-card-toggle input {
-    margin: 0;
-    accent-color: var(--text-main);
-    flex: 0 0 auto;
+    flex-shrink: 0;
   }
 
   .checklist-card-toggle span,

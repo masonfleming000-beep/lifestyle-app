@@ -1,0 +1,18 @@
+export const sharedTagColors = [
+  '#2f5d62',
+  '#111827',
+  '#6b7280',
+  '#2563eb',
+  '#38bdf8',
+  '#16a34a',
+  '#4ade80',
+  '#dc2626',
+  '#f87171',
+  '#ea580c',
+  '#fb923c',
+  '#fde047',
+  '#6a3fa0',
+  '#a78bfa',
+  '#db2777',
+  '#7a4b2a',
+] as const;

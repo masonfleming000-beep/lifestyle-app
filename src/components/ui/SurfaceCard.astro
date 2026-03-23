@@ -5,17 +5,19 @@
 interface Props {
   as?: "article" | "div" | "section";
   class?: string;
+  id?: string;
 }
 
 const {
   as = "article",
   class: className = "",
+  id = "",
 } = Astro.props;
 
 const Tag = as;
 ---
 
-<Tag class:list={["card", "surface-card", className]}>
+<Tag id={id || undefined} class:list={["card", "surface-card", className]}>
   <slot />
 </Tag>
 

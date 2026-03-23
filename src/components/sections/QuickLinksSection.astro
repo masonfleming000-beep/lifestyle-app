@@ -1,0 +1,55 @@
+---
+import SurfaceCard from "../ui/SurfaceCard.astro";
+import SectionHeader from "../SectionHeader.astro";
+import ActionRenderer from "../renderers/ActionRenderer.astro";
+import QuickLinkCard from "../QuickLinkCard.astro";
+import type { ActionItemConfig, GridColumns, QuickLinkItemConfig } from "../../types/ui";
+
+interface Props {
+  id?: string;
+  title: string;
+  subtitle?: string;
+  kicker?: string;
+  items: QuickLinkItemConfig[];
+  columns?: GridColumns;
+  actions?: ActionItemConfig[];
+  containerId?: string;
+  containerClassName?: string;
+  sectionClassName?: string;
+}
+
+const {
+  id,
+  title,
+  subtitle = "",
+  kicker = "",
+  items = [],
+  columns = 2,
+  actions = [],
+  containerId = "",
+  containerClassName = "",
+  sectionClassName = "",
+} = Astro.props;
+
+function gridClass(value: GridColumns) {
+  if (value === 1) return "quick-links-grid--list";
+  if (value === 3) return "quick-links-grid--triple";
+  return "quick-links-grid--grid";
+}
+---
+
+<div class={sectionClassName || undefined}>
+  <SurfaceCard id={id}>
+    <SectionHeader title={title} subtitle={subtitle} kicker={kicker}>
+      {actions.length > 0 && <ActionRenderer actions={actions} align="end" wrap={true} />}
+      <slot name="actions" />
+    </SectionHeader>
+
+    <div
+      id={containerId || undefined}
+      class:list={["quick-links-grid", gridClass(columns), containerClassName]}
+    >
+      {items.map((item) => <QuickLinkCard href={item.href} title={item.title} text={item.text || ""} />)}
+    </div>
+  </SurfaceCard>
+</div>

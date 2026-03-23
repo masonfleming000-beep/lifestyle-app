@@ -5,9 +5,12 @@
 interface ActionItem {
   label: string;
   id?: string;
+  href?: string;
   type?: "button" | "submit" | "reset";
   variant?: "primary" | "secondary" | "danger";
   disabled?: boolean;
+  className?: string;
+  dataAction?: string;
 }
 
 interface Props {
@@ -31,14 +34,27 @@ function classForVariant(variant?: string) {
 
 <div class:list={["editor-toolbar", `action-bar-${align}`, wrap && "action-bar-wrap"]}>
   {actions.map((action) => (
-    <button
-      id={action.id || undefined}
-      type={action.type || "button"}
-      class={classForVariant(action.variant)}
-      disabled={action.disabled}
-    >
-      {action.label}
-    </button>
+    action.href ? (
+      <a
+        id={action.id || undefined}
+        href={action.href}
+        class:list={[classForVariant(action.variant), "action-bar-link", action.className, action.disabled && "is-disabled"]}
+        data-action={action.dataAction || undefined}
+        aria-disabled={action.disabled ? "true" : undefined}
+      >
+        {action.label}
+      </a>
+    ) : (
+      <button
+        id={action.id || undefined}
+        type={action.type || "button"}
+        class:list={[classForVariant(action.variant), action.className]}
+        disabled={action.disabled}
+        data-action={action.dataAction || undefined}
+      >
+        {action.label}
+      </button>
+    )
   ))}
 
   <slot />
@@ -59,5 +75,17 @@ function classForVariant(variant?: string) {
 
   .action-bar-between {
     justify-content: space-between;
+  }
+
+  .action-bar-link {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    text-decoration: none;
+  }
+
+  .action-bar-link.is-disabled {
+    pointer-events: none;
+    opacity: 0.6;
   }
 </style>

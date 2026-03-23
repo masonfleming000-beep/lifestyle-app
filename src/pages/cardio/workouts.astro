@@ -792,25 +792,35 @@ function formatSecondsAsPace(totalSecondsPerMile) {
   return `${minutes}:${String(seconds).padStart(2, "0")} / mile`;
 }
 
+function isFinishStep(step) {
+  const text = String(step?.text || "").toLowerCase();
+  return text.includes("finish");
+}
+
 function getCompletedSteps(workout) {
   return Array.isArray(workout?.steps) ? workout.steps.filter((step) => step?.done) : [];
 }
 
+function getMetricCompletedSteps(workout) {
+  return getCompletedSteps(workout).filter((step) => !isFinishStep(step));
+}
+
 function getCompletedStepsMatching(workout, matcher) {
-  return getCompletedSteps(workout).filter((step) => matcher(step));
+  return getMetricCompletedSteps(workout).filter((step) => matcher(step));
 }
 
 function getCompletedStepsByKeyword(workout, keyword) {
   const lower = String(keyword || "").toLowerCase();
-  return getCompletedSteps(workout).filter((step) =>
+  return getMetricCompletedSteps(workout).filter((step) =>
     `${step?.text || ""} ${step?.target || ""}`.toLowerCase().includes(lower)
   );
 }
 
 function getCompletionPercent(workout) {
-  const total = Array.isArray(workout?.steps) ? workout.steps.length : 0;
+  const metricSteps = Array.isArray(workout?.steps) ? workout.steps.filter((step) => !isFinishStep(step)) : [];
+  const total = metricSteps.length;
   if (!total) return 0;
-  const completed = getCompletedSteps(workout).length;
+  const completed = metricSteps.filter((step) => step?.done).length;
   return Math.round((completed / total) * 100);
 }
 
@@ -986,7 +996,7 @@ function isDistanceSplitStep(step) {
 }
 
 function calculateRunLikeMetrics(workout) {
-  const completedSplits = getCompletedSteps(workout).filter((step) => isDistanceSplitStep(step));
+  const completedSplits = getMetricCompletedSteps(workout).filter((step) => isDistanceSplitStep(step));
   const splitTimesSeconds = completedSplits
     .map((step) => parseSecondsOrMinutes(step.actual))
     .filter((value) => value > 0);
@@ -1921,10 +1931,20 @@ function renderVisibleMetrics() {
         const checkbox = document.createElement("input");
         checkbox.type = "checkbox";
         checkbox.checked = !!step.done;
-        checkbox.className = "workout-step-checkbox";
+        checkbox.className = "workout-step-checkbox shared-checkbox-input";
+        checkbox.setAttribute("aria-label", `Mark ${step.text} complete`);
 
         checkbox.addEventListener("change", () => {
           activeWorkout.steps[index].done = checkbox.checked;
+          const calculated = calculateWorkoutMetrics(activeWorkout);
+          if (Object.values(calculated).some((value) => value !== "" && value !== 0 && value != null)) {
+            visibleMetrics = {
+              ...visibleMetrics,
+              ...calculated,
+            };
+            if (calculationMode !== "manual") calculationMode = "auto";
+            renderVisibleMetrics();
+          }
           renderLiveWorkout(activeWorkout);
         });
 
@@ -1960,6 +1980,18 @@ function renderVisibleMetrics() {
 
         actualInput.addEventListener("input", (event) => {
           activeWorkout.steps[index].actual = event.target.value;
+        });
+
+        actualInput.addEventListener("change", () => {
+          const calculated = calculateWorkoutMetrics(activeWorkout);
+          if (Object.values(calculated).some((value) => value !== "" && value !== 0 && value != null)) {
+            visibleMetrics = {
+              ...visibleMetrics,
+              ...calculated,
+            };
+            if (calculationMode !== "manual") calculationMode = "auto";
+            renderVisibleMetrics();
+          }
         });
 
         actualWrap.appendChild(actualLabel);
@@ -2011,6 +2043,15 @@ function renderVisibleMetrics() {
 
     saveCompletedWorkoutButton?.addEventListener("click", async () => {
       if (!activeWorkout) return;
+
+      const finishStep = Array.isArray(activeWorkout.steps)
+        ? activeWorkout.steps.find((step) => isFinishStep(step))
+        : null;
+
+      if (finishStep && !finishStep.done) {
+        window.alert("Check off the finish step before saving this workout.");
+        return;
+      }
 
       const completedSteps = getCompletedLiveSteps(activeWorkout);
 
