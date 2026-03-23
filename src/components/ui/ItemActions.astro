@@ -1,0 +1,21 @@
+---
+interface Props {
+  visible?: boolean;
+  class?: string;
+}
+
+const { visible = true, class: className = "" } = Astro.props;
+---
+
+<div class:list={["item-actions", className]} hidden={!visible}>
+  <slot />
+</div>
+
+<style>
+  .item-actions {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.5rem;
+    flex: 0 0 auto;
+  }
+</style>

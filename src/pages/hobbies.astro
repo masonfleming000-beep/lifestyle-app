@@ -6,6 +6,9 @@
  */
 import BaseLayout from "../layouts/BaseLayout.astro";
 import PageHero from "../components/PageHero.astro";
+import SurfaceCard from "../components/SurfaceCard.astro";
+import SectionHeader from "../components/SectionHeader.astro";
+import Button from "../components/Button.astro";
 import { hobbies as seedHobbies } from "../data/hobbies";
 
 const seed = JSON.stringify(seedHobbies);
@@ -23,23 +26,18 @@ const defaultHobbiesData = JSON.stringify({
   <section class="section">
     <div id="hobby-app" data-seed={seed}>
       <div class="grid two">
-        <article class="card">
-          <div class="section-header">
-            <div>
-              <h2 class="section-title">Controls</h2>
-              <p class="section-subtitle">Manage hobbies and filter what you see.</p>
-            </div>
-          </div>
+        <SurfaceCard>
+          <SectionHeader
+            title="Controls"
+            subtitle="Manage hobbies and filter what you see."
+            align="start"
+          />
 
           <div class="form-stack">
             <div class="button-row">
-              <button class="ui-button" id="add-hobby-btn" type="button">Add Hobby</button>
-              <button class="ui-button ui-button-secondary" id="delete-hobby-btn" type="button">
-                Delete Selected
-              </button>
-              <button class="ui-button ui-button-secondary" id="restore-hobbies-btn" type="button">
-                Restore Defaults
-              </button>
+              <Button id="add-hobby-btn" type="button" variant="primary">Add Hobby</Button>
+              <Button id="delete-hobby-btn" type="button" variant="secondary">Delete Selected</Button>
+              <Button id="restore-hobbies-btn" type="button" variant="secondary">Restore Defaults</Button>
             </div>
 
             <div class="field-group">
@@ -64,31 +62,27 @@ const defaultHobbiesData = JSON.stringify({
               <input id="search-hobbies" class="ui-input" type="text" placeholder="Search hobbies..." />
             </div>
           </div>
-        </article>
+        </SurfaceCard>
 
-        <article class="card soft">
-          <div class="section-header">
-            <div>
-              <h2 class="section-title">Hobby List</h2>
-              <p class="section-subtitle">Quick view of all hobbies.</p>
-            </div>
-          </div>
+        <SurfaceCard soft={true}>
+          <SectionHeader
+            title="Hobby List"
+            subtitle="Quick view of all hobbies."
+            align="start"
+          />
           <div id="hobby-card-list" class="hobby-card-list"></div>
-        </article>
+        </SurfaceCard>
       </div>
 
       <section class="section">
-        <article class="card hobby-summary-card">
-          <div class="section-header">
-            <div>
-              <h2 class="section-title">Selected Hobby</h2>
-              <p class="section-subtitle">View collapsed by default. Edit only when needed.</p>
-            </div>
-            <div class="button-row">
-              <button class="ui-button ui-button-secondary" id="toggle-summary-btn" type="button">Collapse</button>
-              <button class="ui-button" id="edit-summary-btn" type="button">Edit</button>
-            </div>
-          </div>
+        <SurfaceCard className="hobby-summary-card">
+          <SectionHeader
+            title="Selected Hobby"
+            subtitle="View collapsed by default. Edit only when needed."
+          >
+            <Button id="toggle-summary-btn" type="button" variant="secondary">Collapse</Button>
+            <Button id="edit-summary-btn" type="button" variant="primary">Edit</Button>
+          </SectionHeader>
 
           <div id="empty-state" class="empty-state" hidden>
             No hobby selected yet. Add one to get started.
@@ -155,84 +149,73 @@ const defaultHobbiesData = JSON.stringify({
             <div class="summary-grid" id="summary-grid"></div>
 
             <div class="button-row top-gap">
-              <button class="ui-button" id="save-hobby-btn" type="button">Save Hobby Changes</button>
+              <Button id="save-hobby-btn" type="button" variant="primary">Save Hobby Changes</Button>
             </div>
           </div>
-        </article>
+        </SurfaceCard>
       </section>
 
       <section class="section">
         <div class="grid two">
-          <article class="card">
-            <div class="section-header">
-              <div>
-                <h2 class="section-title">Stages</h2>
-                <p class="section-subtitle">Track progress inside each hobby.</p>
-              </div>
-              <div class="button-row">
-                <button class="ui-button ui-button-secondary" id="toggle-stages-btn" type="button">Collapse</button>
-                <button class="ui-button" id="edit-stages-btn" type="button">Edit</button>
-              </div>
-            </div>
+          <SurfaceCard>
+            <SectionHeader
+              title="Stages"
+              subtitle="Track progress inside each hobby."
+            >
+              <Button id="toggle-stages-btn" type="button" variant="secondary">Collapse</Button>
+              <Button id="edit-stages-btn" type="button" variant="primary">Edit</Button>
+            </SectionHeader>
 
             <div id="stages-view-panel"></div>
 
             <div id="stages-edit-panel" hidden>
               <div class="button-row bottom-gap">
-                <button class="ui-button" id="add-stage-btn" type="button">Add Stage</button>
+                <Button id="add-stage-btn" type="button" variant="primary">Add Stage</Button>
               </div>
               <div id="stage-list" class="stage-list"></div>
             </div>
-          </article>
+          </SurfaceCard>
 
-          <article class="card">
-            <div class="section-header">
-              <div>
-                <h2 class="section-title">Activity Log</h2>
-                <p class="section-subtitle">Quick update history, with every entry tied to a stage.</p>
-              </div>
-              <div class="button-row">
-                <button class="ui-button ui-button-secondary" id="toggle-logs-btn" type="button">Collapse</button>
-                <button class="ui-button" id="edit-logs-btn" type="button">Edit</button>
-              </div>
-            </div>
+          <SurfaceCard>
+            <SectionHeader
+              title="Activity Log"
+              subtitle="Quick update history, with every entry tied to a stage."
+            >
+              <Button id="toggle-logs-btn" type="button" variant="secondary">Collapse</Button>
+              <Button id="edit-logs-btn" type="button" variant="primary">Edit</Button>
+            </SectionHeader>
 
             <div id="logs-view-panel"></div>
 
             <div id="logs-edit-panel" hidden>
               <div class="button-row bottom-gap">
-                <button class="ui-button" id="add-log-btn" type="button">Add Log Entry</button>
+                <Button id="add-log-btn" type="button" variant="primary">Add Log Entry</Button>
               </div>
               <div id="log-list" class="timeline-list"></div>
             </div>
-          </article>
+          </SurfaceCard>
         </div>
       </section>
 
       <section class="section">
-        <article class="card">
-          <div class="section-header">
-            <div>
-              <h2 class="section-title">Library</h2>
-              <p class="section-subtitle">
-                Track books, songs, courses, and other items. Every item must belong to this hobby and one stage.
-              </p>
-            </div>
-            <div class="button-row">
-              <button class="ui-button ui-button-secondary" id="toggle-library-btn" type="button">Collapse</button>
-              <button class="ui-button" id="edit-library-btn" type="button">Edit</button>
-            </div>
-          </div>
+        <SurfaceCard>
+          <SectionHeader
+            title="Library"
+            subtitle="Track books, songs, courses, and other items. Every item must belong to this hobby and one stage."
+          >
+            <Button id="toggle-library-btn" type="button" variant="secondary">Collapse</Button>
+            <Button id="edit-library-btn" type="button" variant="primary">Edit</Button>
+          </SectionHeader>
 
           <div id="library-view-panel"></div>
 
           <div id="library-edit-panel" hidden>
             <div class="button-row bottom-gap">
-              <button class="ui-button" id="add-library-btn" type="button">Add Library Item</button>
+              <Button id="add-library-btn" type="button" variant="primary">Add Library Item</Button>
             </div>
             <div id="library-list" class="stage-list"></div>
           </div>
-        </article>
+        </SurfaceCard>
       </section>
     </div>
   </section>

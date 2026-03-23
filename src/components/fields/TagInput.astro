@@ -1,0 +1,11 @@
+---
+import type { FieldConfig } from '../../lib/ui/types';
+interface Props { field: FieldConfig; }
+const { field } = Astro.props;
+const joined = Array.isArray(field.value) ? field.value.join(', ') : String(field.value ?? '');
+---
+<label class="form-stack">
+  <span>{field.label}</span>
+  <input id={field.id} name={field.name} type="text" value={joined} placeholder={field.placeholder || 'Comma separated tags'} />
+  {field.helpText && <small>{field.helpText}</small>}
+</label>

@@ -5,6 +5,10 @@
  * micronutrients, meals, and general diet-related guidance.
  */
 import BaseLayout from "../layouts/BaseLayout.astro";
+import PageHero from "../components/PageHero.astro";
+import SurfaceCard from "../components/SurfaceCard.astro";
+import SectionHeader from "../components/SectionHeader.astro";
+import Button from "../components/Button.astro";
 import { goodFoods, badFoods, optionalMicronutrientTargets } from "../data/nutrition";
 
 const defaultGoodFoods = JSON.stringify(goodFoods ?? []);
@@ -13,6 +17,12 @@ const defaultMicros = JSON.stringify(optionalMicronutrientTargets ?? {});
 ---
 
 <BaseLayout title="Nutrition | Lifestyle App" description="Nutrition dashboard">
+  <PageHero
+    kicker="Nutrition"
+    title="Track nutrition, hydration, food quality, and macro targets from one dashboard."
+    description="Save targets, log meals and water, search foods, and manage good-food and limit-food lists with the shared UI layer."
+  />
+
   <section class="section">
     <details class="dropdown-card" open>
       <summary>
@@ -24,13 +34,12 @@ const defaultMicros = JSON.stringify(optionalMicronutrientTargets ?? {});
       </summary>
 
       <div class="dropdown-content stack-gap">
-        <article class="card">
-          <div class="section-header">
-            <div>
-              <h2 class="section-title">Macro Targets</h2>
-              <p class="section-subtitle">Saved cross-platform to your account.</p>
-            </div>
-          </div>
+        <SurfaceCard>
+          <SectionHeader
+            title="Macro Targets"
+            subtitle="Saved cross-platform to your account."
+            align="start"
+          />
 
           <form id="macro-form" class="nutrition-grid">
             <label class="nutrition-field">
@@ -59,10 +68,10 @@ const defaultMicros = JSON.stringify(optionalMicronutrientTargets ?? {});
             </label>
 
             <div class="nutrition-actions">
-              <button type="submit" class="todo-add-btn">Save Targets</button>
+              <Button type="submit" variant="primary">Save Targets</Button>
             </div>
           </form>
-        </article>
+        </SurfaceCard>
       </div>
     </details>
   </section>
@@ -110,16 +119,15 @@ const defaultMicros = JSON.stringify(optionalMicronutrientTargets ?? {});
           </article>
         </div>
 
-        <article class="card">
-          <div class="section-header">
-            <div>
-              <h2 class="section-title">Micronutrient Progress</h2>
-              <p class="section-subtitle">Optional vitamins and minerals to track.</p>
-            </div>
-          </div>
+        <SurfaceCard>
+          <SectionHeader
+            title="Micronutrient Progress"
+            subtitle="Optional vitamins and minerals to track."
+            align="start"
+          />
 
           <div id="micro-progress-list" class="micro-progress-list"></div>
-        </article>
+        </SurfaceCard>
       </div>
     </details>
   </section>
@@ -135,13 +143,12 @@ const defaultMicros = JSON.stringify(optionalMicronutrientTargets ?? {});
       </summary>
 
       <div class="dropdown-content stack-gap">
-        <article class="card">
-          <div class="section-header">
-            <div>
-              <h2 class="section-title">Search Food</h2>
-              <p class="section-subtitle">Search NutritionValue directly.</p>
-            </div>
-          </div>
+        <SurfaceCard>
+          <SectionHeader
+            title="Search Food"
+            subtitle="Search NutritionValue directly."
+            align="start"
+          />
 
           <form id="nutrition-search-form" class="todo-form">
             <input
@@ -151,19 +158,18 @@ const defaultMicros = JSON.stringify(optionalMicronutrientTargets ?? {});
               placeholder="Search apple, chicken breast, greek yogurt..."
               autocomplete="off"
             />
-            <button type="submit" class="todo-add-btn">Search</button>
+            <Button type="submit" variant="primary">Search</Button>
           </form>
 
           <ul id="nutrition-search-results" class="food-log"></ul>
-        </article>
+        </SurfaceCard>
 
-        <article class="card">
-          <div class="section-header">
-            <div>
-              <h2 class="section-title">Add Food</h2>
-              <p class="section-subtitle">Auto-fill from source, then edit if needed.</p>
-            </div>
-          </div>
+        <SurfaceCard>
+          <SectionHeader
+            title="Add Food"
+            subtitle="Auto-fill from source, then edit if needed."
+            align="start"
+          />
 
           <form id="food-form" class="nutrition-grid">
             <label class="nutrition-field nutrition-field-wide">
@@ -242,18 +248,17 @@ const defaultMicros = JSON.stringify(optionalMicronutrientTargets ?? {});
             </label>
 
             <div class="nutrition-actions">
-              <button type="submit" class="todo-add-btn">Add Food</button>
+              <Button type="submit" variant="primary">Add Food</Button>
             </div>
           </form>
-        </article>
+        </SurfaceCard>
 
-        <article class="card">
-          <div class="section-header">
-            <div>
-              <h2 class="section-title">Water Log</h2>
-              <p class="section-subtitle">Track hydration separately from food.</p>
-            </div>
-          </div>
+        <SurfaceCard>
+          <SectionHeader
+            title="Water Log"
+            subtitle="Track hydration separately from food."
+            align="start"
+          />
 
           <form id="water-form" class="todo-form">
             <input
@@ -264,9 +269,9 @@ const defaultMicros = JSON.stringify(optionalMicronutrientTargets ?? {});
               step="0.0001"
               placeholder="Add water in ounces"
             />
-            <button type="submit" class="todo-add-btn">Add Water</button>
+            <Button type="submit" variant="primary">Add Water</Button>
           </form>
-        </article>
+        </SurfaceCard>
       </div>
     </details>
   </section>
@@ -282,17 +287,14 @@ const defaultMicros = JSON.stringify(optionalMicronutrientTargets ?? {});
       </summary>
 
       <div class="dropdown-content">
-        <article class="card">
-          <div class="section-header">
-            <div>
-              <h2 class="section-title">Today’s Intake</h2>
-              <p class="section-subtitle" id="nutrition-date-label"></p>
-            </div>
-            <button id="clear-food-log" type="button" class="secondary-btn">Clear Today</button>
-          </div>
+        <SurfaceCard>
+          <SectionHeader title="Today’s Intake">
+            <p id="nutrition-date-label" class="section-subtitle"></p>
+            <Button id="clear-food-log" type="button" variant="secondary">Clear Today</Button>
+          </SectionHeader>
 
           <ul id="food-log" class="food-log"></ul>
-        </article>
+        </SurfaceCard>
       </div>
     </details>
   </section>
@@ -309,20 +311,14 @@ const defaultMicros = JSON.stringify(optionalMicronutrientTargets ?? {});
         </summary>
 
         <div class="dropdown-content">
-          <article class="card">
-            <div
-              style="display:flex; justify-content:space-between; align-items:center; gap:1rem; flex-wrap:wrap;"
+          <SurfaceCard>
+            <SectionHeader
+              title="Good Foods"
+              subtitle="Add, delete, edit mode, and restore defaults without removing your custom items."
             >
-              <div>
-                <h2 class="section-title">Good Foods</h2>
-                <p class="section-subtitle">Add, delete, edit mode, and restore defaults without removing your custom items.</p>
-              </div>
-
-              <div style="display:flex; gap:.5rem; flex-wrap:wrap;">
-                <button id="good-foods-restore-btn" type="button" class="todo-add-btn">Restore</button>
-                <button id="good-foods-edit-btn" type="button" class="todo-add-btn">Edit</button>
-              </div>
-            </div>
+              <Button id="good-foods-restore-btn" type="button" variant="secondary">Restore</Button>
+              <Button id="good-foods-edit-btn" type="button" variant="primary">Edit</Button>
+            </SectionHeader>
 
             <form
               id="good-foods-form"
@@ -335,11 +331,11 @@ const defaultMicros = JSON.stringify(optionalMicronutrientTargets ?? {});
                 class="todo-input"
                 placeholder="Add a good food..."
               />
-              <button type="submit" class="todo-add-btn">Add</button>
+              <Button type="submit" variant="primary">Add</Button>
             </form>
 
             <ul id="good-foods-list" class="list-clean" style="margin-top:1rem;"></ul>
-          </article>
+          </SurfaceCard>
         </div>
       </details>
 
@@ -353,20 +349,14 @@ const defaultMicros = JSON.stringify(optionalMicronutrientTargets ?? {});
         </summary>
 
         <div class="dropdown-content">
-          <article class="card">
-            <div
-              style="display:flex; justify-content:space-between; align-items:center; gap:1rem; flex-wrap:wrap;"
+          <SurfaceCard>
+            <SectionHeader
+              title="Foods to Limit"
+              subtitle="Add, delete, edit mode, and restore defaults without removing your custom items."
             >
-              <div>
-                <h2 class="section-title">Foods to Limit</h2>
-                <p class="section-subtitle">Add, delete, edit mode, and restore defaults without removing your custom items.</p>
-              </div>
-
-              <div style="display:flex; gap:.5rem; flex-wrap:wrap;">
-                <button id="bad-foods-restore-btn" type="button" class="todo-add-btn">Restore</button>
-                <button id="bad-foods-edit-btn" type="button" class="todo-add-btn">Edit</button>
-              </div>
-            </div>
+              <Button id="bad-foods-restore-btn" type="button" variant="secondary">Restore</Button>
+              <Button id="bad-foods-edit-btn" type="button" variant="primary">Edit</Button>
+            </SectionHeader>
 
             <form
               id="bad-foods-form"
@@ -379,11 +369,11 @@ const defaultMicros = JSON.stringify(optionalMicronutrientTargets ?? {});
                 class="todo-input"
                 placeholder="Add a food to limit..."
               />
-              <button type="submit" class="todo-add-btn">Add</button>
+              <Button type="submit" variant="primary">Add</Button>
             </form>
 
             <ul id="bad-foods-list" class="list-clean" style="margin-top:1rem;"></ul>
-          </article>
+          </SurfaceCard>
         </div>
       </details>
     </div>
@@ -400,13 +390,12 @@ const defaultMicros = JSON.stringify(optionalMicronutrientTargets ?? {});
       </summary>
 
       <div class="dropdown-content stack-gap">
-        <article class="card">
-          <div class="section-header">
-            <div>
-              <h2 class="section-title">Inch Calculator</h2>
-              <p class="section-subtitle">Use the calculator, then copy the results into your saved targets below.</p>
-            </div>
-          </div>
+        <SurfaceCard>
+          <SectionHeader
+            title="Inch Calculator"
+            subtitle="Use the calculator, then copy the results into your saved targets below."
+            align="start"
+          />
 
           <div class="macro-widget-wrap">
             <div id="inch-calculator-icw" data-ct="macros" data-cw="100%" data-ch="950" data-cv="MTE3NzM4NTE1MzM=">
@@ -420,15 +409,14 @@ const defaultMicros = JSON.stringify(optionalMicronutrientTargets ?? {});
             </div>
             <script src="https://cdn.inchcalculator.com/e/widgets.min.js" async defer></script>
           </div>
-        </article>
+        </SurfaceCard>
 
-        <article class="card">
-          <div class="section-header">
-            <div>
-              <h2 class="section-title">Apply Calculator Results</h2>
-              <p class="section-subtitle">Paste the calculator results here and save them to your targets.</p>
-            </div>
-          </div>
+        <SurfaceCard>
+          <SectionHeader
+            title="Apply Calculator Results"
+            subtitle="Paste the calculator results here and save them to your targets."
+            align="start"
+          />
 
           <form id="calculator-apply-form" class="nutrition-grid">
             <label class="nutrition-field">
@@ -457,10 +445,10 @@ const defaultMicros = JSON.stringify(optionalMicronutrientTargets ?? {});
             </label>
 
             <div class="nutrition-actions">
-              <button type="submit" class="todo-add-btn">Apply To Targets</button>
+              <Button type="submit" variant="primary">Apply To Targets</Button>
             </div>
           </form>
-        </article>
+        </SurfaceCard>
       </div>
     </details>
   </section>

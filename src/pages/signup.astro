@@ -1,27 +1,30 @@
 ---
 import BaseLayout from "../layouts/BaseLayout.astro";
+import Button from "../components/Button.astro";
+import PageHero from "../components/PageHero.astro";
+import SectionHeader from "../components/SectionHeader.astro";
+import SurfaceCard from "../components/SurfaceCard.astro";
 ---
 
 <BaseLayout title="Sign Up | Lifestyle App" description="Create your Lifestyle App account">
   <section class="auth-page">
     <div class="auth-shell">
-      <div class="auth-intro">
-        <p class="kicker">Lifestyle App</p>
-        <h1>Create your account.</h1>
-        <p>
-          Sign up with email and password to create your account.
-        </p>
-      </div>
+      <PageHero
+        kicker="Lifestyle App"
+        title="Create your account."
+        description="Sign up with email and password to create your account."
+      />
 
-      <div class="auth-card">
-        <h2 class="auth-title">Get started</h2>
-        <p class="auth-subtitle">
-          Use email and password to create your account.
-        </p>
+      <SurfaceCard className="auth-card auth-surface-card">
+        <SectionHeader
+          title="Get started"
+          subtitle="Use email and password to create your account."
+          align="start"
+        />
 
         <p id="signup-message" class="auth-note" style="display:none;"></p>
 
-        <form id="signup-form" class="auth-form">
+        <form id="signup-form" class="auth-form auth-form-stack">
           <label for="email">Email</label>
           <input id="email" name="email" type="email" required />
 
@@ -45,20 +48,20 @@ import BaseLayout from "../layouts/BaseLayout.astro";
             required
           />
 
-          <button type="submit" class="auth-button">
+          <Button type="submit" variant="primary" className="auth-submit-button">
             Create account
-          </button>
+          </Button>
         </form>
 
-        <a href="/api/auth/google/start" class="auth-button google-button">
+        <Button href="/api/auth/google/start" variant="secondary" className="google-button auth-oauth-button">
           Continue with Google
-        </a>
+        </Button>
 
         <p class="auth-footer">
           Already have an account?
           <a href="/login">Sign in</a>
         </p>
-      </div>
+      </SurfaceCard>
     </div>
   </section>
 
@@ -117,4 +120,25 @@ import BaseLayout from "../layouts/BaseLayout.astro";
       }
     });
   </script>
+
+  <style>
+    .auth-surface-card {
+      display: grid;
+      gap: 1rem;
+    }
+
+    .auth-form-stack {
+      gap: 0.8rem;
+    }
+
+    .auth-submit-button,
+    .auth-oauth-button {
+      width: 100%;
+      justify-content: center;
+    }
+
+    .auth-oauth-button {
+      text-decoration: none;
+    }
+  </style>
 </BaseLayout>

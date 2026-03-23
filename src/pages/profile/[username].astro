@@ -1,6 +1,8 @@
 ---
 import BaseLayout from "../../layouts/BaseLayout.astro";
 import PageHero from "../../components/PageHero.astro";
+import SurfaceCard from "../../components/SurfaceCard.astro";
+import SectionHeader from "../../components/SectionHeader.astro";
 
 const username = Astro.params.username ?? "";
 ---
@@ -15,9 +17,14 @@ const username = Astro.params.username ?? "";
 
     <section class="section">
       <div id="public-profile-root" class="grid one">
-        <article class="card">
+        <SurfaceCard className="public-profile-loading-card">
+          <SectionHeader
+            title="Loading profile"
+            subtitle="Fetching public profile data and public activity."
+            align="start"
+          />
           <p>Loading public profile...</p>
-        </article>
+        </SurfaceCard>
       </div>
     </section>
   </div>
@@ -56,7 +63,7 @@ const username = Astro.params.username ?? "";
 
     function renderEmpty(message) {
       root.innerHTML = `
-        <article class="card empty-profile-card">
+        <article class="card empty-profile-card dropdown-card">
           <h2 class="section-title">Profile unavailable</h2>
           <p>${escapeHtml(message)}</p>
         </article>
@@ -84,7 +91,7 @@ const username = Astro.params.username ?? "";
           </div>
           <div class="grid three">
             ${items.map((item) => `
-              <article class="profile-stat-card">
+              <article class="profile-stat-card stat-card">
                 <p class="stat-card-label">${escapeHtml(item?.label || "")}</p>
                 <h3 class="stat-card-value">${escapeHtml(item?.value || "")}</h3>
                 ${item?.description ? `<p class="stat-card-description">${escapeHtml(item.description)}</p>` : ""}
@@ -145,7 +152,7 @@ const username = Astro.params.username ?? "";
 
       if (!points.length) {
         return `
-          <article class="chart-card">
+          <article class="chart-card dropdown-card">
             <div class="chart-header">
               <h4>${escapeHtml(label)}</h4>
             </div>
@@ -205,7 +212,7 @@ const username = Astro.params.username ?? "";
       const bottomLineY = getY(yBottom);
 
       return `
-        <article class="chart-card">
+        <article class="chart-card dropdown-card">
           <div class="chart-header">
             <div>
               <h4>${escapeHtml(label)}</h4>
@@ -307,7 +314,7 @@ const username = Astro.params.username ?? "";
           </div>
 
           <div class="grid two">
-            <article class="card summary-card">
+            <article class="card summary-card dropdown-card">
               <h3 class="card-title">Quick overview</h3>
               <p><strong>Section:</strong> ${escapeHtml(section?.label || "No section selected")}</p>
               <p><strong>Sessions in range:</strong> ${escapeHtml(String(sectionSummary?.totalSessions ?? 0))}</p>
@@ -315,7 +322,7 @@ const username = Astro.params.username ?? "";
               <p class="meta">Even when nothing is loaded yet, the selectors still stay available.</p>
             </article>
 
-            <article class="card summary-card">
+            <article class="card summary-card dropdown-card">
               <h3 class="card-title">Workout trend</h3>
               <p><strong>Workout:</strong> ${escapeHtml(workout?.name || "No workout selected")}</p>
               <p><strong>Weight:</strong> ${escapeHtml(String(workout?.trendSummary?.firstWeight ?? 0))} → ${escapeHtml(String(workout?.trendSummary?.lastWeight ?? 0))}</p>
@@ -357,14 +364,14 @@ const username = Astro.params.username ?? "";
           </div>
 
           <div class="grid two">
-            <article class="card summary-card">
+            <article class="card summary-card dropdown-card">
               <h3 class="card-title">Cardio summary</h3>
               <p><strong>Type:</strong> ${escapeHtml(cardioType?.label || "No cardio selected")}</p>
               <p><strong>Sessions in range:</strong> ${escapeHtml(String(cardioSummary?.totalSessions ?? 0))}</p>
               <p><strong>Workouts this week:</strong> ${escapeHtml(String(cardioSummary?.workoutsThisWeek ?? 0))}</p>
             </article>
 
-            <article class="card summary-card">
+            <article class="card summary-card dropdown-card">
               <h3 class="card-title">Recent sessions</h3>
               ${safeArray(cardioType?.recentSessions).slice(0, 3).map((item) => `
                 <p>${escapeHtml(item?.title || "Session")} — ${escapeHtml(item?.date || "")}</p>
@@ -396,15 +403,15 @@ const username = Astro.params.username ?? "";
           </div>
 
           <div class="grid three">
-            <article class="profile-stat-card">
+            <article class="profile-stat-card stat-card">
               <p class="stat-card-label">Active Hobbies</p>
               <h3 class="stat-card-value">${escapeHtml(String(hobbies?.weeklySummary?.activeHobbies ?? 0))}</h3>
             </article>
-            <article class="profile-stat-card">
+            <article class="profile-stat-card stat-card">
               <p class="stat-card-label">Updates This Week</p>
               <h3 class="stat-card-value">${escapeHtml(String(hobbies?.weeklySummary?.updatesThisWeek ?? 0))}</h3>
             </article>
-            <article class="profile-stat-card">
+            <article class="profile-stat-card stat-card">
               <p class="stat-card-label">Stage Progress Total</p>
               <h3 class="stat-card-value">${escapeHtml(String(hobbies?.weeklySummary?.stageProgressThisWeek ?? 0))}</h3>
             </article>
@@ -437,13 +444,13 @@ const username = Astro.params.username ?? "";
           </div>
 
           <div class="grid two">
-            <article class="card summary-card">
+            <article class="card summary-card dropdown-card">
               <h3 class="card-title">${escapeHtml(hobby?.name || "Hobby")}</h3>
               <p><strong>Status:</strong> ${escapeHtml(hobby?.status || "—")}</p>
               <p><strong>Overall Progress:</strong> ${escapeHtml(String(hobby?.overallProgress ?? 0))}%</p>
             </article>
 
-            <article class="card summary-card">
+            <article class="card summary-card dropdown-card">
               <h3 class="card-title">${escapeHtml(stage?.name || "Stage")}</h3>
               <p><strong>Status:</strong> ${escapeHtml(stage?.status || "—")}</p>
               <p><strong>Progress:</strong> ${escapeHtml(String(stage?.progress ?? 0))}%</p>
@@ -467,7 +474,7 @@ const username = Astro.params.username ?? "";
           </div>
           <div class="grid two">
             ${items.map((item) => `
-              <article class="card content-card">
+              <article class="card content-card dropdown-card">
                 <p class="meta">${escapeHtml(item?.category || "Highlight")}</p>
                 <h3 class="card-title">${escapeHtml(item?.title || "Pinned item")}</h3>
                 ${item?.description ? `<p>${escapeHtml(item.description)}</p>` : ""}
@@ -492,10 +499,10 @@ const username = Astro.params.username ?? "";
               <p class="section-subtitle">Open the full portfolio in its dedicated page</p>
             </div>
           </div>
-          <article class="card content-card">
+          <article class="card content-card dropdown-card">
             <p>This profile uses portfolio link mode instead of rendering portfolio cards here.</p>
             <p class="top-gap-sm">
-              <a class="portfolio-link-btn" href="${escapeHtml(profile?.portfolioLink || "/career/portfolio")}">Open Portfolio</a>
+              <a class="portfolio-link-btn button-secondary" href="${escapeHtml(profile?.portfolioLink || "/career/portfolio")}">Open Portfolio</a>
             </p>
           </article>
         </section>
@@ -531,7 +538,7 @@ const username = Astro.params.username ?? "";
           </div>
           <div class="activity-stack">
             ${activity.map((item) => `
-              <article class="card content-card">
+              <article class="card content-card dropdown-card">
                 <h3 class="card-title">${escapeHtml(item?.label || "Activity")}</h3>
                 ${item?.date ? `<p class="meta">${escapeHtml(item.date)}</p>` : ""}
                 ${item?.href ? `<p class="top-gap-sm"><a href="${escapeHtml(item.href)}">Open</a></p>` : ""}

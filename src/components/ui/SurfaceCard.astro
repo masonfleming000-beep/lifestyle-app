@@ -1,0 +1,27 @@
+---
+/**
+ * Generic shared card shell.
+ */
+interface Props {
+  as?: "article" | "div" | "section";
+  class?: string;
+}
+
+const {
+  as = "article",
+  class: className = "",
+} = Astro.props;
+
+const Tag = as;
+---
+
+<Tag class:list={["card", "surface-card", className]}>
+  <slot />
+</Tag>
+
+<style>
+  .surface-card {
+    display: grid;
+    gap: 1rem;
+  }
+</style>

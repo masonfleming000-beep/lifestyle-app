@@ -1,0 +1,12 @@
+---
+import FormCard from '../FormCard.astro';
+import FieldRenderer from './FieldRenderer.astro';
+import FormActions from './FormActions.astro';
+import type { SectionConfig } from '../../lib/ui/types';
+interface Props { section: SectionConfig; }
+const { section } = Astro.props;
+---
+<FormCard title={section.title} subtitle={section.subtitle} kicker={section.kicker} submitLabel="Save">
+  {section.fields?.map((field) => <FieldRenderer field={field} />)}
+  <FormActions slot="actions" actions={section.actions} />
+</FormCard>

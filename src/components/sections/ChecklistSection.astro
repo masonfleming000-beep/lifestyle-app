@@ -1,0 +1,35 @@
+---
+import ChecklistCard from "../ChecklistCard.astro";
+
+interface ListItemObject {
+  text: string;
+  done?: boolean;
+  id?: string | number;
+}
+
+interface Props {
+  id?: string;
+  title: string;
+  listId: string;
+  formId: string;
+  items?: Array<string | ListItemObject>;
+  emptyText?: string;
+  mode?: "checklist" | "list";
+}
+
+const {
+  id,
+  title,
+  listId,
+  formId,
+  items = [],
+  emptyText = "No items yet.",
+  mode = "checklist",
+} = Astro.props;
+---
+
+<ChecklistCard id={id} title={title} listId={listId} formId={formId} items={items} emptyText={emptyText} mode={mode}>
+  <slot name="actions" slot="actions" />
+  <slot name="form" slot="form" />
+  <slot name="empty" slot="empty" />
+</ChecklistCard>

@@ -6,6 +6,11 @@
  */
 import BaseLayout from "../../layouts/BaseLayout.astro";
 import PageHero from "../../components/PageHero.astro";
+import SectionHeader from "../../components/SectionHeader.astro";
+import SurfaceCard from "../../components/SurfaceCard.astro";
+import Button from "../../components/Button.astro";
+import FormCard from "../../components/FormCard.astro";
+import FormActions from "../../components/FormActions.astro";
 ---
 
 <BaseLayout
@@ -19,21 +24,15 @@ import PageHero from "../../components/PageHero.astro";
   />
 
   <section class="section">
-    <article class="card">
-      <div class="section-header">
-        <div>
-          <h2 class="section-title">Choose Workout Type</h2>
-          <p class="section-subtitle">
-            Build HIIT, intervals, recovery runs, tempo runs, fartlek sessions, hill workouts, power workouts, or long runs.
-          </p>
-        </div>
-      </div>
-
-      <div class="editor-toolbar">
-        <button id="edit-workout-types-button" class="button-secondary" type="button">
+    <SurfaceCard>
+      <SectionHeader
+        title="Choose Workout Type"
+        subtitle="Build HIIT, intervals, recovery runs, tempo runs, fartlek sessions, hill workouts, power workouts, or long runs."
+      >
+        <Button id="edit-workout-types-button" variant="secondary" type="button">
           Edit
-        </button>
-      </div>
+        </Button>
+      </SectionHeader>
 
       <div class="workout-type-select-wrap">
         <label class="workout-field">
@@ -43,38 +42,28 @@ import PageHero from "../../components/PageHero.astro";
       </div>
 
       <div id="workout-type-edit-panel" class="workout-type-edit-panel" hidden></div>
-    </article>
+    </SurfaceCard>
   </section>
 
   <section class="section">
-    <article class="card soft">
-      <div class="section-header">
-        <div>
-          <h2 class="section-title">Set Workout</h2>
-          <p class="section-subtitle">Customize the workout before you start.</p>
-        </div>
-      </div>
-
-      <form id="workout-builder-form" class="workout-form">
-        <div id="workout-form-fields"></div>
-
-        <div class="workout-form-actions">
-          <button type="submit" class="button-primary">Start Workout</button>
-        </div>
-      </form>
-    </article>
+    <FormCard
+      title="Set Workout"
+      subtitle="Customize the workout before you start."
+      formId="workout-builder-form"
+      submitLabel="Start Workout"
+      submitVariant="primary"
+      compact={false}
+    >
+      <div id="workout-form-fields"></div>
+    </FormCard>
   </section>
 
   <section class="section">
-    <article class="card" id="live-workout-card" hidden>
-      <div class="section-header">
-        <div>
-          <h2 class="section-title">Live Workout</h2>
-          <p class="section-subtitle">
-            Fill in your real results and check each step off as you go.
-          </p>
-        </div>
-      </div>
+    <SurfaceCard id="live-workout-card" hidden>
+      <SectionHeader
+        title="Live Workout"
+        subtitle="Fill in your real results and check each step off as you go."
+      />
 
       <div class="workout-session-notes">
         <label class="workout-field">
@@ -91,31 +80,31 @@ import PageHero from "../../components/PageHero.astro";
       <div id="live-workout-summary" class="live-workout-summary"></div>
       <ul id="live-workout-steps" class="routine-list workout-live-list"></ul>
 
-      <div class="workout-form-actions multi-action-workout-actions">
-        <button id="save-splits-button" type="button" class="button-secondary">
+      <FormActions className="multi-action-workout-actions">
+        <Button id="save-splits-button" type="button" variant="secondary">
           Save Splits / Times
-        </button>
+        </Button>
 
-        <button id="open-manual-metrics-button" type="button" class="button-secondary">
+        <Button id="open-manual-metrics-button" type="button" variant="secondary">
           Fill In Metrics Manually
-        </button>
+        </Button>
 
-        <button id="auto-calculate-metrics-button" type="button" class="button-secondary">
+        <Button id="auto-calculate-metrics-button" type="button" variant="secondary">
           Auto Calculate Metrics
-        </button>
+        </Button>
 
-        <button id="save-completed-workout-button" type="button" class="button-primary">
+        <Button id="save-completed-workout-button" type="button" variant="primary">
           Save Completed Workout
-        </button>
+        </Button>
 
-        <button id="reset-workout-button" type="button" class="button-secondary">
+        <Button id="reset-workout-button" type="button" variant="secondary">
           Reset Workout
-        </button>
-      </div>
+        </Button>
+      </FormActions>
 
       <div id="manual-metrics-panel" class="cardio-metrics-panel" hidden></div>
       <div id="visible-calculated-metrics" class="session-metrics"></div>
-    </article>
+    </SurfaceCard>
   </section>
 
   <script is:inline>
@@ -2107,6 +2096,14 @@ function renderVisibleMetrics() {
       if (!activeWorkout) return;
 
       const calculated = calculateWorkoutMetrics(activeWorkout);
+      const hasCalculatedValues = Object.values(calculated).some(
+        (value) => value !== "" && value !== 0 && value != null
+      );
+
+      if (!hasCalculatedValues) {
+        window.alert("No completed step data yet. Check off steps and enter actual results before auto-calculating metrics.");
+        return;
+      }
 
       visibleMetrics = {
         ...visibleMetrics,

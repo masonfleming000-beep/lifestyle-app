@@ -1,0 +1,14 @@
+---
+import type { FieldConfig } from '../../lib/ui/types';
+interface Props { field: FieldConfig; }
+const { field } = Astro.props;
+---
+<label class="form-stack">
+  <span>{field.label}</span>
+  <select id={field.id} name={field.name}>
+    {field.options?.map((option) => (
+      <option value={option.value} selected={String(field.value ?? '') === option.value}>{option.label}</option>
+    ))}
+  </select>
+  {field.helpText && <small>{field.helpText}</small>}
+</label>

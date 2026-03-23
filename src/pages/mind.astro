@@ -5,7 +5,11 @@
  * yoga, reflection, or other mental wellness tools.
  */
 import BaseLayout from "../layouts/BaseLayout.astro";
+import Button from "../components/Button.astro";
+import FormCard from "../components/FormCard.astro";
 import PageHero from "../components/PageHero.astro";
+import SectionHeader from "../components/SectionHeader.astro";
+import SurfaceCard from "../components/SurfaceCard.astro";
 import { yogaItems, soothingTechniques } from "../data/mind";
 
 const defaultMindData = JSON.stringify({
@@ -27,26 +31,26 @@ const defaultMindData = JSON.stringify({
 ---
 
 <BaseLayout title="Mind | Lifestyle App" description="Mind and recovery page">
-    <PageHero
+  <PageHero
     kicker="Mind"
     title="Recover, reset, and calm the system."
-    description="A cleaner version of your old mind page with yoga / rehab and soothing   techniques organized into dropdown sections."
+    description="A cleaner version of your old mind page with yoga / rehab and soothing techniques organized into dropdown sections."
   />
 
   <section class="section">
-    <article class="card soft">
-      <div class="section-header">
-        <div>
-          <h2 class="section-title">Yoga / Rehabilitation</h2>
-          <p class="section-subtitle">
-            Expand each movement for details and video.
-          </p>
-        </div>
-      </div>
+    <SurfaceCard soft>
+      <SectionHeader
+        title="Yoga / Rehabilitation"
+        subtitle="Expand each movement for details and video."
+        align="start"
+      />
 
-      <form id="yoga-form" class="mind-form">
-        <h3 class="card-title">Add Exercise</h3>
-
+      <FormCard
+        title="Add Exercise"
+        formId="yoga-form"
+        submitLabel="Add Exercise"
+        compact={true}
+      >
         <div class="mind-form-grid">
           <label>
             <span>Title</span>
@@ -83,32 +87,32 @@ const defaultMindData = JSON.stringify({
           </label>
         </div>
 
-        <div class="mind-form-actions">
-          <button type="submit" class="action-btn">Add Exercise</button>
-          <button type="button" id="restore-yoga-defaults" class="secondary-btn">
+        <div slot="actions" class="mind-form-actions">
+          <Button type="submit" variant="primary">Add Exercise</Button>
+          <Button type="button" id="restore-yoga-defaults" variant="secondary">
             Restore Default Exercises
-          </button>
+          </Button>
         </div>
-      </form>
+      </FormCard>
 
       <div id="yoga-list" class="grid two"></div>
-    </article>
+    </SurfaceCard>
   </section>
 
   <section class="section">
-    <article class="card">
-      <div class="section-header">
-        <div>
-          <h2 class="section-title">Soothing Techniques</h2>
-          <p class="section-subtitle">
-            Expand a technique when you need a reset.
-          </p>
-        </div>
-      </div>
+    <SurfaceCard>
+      <SectionHeader
+        title="Soothing Techniques"
+        subtitle="Expand a technique when you need a reset."
+        align="start"
+      />
 
-      <form id="technique-form" class="mind-form">
-        <h3 class="card-title">Add Technique</h3>
-
+      <FormCard
+        title="Add Technique"
+        formId="technique-form"
+        submitLabel="Add Technique"
+        compact={true}
+      >
         <div class="mind-form-grid">
           <label>
             <span>Title</span>
@@ -126,18 +130,17 @@ const defaultMindData = JSON.stringify({
           </label>
         </div>
 
-        <div class="mind-form-actions">
-          <button type="submit" class="action-btn">Add Technique</button>
-          <button type="button" id="restore-technique-defaults" class="secondary-btn">
+        <div slot="actions" class="mind-form-actions">
+          <Button type="submit" variant="primary">Add Technique</Button>
+          <Button type="button" id="restore-technique-defaults" variant="secondary">
             Restore Default Techniques
-          </button>
+          </Button>
         </div>
-      </form>
+      </FormCard>
 
       <div id="technique-list" class="mind-stack"></div>
-    </article>
+    </SurfaceCard>
   </section>
-
   <script define:vars={{ defaultMindData }}>
     const pageKey = "mind";
 
@@ -412,7 +415,7 @@ const defaultMindData = JSON.stringify({
                 <div class="mind-item-actions">
                   <button
                     type="button"
-                    class="delete-btn"
+                    class="danger-btn"
                     data-delete-yoga-id="${escapeHtml(item.id)}"
                     data-yoga-default="${item.isDefault ? "true" : "false"}"
                   >
@@ -452,7 +455,7 @@ const defaultMindData = JSON.stringify({
                 <div class="mind-item-actions">
                   <button
                     type="button"
-                    class="delete-btn"
+                    class="danger-btn"
                     data-delete-technique-id="${escapeHtml(item.id)}"
                     data-technique-default="${item.isDefault ? "true" : "false"}"
                   >

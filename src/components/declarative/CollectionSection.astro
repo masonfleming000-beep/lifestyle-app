@@ -1,0 +1,26 @@
+---
+import ChecklistCard from '../ChecklistCard.astro';
+import ActionRenderer from './ActionRenderer.astro';
+import CollectionList from './CollectionList.astro';
+import EmptyState from '../EmptyState.astro';
+import type { SectionConfig } from '../../lib/ui/types';
+interface Props { section: SectionConfig; }
+const { section } = Astro.props;
+---
+<ChecklistCard
+  title={section.title}
+  subtitle={section.subtitle}
+  kicker={section.kicker}
+  mode={section.mode === 'checklist' ? 'checklist' : 'list'}
+  items={[]}
+>
+  <Fragment slot="actions">
+    {section.actions?.map((action) => <ActionRenderer action={action} compact />)}
+  </Fragment>
+
+  {
+    section.items?.length
+      ? <CollectionList items={section.items} itemActions={section.itemActions} mode={section.mode === 'checklist' ? 'checklist' : 'list'} />
+      : <EmptyState title={section.emptyState?.title || 'Nothing here yet'} description={section.emptyState?.description || 'No items yet.'} />
+  }
+</ChecklistCard>

@@ -1,0 +1,34 @@
+---
+import Button from "../ui/Button.astro";
+
+interface ActionConfig {
+  label: string;
+  id?: string;
+  type?: "button" | "submit" | "reset";
+  variant?: "primary" | "secondary" | "danger";
+  size?: "sm" | "md";
+  hidden?: boolean;
+  dataAction?: string;
+  class?: string;
+}
+
+interface Props {
+  actions?: ActionConfig[];
+}
+
+const { actions = [] } = Astro.props;
+---
+
+{actions.map((action) => (
+  <Button
+    id={action.id}
+    type={action.type || "button"}
+    variant={action.variant || "secondary"}
+    size={action.size || "md"}
+    hidden={action.hidden}
+    dataAction={action.dataAction}
+    class={action.class}
+  >
+    {action.label}
+  </Button>
+))}

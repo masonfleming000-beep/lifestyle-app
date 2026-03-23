@@ -1,0 +1,13 @@
+---
+interface Props { title: string; src?: string; alt?: string; caption?: string; }
+const { title, src = '', alt = '', caption = '' } = Astro.props;
+---
+<section class="input-card media-card">
+  <h3 class="section-title">{title}</h3>
+  {src ? <img src={src} alt={alt || title} /> : <div class="empty-state">No file selected.</div>}
+  {caption && <p class="section-subtitle">{caption}</p>}
+</section>
+<style>
+  .media-card { display:grid; gap:0.75rem; }
+  img { width:100%; border-radius:14px; border:1px solid var(--border-soft); }
+</style>

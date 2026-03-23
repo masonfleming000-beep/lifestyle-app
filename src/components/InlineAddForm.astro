@@ -1,0 +1,10 @@
+---
+import FormCard from "./FormCard.astro";
+const props = Astro.props;
+---
+
+<FormCard {...props} compact={props.compact ?? true}>
+  <slot />
+  <slot name="actions" slot="actions" />
+  <slot name="header-actions" slot="header-actions" />
+</FormCard>

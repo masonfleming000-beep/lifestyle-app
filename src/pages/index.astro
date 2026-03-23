@@ -5,6 +5,12 @@
  * to major sections like Today, Fitness, Nutrition, Mind, and more.
  */
 import BaseLayout from "../layouts/BaseLayout.astro";
+import Button from "../components/Button.astro";
+import ExpandableSection from "../components/ExpandableSection.astro";
+import FormCard from "../components/FormCard.astro";
+import PageHero from "../components/PageHero.astro";
+import QuickLinkCard from "../components/QuickLinkCard.astro";
+import SectionHeader from "../components/SectionHeader.astro";
 import { quotes, morals } from "../data/home";
 
 const navCards = [
@@ -23,25 +29,18 @@ const defaultMorals = JSON.stringify(morals);
 ---
 
 <BaseLayout title="Home | Lifestyle App" description="Personal lifestyle home page">
-  <section class="hero">
-    <div class="hero-card">
-      <p class="kicker">Home</p>
-      <h1>Your life, organized simply.</h1>
-      <p>Use this page as the main hub. Tap into each area below.</p>
-    </div>
-  </section>
+  <PageHero
+    kicker="Home"
+    title="Your life, organized simply."
+    description="Use this page as the main hub. Tap into each area below."
+  />
 
   <section class="section">
-    <div class="section-header nav-header">
-      <div>
-        <h2 class="section-title">Navigate</h2>
-        <p class="section-subtitle">Choose a section.</p>
-      </div>
-
+    <SectionHeader title="Navigate" subtitle="Choose a section.">
       <div class="view-switcher" role="group" aria-label="Navigation layout">
         <button
           type="button"
-          class="view-btn is-active"
+          class="button-secondary view-btn is-active"
           data-view-btn="grid"
           aria-pressed="true"
         >
@@ -49,90 +48,61 @@ const defaultMorals = JSON.stringify(morals);
         </button>
         <button
           type="button"
-          class="view-btn"
+          class="button-secondary view-btn"
           data-view-btn="list"
           aria-pressed="false"
         >
           List
         </button>
       </div>
-    </div>
+    </SectionHeader>
 
     <div id="nav-cards" class="quick-links-grid quick-links-grid--grid">
       {navCards.map((card) => (
-        <a href={card.href} class="link-card quick-link-card">
-          <div class="quick-link-card-inner">
-            <div class="quick-link-copy">
-              <h3>{card.title}</h3>
-              <p>{card.text}</p>
-            </div>
-            <span class="quick-link-arrow" aria-hidden="true">→</span>
-          </div>
-        </a>
+        <QuickLinkCard href={card.href} title={card.title} text={card.text} />
       ))}
     </div>
   </section>
 
   <section class="section">
-    <details class="dropdown-card" open>
-      <summary class="dropdown-summary">
-        <div>
-          <h2 class="section-title">Featured Quotes</h2>
-          <p class="section-subtitle">Open when you want perspective.</p>
-        </div>
-        <span class="dropdown-icon">+</span>
-      </summary>
+    <ExpandableSection
+      title="Featured Quotes"
+      subtitle="Open when you want perspective."
+      open={true}
+    >
+      <FormCard formId="quote-form" title="Add Quote" submitLabel="Add Quote">
+        <input id="quote-text" type="text" placeholder="Quote text" required />
+        <input id="quote-author" type="text" placeholder="Author or reminder source" />
+      </FormCard>
 
-      <div class="dropdown-body">
-        <form id="quote-form" class="input-card">
-          <h3 class="card-title">Add Quote</h3>
-          <div class="form-stack">
-            <input id="quote-text" type="text" placeholder="Quote text" required />
-            <input id="quote-author" type="text" placeholder="Author or reminder source" />
-            <button type="submit" class="action-btn">Add Quote</button>
-          </div>
-        </form>
-
-        <div style="margin: 0 0 1rem 0;">
-          <button id="restore-quotes-btn" type="button" class="action-btn secondary-btn">
-            Restore Default Quotes
-          </button>
-        </div>
-
-        <div id="quotes-list" class="grid three"></div>
+      <div class="section-inline-actions">
+        <Button id="restore-quotes-btn" type="button" variant="secondary">
+          Restore Default Quotes
+        </Button>
       </div>
-    </details>
+
+      <div id="quotes-list" class="grid three"></div>
+    </ExpandableSection>
   </section>
 
   <section class="section">
-    <details class="dropdown-card">
-      <summary class="dropdown-summary">
-        <div>
-          <h2 class="section-title">Core Reminders</h2>
-          <p class="section-subtitle">Keep these tucked away until needed.</p>
-        </div>
-        <span class="dropdown-icon">+</span>
-      </summary>
+    <ExpandableSection
+      title="Core Reminders"
+      subtitle="Keep these tucked away until needed."
+    >
+      <FormCard formId="reminder-form" title="Add Core Reminder" submitLabel="Add Reminder">
+        <input id="reminder-title" type="text" placeholder="Reminder title" required />
+        <textarea id="reminder-text" placeholder="Reminder details" rows="4" required></textarea>
+      </FormCard>
 
-      <div class="dropdown-body">
-        <form id="reminder-form" class="input-card">
-          <h3 class="card-title">Add Core Reminder</h3>
-          <div class="form-stack">
-            <input id="reminder-title" type="text" placeholder="Reminder title" required />
-            <textarea id="reminder-text" placeholder="Reminder details" rows="4" required></textarea>
-            <button type="submit" class="action-btn">Add Reminder</button>
-          </div>
-        </form>
-
-        <div style="margin: 0 0 1rem 0;">
-          <button id="restore-reminders-btn" type="button" class="action-btn secondary-btn">
-            Restore Default Reminders
-          </button>
-        </div>
-
-        <div id="reminders-list" class="grid three"></div>
+      <div class="section-inline-actions">
+        <Button id="restore-reminders-btn" type="button" variant="secondary">
+          Restore Default Reminders
+        </Button>
       </div>
-    </details>
+
+      <div id="reminders-list" class="grid three"></div>
+    </ExpandableSection>
   </section>
 
   <script define:vars={{ defaultQuotes, defaultMorals }}>
@@ -305,7 +275,7 @@ const defaultMorals = JSON.stringify(morals);
             <p class="quote-text">“${escapeHtml(quote.text)}”</p>
             <span class="quote-author">${escapeHtml(quote.author || "Personal reminder")}</span>
           </div>
-          <button class="delete-btn" data-quote-index="${index}" type="button">Remove</button>
+          <button class="button-secondary delete-btn" data-quote-index="${index}" type="button">Remove</button>
         `;
 
         quotesList.appendChild(article);
@@ -342,7 +312,7 @@ const defaultMorals = JSON.stringify(morals);
         article.innerHTML = `
           <h3 class="card-title">${escapeHtml(item.title)}</h3>
           <p>${escapeHtml(item.text)}</p>
-          <button class="delete-btn" data-reminder-index="${index}" type="button">Remove</button>
+          <button class="button-secondary delete-btn" data-reminder-index="${index}" type="button">Remove</button>
         `;
 
         remindersList.appendChild(article);
@@ -465,46 +435,20 @@ const defaultMorals = JSON.stringify(morals);
   </script>
 
   <style>
-    .nav-header {
-      display: flex;
-      align-items: flex-end;
-      justify-content: space-between;
-      gap: 1rem;
-      flex-wrap: wrap;
-    }
-
     .view-switcher {
       display: inline-flex;
       align-items: center;
-      gap: 0.35rem;
-      padding: 0.3rem;
-      border-radius: 999px;
-      background: rgba(255, 255, 255, 0.06);
-      border: 1px solid rgba(255, 255, 255, 0.1);
-    }
-
-    .view-btn {
-      border: 0;
-      cursor: pointer;
-      padding: 0.6rem 0.95rem;
-      border-radius: 999px;
-      font: inherit;
-      color: inherit;
-      background: transparent;
-      transition: background 0.18s ease, transform 0.18s ease;
-    }
-
-    .view-btn:hover,
-    .view-btn:focus-visible {
-      background: rgba(255, 255, 255, 0.08);
+      gap: 0.5rem;
+      flex-wrap: wrap;
     }
 
     .view-btn.is-active {
-      background: rgba(255, 255, 255, 0.16);
+      filter: brightness(1.08);
     }
 
     .quick-links-grid {
       align-items: stretch;
+      margin-top: 1rem;
     }
 
     .quick-links-grid--grid {
@@ -519,89 +463,13 @@ const defaultMorals = JSON.stringify(morals);
       gap: 0.85rem;
     }
 
-    .quick-link-card {
-      display: block;
-      text-decoration: none;
-      color: inherit;
-      height: 100%;
-      border-radius: 1.35rem;
-      overflow: hidden;
-    }
-
-    .quick-link-card-inner {
-      display: flex;
-      align-items: center;
-      justify-content: space-between;
-      gap: 1rem;
-      min-height: 124px;
-      height: 100%;
-      padding: 1.15rem 1.2rem;
-      border-radius: inherit;
-    }
-
-    .quick-links-grid--list .quick-link-card-inner {
-      min-height: 92px;
-      padding: 1rem 1.1rem;
-    }
-
-    .quick-link-copy {
-      min-width: 0;
-      flex: 1 1 auto;
-    }
-
-    .quick-link-copy h3 {
-      margin: 0 0 0.45rem 0;
-      line-height: 1.15;
-    }
-
-    .quick-link-copy p {
-      margin: 0;
-      line-height: 1.45;
-    }
-
-    .quick-link-arrow {
-      flex: 0 0 auto;
-      width: 2.5rem;
-      height: 2.5rem;
-      border-radius: 999px;
-      display: inline-flex;
-      align-items: center;
-      justify-content: center;
-      font-size: 1.1rem;
-      font-weight: 700;
-      background: rgba(255, 255, 255, 0.08);
-      border: 1px solid rgba(255, 255, 255, 0.12);
-      transition: transform 0.18s ease, background 0.18s ease;
-    }
-
-    .quick-link-card:hover .quick-link-arrow,
-    .quick-link-card:focus-visible .quick-link-arrow {
-      transform: translateX(3px);
-      background: rgba(255, 255, 255, 0.14);
+    .section-inline-actions {
+      margin: 0 0 1rem 0;
     }
 
     @media (max-width: 720px) {
-      .nav-header {
-        align-items: stretch;
-      }
-
-      .view-switcher {
-        width: 100%;
-        justify-content: flex-start;
-      }
-
       .quick-links-grid--grid {
         grid-template-columns: 1fr;
-      }
-
-      .quick-link-card-inner {
-        min-height: 110px;
-        padding: 1rem;
-      }
-
-      .quick-link-arrow {
-        width: 2.25rem;
-        height: 2.25rem;
       }
     }
   </style>

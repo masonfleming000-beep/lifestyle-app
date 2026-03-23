@@ -6,6 +6,10 @@
  */
 import BaseLayout from "../layouts/BaseLayout.astro";
 import PageHero from "../components/PageHero.astro";
+import SurfaceCard from "../components/SurfaceCard.astro";
+import SectionHeader from "../components/SectionHeader.astro";
+import FormCard from "../components/FormCard.astro";
+import Button from "../components/Button.astro";
 
 const defaultWorkData = JSON.stringify({
   projects: [
@@ -27,171 +31,155 @@ const defaultWorkData = JSON.stringify({
 
   <section class="section">
     <div class="education-shell">
-      <article class="card education-panel">
-        <div class="education-panel-header">
-          <div>
-            <h2 class="section-title">Due This Week</h2>
-            <p class="section-subtitle">Closest deadlines first.</p>
-          </div>
-        </div>
+      <SurfaceCard className="education-panel">
+        <SectionHeader
+          title="Due This Week"
+          subtitle="Closest deadlines first."
+          align="start"
+        />
         <div id="due-this-week" class="education-list"></div>
-      </article>
+      </SurfaceCard>
 
-      <article class="card education-panel">
-        <div class="education-panel-header">
-          <div>
-            <h2 class="section-title">Upcoming Meetings</h2>
-            <p class="section-subtitle">Today and next on deck.</p>
-          </div>
-        </div>
+      <SurfaceCard className="education-panel">
+        <SectionHeader
+          title="Upcoming Meetings"
+          subtitle="Today and next on deck."
+          align="start"
+        />
         <div id="meetings-list" class="education-list"></div>
-      </article>
+      </SurfaceCard>
 
-      <article class="card education-panel">
-        <div class="education-panel-header">
-          <div>
-            <h2 class="section-title">All Upcoming Tasks</h2>
-            <p class="section-subtitle">Sorted by due date and time.</p>
-          </div>
-        </div>
+      <SurfaceCard className="education-panel">
+        <SectionHeader
+          title="All Upcoming Tasks"
+          subtitle="Sorted by due date and time."
+          align="start"
+        />
         <div id="all-upcoming" class="education-list"></div>
-      </article>
+      </SurfaceCard>
 
-      <article class="card education-panel">
-        <div class="education-panel-header">
-          <div>
-            <h2 class="section-title">Add Task</h2>
-            <p class="section-subtitle">Add work by section, deadline, and priority.</p>
-          </div>
+      <FormCard
+        title="Add Task"
+        subtitle="Add work by section, deadline, and priority."
+        formId="task-form"
+        submitLabel="Add Task"
+      >
+        <div class="edu-form-grid">
+          <label class="edu-label">
+            <span>Task name</span>
+            <input type="text" id="task-title" required placeholder="Send revised proposal" />
+          </label>
+
+          <label class="edu-label">
+            <span>Due date</span>
+            <input type="date" id="task-due-date" required />
+          </label>
+
+          <label class="edu-label">
+            <span>Due time</span>
+            <input type="time" id="task-due-time" />
+          </label>
+
+          <label class="edu-label">
+            <span>Section</span>
+            <select id="task-project" required>
+              <option value="">Select a section</option>
+            </select>
+          </label>
+
+          <label class="edu-label">
+            <span>Priority</span>
+            <select id="task-priority">
+              <option value="medium">Medium</option>
+              <option value="low">Low</option>
+              <option value="high">High</option>
+              <option value="urgent">Urgent</option>
+            </select>
+          </label>
+
+          <label class="edu-label">
+            <span>Status</span>
+            <select id="task-status">
+              <option value="todo">To do</option>
+              <option value="in-progress">In progress</option>
+              <option value="blocked">Blocked</option>
+              <option value="done">Done</option>
+            </select>
+          </label>
+
+          <label class="edu-label">
+            <span>Estimated hours</span>
+            <input
+              type="number"
+              id="task-estimated-hours"
+              min="0"
+              step="0.5"
+              placeholder="2"
+            />
+          </label>
+
+          <label class="edu-label edu-label-full">
+            <span>Notes</span>
+            <textarea id="task-notes" rows="4" placeholder="Context, next steps, blockers, links..."></textarea>
+          </label>
         </div>
+      </FormCard>
 
-        <form id="task-form" class="edu-form">
-          <div class="edu-form-grid">
-            <label class="edu-label">
-              <span>Task name</span>
-              <input type="text" id="task-title" required placeholder="Send revised proposal" />
-            </label>
+      <FormCard
+        title="Add Meeting"
+        subtitle="Schedule meetings and keep them grouped by section."
+        formId="meeting-form"
+        submitLabel="Add Meeting"
+      >
+        <div class="edu-form-grid">
+          <label class="edu-label">
+            <span>Meeting title</span>
+            <input type="text" id="meeting-title" required placeholder="Weekly team sync" />
+          </label>
 
-            <label class="edu-label">
-              <span>Due date</span>
-              <input type="date" id="task-due-date" required />
-            </label>
+          <label class="edu-label">
+            <span>Date</span>
+            <input type="date" id="meeting-date" required />
+          </label>
 
-            <label class="edu-label">
-              <span>Due time</span>
-              <input type="time" id="task-due-time" />
-            </label>
+          <label class="edu-label">
+            <span>Start time</span>
+            <input type="time" id="meeting-start" required />
+          </label>
 
-            <label class="edu-label">
-              <span>Section</span>
-              <select id="task-project" required>
-                <option value="">Select a section</option>
-              </select>
-            </label>
+          <label class="edu-label">
+            <span>End time</span>
+            <input type="time" id="meeting-end" required />
+          </label>
 
-            <label class="edu-label">
-              <span>Priority</span>
-              <select id="task-priority">
-                <option value="medium">Medium</option>
-                <option value="low">Low</option>
-                <option value="high">High</option>
-                <option value="urgent">Urgent</option>
-              </select>
-            </label>
+          <label class="edu-label">
+            <span>Section</span>
+            <select id="meeting-project">
+              <option value="">No section</option>
+            </select>
+          </label>
 
-            <label class="edu-label">
-              <span>Status</span>
-              <select id="task-status">
-                <option value="todo">To do</option>
-                <option value="in-progress">In progress</option>
-                <option value="blocked">Blocked</option>
-                <option value="done">Done</option>
-              </select>
-            </label>
+          <label class="edu-label">
+            <span>Location / link</span>
+            <input type="text" id="meeting-location" placeholder="Zoom, Room 204, Meet link..." />
+          </label>
 
-            <label class="edu-label">
-              <span>Estimated hours</span>
-              <input
-                type="number"
-                id="task-estimated-hours"
-                min="0"
-                step="0.5"
-                placeholder="2"
-              />
-            </label>
-
-            <label class="edu-label edu-label-full">
-              <span>Notes</span>
-              <textarea id="task-notes" rows="4" placeholder="Context, next steps, blockers, links..."></textarea>
-            </label>
-          </div>
-
-          <button type="submit" class="edu-button">Add Task</button>
-        </form>
-      </article>
-
-      <article class="card education-panel">
-        <div class="education-panel-header">
-          <div>
-            <h2 class="section-title">Add Meeting</h2>
-            <p class="section-subtitle">Schedule meetings and keep them grouped by section.</p>
-          </div>
+          <label class="edu-label edu-label-full">
+            <span>Notes</span>
+            <textarea id="meeting-notes" rows="4" placeholder="Agenda, attendees, prep notes..."></textarea>
+          </label>
         </div>
+      </FormCard>
 
-        <form id="meeting-form" class="edu-form">
-          <div class="edu-form-grid">
-            <label class="edu-label">
-              <span>Meeting title</span>
-              <input type="text" id="meeting-title" required placeholder="Weekly team sync" />
-            </label>
+      <SurfaceCard className="education-panel">
+        <SectionHeader
+          title="Sections"
+          subtitle="Group your tasks and meetings by team, client, or workstream."
+        >
+          <Button id="restore-projects-btn" type="button">Restore Defaults</Button>
+        </SectionHeader>
 
-            <label class="edu-label">
-              <span>Date</span>
-              <input type="date" id="meeting-date" required />
-            </label>
-
-            <label class="edu-label">
-              <span>Start time</span>
-              <input type="time" id="meeting-start" required />
-            </label>
-
-            <label class="edu-label">
-              <span>End time</span>
-              <input type="time" id="meeting-end" required />
-            </label>
-
-            <label class="edu-label">
-              <span>Section</span>
-              <select id="meeting-project">
-                <option value="">No section</option>
-              </select>
-            </label>
-
-            <label class="edu-label">
-              <span>Location / link</span>
-              <input type="text" id="meeting-location" placeholder="Zoom, Room 204, Meet link..." />
-            </label>
-
-            <label class="edu-label edu-label-full">
-              <span>Notes</span>
-              <textarea id="meeting-notes" rows="4" placeholder="Agenda, attendees, prep notes..."></textarea>
-            </label>
-          </div>
-
-          <button type="submit" class="edu-button">Add Meeting</button>
-        </form>
-      </article>
-
-      <article class="card education-panel">
-        <div class="education-panel-header">
-          <div>
-            <h2 class="section-title">Sections</h2>
-            <p class="section-subtitle">Group your tasks and meetings by team, client, or workstream.</p>
-          </div>
-          <button type="button" id="restore-projects-btn" class="edu-button">Restore Defaults</button>
-        </div>
-
-        <form id="project-form" class="edu-form">
+        <FormCard formId="project-form" submitLabel="Add Section" compact={true}>
           <div class="edu-form-grid class-grid">
             <label class="edu-label">
               <span>Section name</span>
@@ -222,12 +210,10 @@ const defaultWorkData = JSON.stringify({
               </div>
             </div>
           </div>
-
-          <button type="submit" class="edu-button">Add Section</button>
-        </form>
+        </FormCard>
 
         <div id="project-list" class="class-list"></div>
-      </article>
+      </SurfaceCard>
 
       <details class="card education-panel completed-panel">
         <summary class="completed-summary">

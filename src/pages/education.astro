@@ -5,6 +5,11 @@
  * assignments, deadlines, sections, and academic tasks.
  */
 import BaseLayout from "../layouts/BaseLayout.astro";
+import PageHero from "../components/PageHero.astro";
+import SurfaceCard from "../components/SurfaceCard.astro";
+import SectionHeader from "../components/SectionHeader.astro";
+import FormCard from "../components/FormCard.astro";
+import Button from "../components/Button.astro";
 
 const defaultEducationData = JSON.stringify({
   classes: [
@@ -17,92 +22,79 @@ const defaultEducationData = JSON.stringify({
 ---
 
 <BaseLayout title="Education | Lifestyle App" description="Education dashboard">
-  <section class="hero">
-    <div class="hero-card">
-      <p class="kicker">Education</p>
-      <h1>Academic dashboard</h1>
-      <p>
-        Track classes, assignments, due dates, grade weight, and what needs attention first.
-      </p>
-    </div>
-  </section>
+  <PageHero
+    kicker="Education"
+    title="Academic dashboard"
+    description="Track classes, assignments, due dates, grade weight, and what needs attention first."
+  />
 
   <section class="section">
     <div class="education-shell">
-      <article class="card education-panel">
-        <div class="education-panel-header">
-          <div>
-            <h2 class="section-title">Due This Week</h2>
-            <p class="section-subtitle">Closest deadlines first.</p>
-          </div>
-        </div>
+      <SurfaceCard className="education-panel">
+        <SectionHeader
+          title="Due This Week"
+          subtitle="Closest deadlines first."
+          align="start"
+        />
         <div id="due-this-week" class="education-list"></div>
-      </article>
+      </SurfaceCard>
 
-      <article class="card education-panel">
-        <div class="education-panel-header">
-          <div>
-            <h2 class="section-title">All Upcoming</h2>
-            <p class="section-subtitle">Sorted by due date.</p>
-          </div>
-        </div>
+      <SurfaceCard className="education-panel">
+        <SectionHeader
+          title="All Upcoming"
+          subtitle="Sorted by due date."
+          align="start"
+        />
         <div id="all-upcoming" class="education-list"></div>
-      </article>
+      </SurfaceCard>
 
-      <article class="card education-panel">
-        <div class="education-panel-header">
-          <div>
-            <h2 class="section-title">Add Assignment</h2>
-            <p class="section-subtitle">Add work by class and due date.</p>
-          </div>
+      <FormCard
+        title="Add Assignment"
+        subtitle="Add work by class and due date."
+        formId="assignment-form"
+        submitLabel="Add Assignment"
+      >
+        <div class="edu-form-grid">
+          <label class="edu-label">
+            <span>Assignment name</span>
+            <input type="text" id="assignment-name" required placeholder="Homework 4" />
+          </label>
+
+          <label class="edu-label">
+            <span>Due date</span>
+            <input type="date" id="assignment-due" required />
+          </label>
+
+          <label class="edu-label">
+            <span>Class</span>
+            <select id="assignment-class" required>
+              <option value="">Select a class</option>
+            </select>
+          </label>
+
+          <label class="edu-label">
+            <span>Percent of grade (optional)</span>
+            <input
+              type="number"
+              id="assignment-weight"
+              min="0"
+              max="100"
+              step="0.1"
+              placeholder="10"
+            />
+          </label>
         </div>
+      </FormCard>
 
-        <form id="assignment-form" class="edu-form">
-          <div class="edu-form-grid">
-            <label class="edu-label">
-              <span>Assignment name</span>
-              <input type="text" id="assignment-name" required placeholder="Homework 4" />
-            </label>
+      <SurfaceCard className="education-panel">
+        <SectionHeader
+          title="Classes"
+          subtitle="Create classes with color tags."
+        >
+          <Button id="restore-classes-btn" type="button">Restore Defaults</Button>
+        </SectionHeader>
 
-            <label class="edu-label">
-              <span>Due date</span>
-              <input type="date" id="assignment-due" required />
-            </label>
-
-            <label class="edu-label">
-              <span>Class</span>
-              <select id="assignment-class" required>
-                <option value="">Select a class</option>
-              </select>
-            </label>
-
-            <label class="edu-label">
-              <span>Percent of grade (optional)</span>
-              <input
-                type="number"
-                id="assignment-weight"
-                min="0"
-                max="100"
-                step="0.1"
-                placeholder="10"
-              />
-            </label>
-          </div>
-
-          <button type="submit" class="edu-button">Add Assignment</button>
-        </form>
-      </article>
-
-      <article class="card education-panel">
-        <div class="education-panel-header">
-          <div>
-            <h2 class="section-title">Classes</h2>
-            <p class="section-subtitle">Create classes with color tags.</p>
-          </div>
-          <button type="button" id="restore-classes-btn" class="edu-button">Restore Defaults</button>
-        </div>
-
-        <form id="class-form" class="edu-form">
+        <FormCard formId="class-form" submitLabel="Add Class" compact={true}>
           <div class="edu-form-grid class-grid">
             <label class="edu-label">
               <span>Class name</span>
@@ -114,48 +106,29 @@ const defaultEducationData = JSON.stringify({
               <input type="hidden" id="class-color" value="#2f5d62" />
 
               <div class="color-picker-row" id="class-color-picker">
-                <!-- neutrals -->
                 <button type="button" class="color-swatch is-selected" data-color="#2f5d62" style="background:#2f5d62;"></button>
                 <button type="button" class="color-swatch" data-color="#111827" style="background:#111827;"></button>
                 <button type="button" class="color-swatch" data-color="#6b7280" style="background:#6b7280;"></button>
-
-                <!-- blues -->
                 <button type="button" class="color-swatch" data-color="#2563eb" style="background:#2563eb;"></button>
                 <button type="button" class="color-swatch" data-color="#38bdf8" style="background:#38bdf8;"></button>
-
-                <!-- greens -->
                 <button type="button" class="color-swatch" data-color="#16a34a" style="background:#16a34a;"></button>
                 <button type="button" class="color-swatch" data-color="#4ade80" style="background:#4ade80;"></button>
-
-                <!-- reds -->
                 <button type="button" class="color-swatch" data-color="#dc2626" style="background:#dc2626;"></button>
                 <button type="button" class="color-swatch" data-color="#f87171" style="background:#f87171;"></button>
-
-                <!-- oranges -->
                 <button type="button" class="color-swatch" data-color="#ea580c" style="background:#ea580c;"></button>
                 <button type="button" class="color-swatch" data-color="#fb923c" style="background:#fb923c;"></button>
-
-                <!-- yellows -->
                 <button type="button" class="color-swatch" data-color="#fde047" style="background:#fde047;"></button>
-
-                <!-- purples -->
                 <button type="button" class="color-swatch" data-color="#6a3fa0" style="background:#6a3fa0;"></button>
                 <button type="button" class="color-swatch" data-color="#a78bfa" style="background:#a78bfa;"></button>
-
-                <!-- pinks -->
                 <button type="button" class="color-swatch" data-color="#db2777" style="background:#db2777;"></button>
-
-                <!-- browns -->
                 <button type="button" class="color-swatch" data-color="#7a4b2a" style="background:#7a4b2a;"></button>
               </div>
             </div>
           </div>
-
-          <button type="submit" class="edu-button">Add Class</button>
-        </form>
+        </FormCard>
 
         <div id="class-list" class="class-list"></div>
-      </article>
+      </SurfaceCard>
 
       <details class="card education-panel completed-panel">
         <summary class="completed-summary">

@@ -1,0 +1,139 @@
+---
+import ActionBar from "../ActionBar.astro";
+import ExpandableSection from "../ExpandableSection.astro";
+import SectionHeader from "../SectionHeader.astro";
+import type {
+  LeafSectionConfig,
+  StaticListSectionConfig,
+} from "../../types/ui";
+
+interface Props {
+  section: LeafSectionConfig;
+}
+
+const { section } = Astro.props as Props;
+const surface = section.surface || "card";
+const isExpandable = surface === "expandable";
+
+function staticListItems(sectionConfig: StaticListSectionConfig) {
+  return sectionConfig.items;
+}
+---
+
+{section.kind === "editable-collection" ? (
+  isExpandable ? (
+    <ExpandableSection
+      title={section.title || ""}
+      subtitle={section.subtitle || ""}
+      kicker={section.kicker || ""}
+      open={section.open ?? false}
+      bodyClass="declarative-section-body"
+    >
+      <ActionBar
+        align="end"
+        actions={[{ label: "Edit", id: section.editButtonId, variant: "secondary" }]}
+      />
+      <ul
+        id={section.listId}
+        class:list={[
+          section.mode === "checklist" ? "routine-list" : "list-clean",
+          "editable-list",
+          "declarative-editable-list",
+        ]}
+        data-empty-text={section.emptyText || "No items yet."}
+      ></ul>
+    </ExpandableSection>
+  ) : (
+    <article class="card declarative-card">
+      <SectionHeader
+        title={section.title || ""}
+        subtitle={section.subtitle || ""}
+        kicker={section.kicker || ""}
+      >
+        <ActionBar
+          align="end"
+          actions={[{ label: "Edit", id: section.editButtonId, variant: "secondary" }]}
+        />
+      </SectionHeader>
+
+      <ul
+        id={section.listId}
+        class:list={[
+          section.mode === "checklist" ? "routine-list" : "list-clean",
+          "editable-list",
+          "declarative-editable-list",
+        ]}
+        data-empty-text={section.emptyText || "No items yet."}
+      ></ul>
+    </article>
+  )
+) : section.kind === "target" ? (
+  isExpandable ? (
+    <ExpandableSection
+      title={section.title || ""}
+      subtitle={section.subtitle || ""}
+      kicker={section.kicker || ""}
+      open={section.open ?? false}
+      bodyClass={section.bodyClass || "declarative-target-content"}
+    >
+      <div id={section.containerId}></div>
+    </ExpandableSection>
+  ) : (
+    <article class="card declarative-card">
+      <SectionHeader
+        title={section.title || ""}
+        subtitle={section.subtitle || ""}
+        kicker={section.kicker || ""}
+      />
+      <div id={section.containerId} class={section.bodyClass || "declarative-target-content"}></div>
+    </article>
+  )
+) : (
+  isExpandable ? (
+    <ExpandableSection
+      title={section.title || ""}
+      subtitle={section.subtitle || ""}
+      kicker={section.kicker || ""}
+      open={section.open ?? false}
+    >
+      <ul class="list-clean">
+        {staticListItems(section).map((item) => (
+          <li>
+            {typeof item === "string" ? (
+              item
+            ) : item.title ? (
+              <>
+                <strong>{item.title}</strong> {item.text}
+              </>
+            ) : (
+              item.text
+            )}
+          </li>
+        ))}
+      </ul>
+    </ExpandableSection>
+  ) : (
+    <article class="card declarative-static-list-card">
+      <SectionHeader
+        title={section.title || ""}
+        subtitle={section.subtitle || ""}
+        kicker={section.kicker || ""}
+      />
+      <ul class="list-clean">
+        {staticListItems(section).map((item) => (
+          <li>
+            {typeof item === "string" ? (
+              item
+            ) : item.title ? (
+              <>
+                <strong>{item.title}</strong> {item.text}
+              </>
+            ) : (
+              item.text
+            )}
+          </li>
+        ))}
+      </ul>
+    </article>
+  )
+)}

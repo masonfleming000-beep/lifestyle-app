@@ -1,0 +1,85 @@
+---
+/**
+ * Reusable mobile navigation drawer/menu.
+ */
+interface LinkItem {
+  href: string;
+  label: string;
+}
+
+interface Props {
+  links?: LinkItem[];
+  title?: string;
+  currentPath?: string;
+}
+
+const {
+  links = [
+    { href: "/", label: "Home" },
+    { href: "/today", label: "Today" },
+    { href: "/fitness", label: "Fitness" },
+    { href: "/nutrition", label: "Nutrition" },
+    { href: "/mind", label: "Mind" },
+    { href: "/education", label: "Education" },
+    { href: "/work", label: "Work" },
+    { href: "/career", label: "Career" },
+    { href: "/hobbies", label: "Hobbies" },
+    { href: "/settings/profile", label: "Settings" },
+  ],
+  title = "Menu",
+  currentPath = Astro.url.pathname,
+} = Astro.props;
+---
+
+<details class="dropdown-card mobile-menu surface-dropdown">
+  <summary>
+    <div>
+      <p class="kicker">Navigation</p>
+      <h2 class="section-title">{title}</h2>
+    </div>
+    <span class="dropdown-arrow">+</span>
+  </summary>
+
+  <div class="dropdown-content mobile-menu-content">
+    <nav class="mobile-menu-links" aria-label="Mobile navigation">
+      {links.map((link) => (
+        <a href={link.href} class:list={["mobile-menu-link", currentPath === link.href && "is-active"]}>
+          {link.label}
+        </a>
+      ))}
+    </nav>
+
+    <div class="mobile-menu-footer">
+      <slot />
+    </div>
+  </div>
+</details>
+
+<style>
+  .mobile-menu-links {
+    display: grid;
+    gap: 0.65rem;
+  }
+
+  .mobile-menu-link {
+    display: block;
+    padding: 0.85rem 0.95rem;
+    border: 1px solid var(--border-soft);
+    border-radius: 16px;
+    background: color-mix(in srgb, var(--resolved-dropdown-color) 92%, transparent);
+    transition: transform 0.18s ease, border-color 0.18s ease;
+  }
+
+  .mobile-menu-link:hover {
+    transform: translateY(-1px);
+  }
+
+  .mobile-menu-link.is-active {
+    border-color: var(--border-medium);
+    font-weight: 700;
+  }
+
+  .mobile-menu-footer {
+    margin-top: 0.9rem;
+  }
+</style>

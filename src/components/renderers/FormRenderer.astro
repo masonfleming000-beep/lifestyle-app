@@ -1,0 +1,40 @@
+---
+import FormCard from "../FormCard.astro";
+
+interface Props {
+  formId?: string;
+  class?: string;
+  title?: string;
+  subtitle?: string;
+  kicker?: string;
+  submitLabel?: string;
+  submitVariant?: "primary" | "secondary";
+  compact?: boolean;
+}
+
+const {
+  formId,
+  class: className = "",
+  title = "",
+  subtitle = "",
+  kicker = "",
+  submitLabel = "Save",
+  submitVariant = "primary",
+  compact = true,
+} = Astro.props;
+---
+
+<div class:list={["form-renderer", className]}>
+  <FormCard
+    formId={formId}
+    title={title}
+    subtitle={subtitle}
+    kicker={kicker}
+    submitLabel={submitLabel}
+    submitVariant={submitVariant}
+    compact={compact}
+  >
+    <slot />
+    <slot name="actions" slot="actions" />
+  </FormCard>
+</div>

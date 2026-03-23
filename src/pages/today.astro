@@ -5,6 +5,10 @@
  * for the current day in a focused dashboard view.
  */
 import BaseLayout from "../layouts/BaseLayout.astro";
+import Button from "../components/Button.astro";
+import PageHero from "../components/PageHero.astro";
+import SectionHeader from "../components/SectionHeader.astro";
+import SurfaceCard from "../components/SurfaceCard.astro";
 
 const defaultMorning = [
   "Brush teeth",
@@ -44,28 +48,34 @@ const defaultCalendar = JSON.stringify(defaultCalendarEmbed);
 ---
 
 <BaseLayout title="Today | Lifestyle App">
-  <!-- CALENDAR -->
+  <PageHero
+    kicker="Today"
+    title="Run the day with clarity."
+    description="Track your calendar, priorities, and routine checklists from one focused dashboard."
+  />
+
   <section class="section">
-    <article class="card">
-      <div class="today-header-row">
-        <h2 class="section-title">Calendar</h2>
-        <button id="calendar-edit-btn" type="button" class="today-btn">Edit</button>
-      </div>
+    <SurfaceCard className="today-surface-card">
+      <SectionHeader
+        title="Calendar"
+        subtitle="Add a Google Calendar embed to keep the day visible at a glance."
+        align="center"
+      >
+        <Button id="calendar-edit-btn" type="button" variant="secondary">Edit</Button>
+      </SectionHeader>
 
       <form id="calendar-form" class="todo-form today-form today-form-hidden">
         <input
           id="calendar-input"
           type="text"
-          class="todo-input today-input"
+          class="todo-input text-input today-input"
           placeholder="Paste Google Calendar embed URL..."
         />
-        <button type="submit" class="today-btn">Save</button>
+        <Button type="submit" variant="primary">Save</Button>
       </form>
 
       <div id="calendar-delete-wrap" class="today-action-row today-form-hidden">
-        <button id="calendar-delete-btn" type="button" class="today-btn today-btn-danger">
-          Remove Calendar
-        </button>
+        <Button id="calendar-delete-btn" type="button" variant="danger">Remove Calendar</Button>
       </div>
 
       <p id="calendar-instructions" class="muted today-calendar-help today-form-hidden">
@@ -74,80 +84,81 @@ const defaultCalendar = JSON.stringify(defaultCalendarEmbed);
       </p>
 
       <div id="calendar-container" class="calendar-embed"></div>
-    </article>
+    </SurfaceCard>
   </section>
 
-  <!-- TODO -->
   <section class="section">
-    <article class="card">
-      <div class="today-header-row">
-        <h2 class="section-title">Today</h2>
-        <div class="today-btn-group">
-          <button id="todo-restore-btn" type="button" class="today-btn">Restore</button>
-          <button id="todo-edit-btn" type="button" class="today-btn">Edit</button>
-        </div>
-      </div>
+    <SurfaceCard className="today-surface-card">
+      <SectionHeader
+        title="Today"
+        subtitle="Capture tasks, mark them done, or restore the starter list."
+        align="center"
+      >
+        <Button id="todo-restore-btn" type="button" variant="secondary">Restore</Button>
+        <Button id="todo-edit-btn" type="button" variant="secondary">Edit</Button>
+      </SectionHeader>
 
       <form id="todo-form" class="todo-form today-form today-form-hidden">
         <input
           id="todo-input"
           type="text"
-          class="todo-input today-input"
+          class="todo-input text-input today-input"
           placeholder="Add a task..."
         />
-        <button type="submit" class="today-btn">Add</button>
+        <Button type="submit" variant="primary">Add</Button>
       </form>
 
       <ul id="todo-list" class="todo-list today-list"></ul>
-    </article>
+    </SurfaceCard>
   </section>
 
-  <!-- ROUTINES -->
   <section class="section">
     <div class="grid two">
-      <article class="card today-checklist-card today-morning">
-        <div class="today-header-row">
-          <h2 class="section-title">Morning</h2>
-          <div class="today-btn-group">
-            <button id="morning-restore-btn" type="button" class="today-btn">Restore</button>
-            <button id="morning-edit-btn" type="button" class="today-btn">Edit</button>
-          </div>
-        </div>
+      <SurfaceCard className="today-surface-card today-checklist-card today-morning">
+        <SectionHeader
+          title="Morning"
+          subtitle="Reset, move, and prepare before the day accelerates."
+          align="center"
+        >
+          <Button id="morning-restore-btn" type="button" variant="secondary">Restore</Button>
+          <Button id="morning-edit-btn" type="button" variant="secondary">Edit</Button>
+        </SectionHeader>
 
         <form id="morning-form" class="todo-form today-form today-form-hidden">
           <input
             id="morning-input"
             type="text"
-            class="todo-input today-input"
+            class="todo-input text-input today-input"
             placeholder="Add morning routine item..."
           />
-          <button type="submit" class="today-btn">Add</button>
+          <Button type="submit" variant="primary">Add</Button>
         </form>
 
         <ul id="morning-list" class="routine-list today-list"></ul>
-      </article>
+      </SurfaceCard>
 
-      <article class="card today-checklist-card today-night">
-        <div class="today-header-row">
-          <h2 class="section-title">Night</h2>
-          <div class="today-btn-group">
-            <button id="night-restore-btn" type="button" class="today-btn">Restore</button>
-            <button id="night-edit-btn" type="button" class="today-btn">Edit</button>
-          </div>
-        </div>
+      <SurfaceCard className="today-surface-card today-checklist-card today-night">
+        <SectionHeader
+          title="Night"
+          subtitle="Close the day well and set up tomorrow with less friction."
+          align="center"
+        >
+          <Button id="night-restore-btn" type="button" variant="secondary">Restore</Button>
+          <Button id="night-edit-btn" type="button" variant="secondary">Edit</Button>
+        </SectionHeader>
 
         <form id="night-form" class="todo-form today-form today-form-hidden">
           <input
             id="night-input"
             type="text"
-            class="todo-input today-input"
+            class="todo-input text-input today-input"
             placeholder="Add night routine item..."
           />
-          <button type="submit" class="today-btn">Add</button>
+          <Button type="submit" variant="primary">Add</Button>
         </form>
 
         <ul id="night-list" class="routine-list today-list"></ul>
-      </article>
+      </SurfaceCard>
     </div>
   </section>
 
@@ -160,6 +171,36 @@ const defaultCalendar = JSON.stringify(defaultCalendarEmbed);
     }}
   >
     const pageKey = "today";
+
+    async function loadRemotePageState(pageKey) {
+      try {
+        const res = await fetch(`/api/state?pageKey=${encodeURIComponent(pageKey)}`, {
+          credentials: "include",
+          cache: "no-store",
+        });
+
+        if (!res.ok) return null;
+
+        const data = await res.json();
+        return data?.state ?? null;
+      } catch (error) {
+        console.error("Failed to load state:", error);
+        return null;
+      }
+    }
+
+    async function saveRemotePageState(pageKey, state) {
+      try {
+        await fetch("/api/state", {
+          method: "POST",
+          credentials: "include",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ pageKey, state }),
+        });
+      } catch (error) {
+        console.error("Failed to save state:", error);
+      }
+    }
 
     const todoListEl = document.getElementById("todo-list");
     const todoForm = document.getElementById("todo-form");
@@ -251,23 +292,6 @@ const defaultCalendar = JSON.stringify(defaultCalendarEmbed);
       state.removedDefaults[section] = arr.filter((item) => item !== text);
     }
 
-    async function loadState() {
-      try {
-        const res = await fetch(`/api/state?pageKey=${encodeURIComponent(pageKey)}`, {
-          credentials: "include",
-          cache: "no-store",
-        });
-
-        if (!res.ok) return null;
-
-        const data = await res.json();
-        return data?.state ?? null;
-      } catch (error) {
-        console.error("Failed to load state:", error);
-        return null;
-      }
-    }
-
     async function saveState() {
       if (!hasLoadedInitialState) return;
 
@@ -279,14 +303,7 @@ const defaultCalendar = JSON.stringify(defaultCalendarEmbed);
       isSaving = true;
 
       try {
-        await fetch("/api/state", {
-          method: "POST",
-          credentials: "include",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ pageKey, state }),
-        });
-      } catch (error) {
-        console.error("Failed to save state:", error);
+        await saveRemotePageState(pageKey, state);
       } finally {
         isSaving = false;
 
@@ -327,7 +344,7 @@ const defaultCalendar = JSON.stringify(defaultCalendarEmbed);
       const btn = document.createElement("button");
       btn.type = "button";
       btn.textContent = "Delete";
-      btn.className = "today-btn today-btn-danger today-delete-btn";
+      btn.className = "danger-btn today-delete-btn";
       btn.style.display = isVisible ? "inline-flex" : "none";
       btn.addEventListener("click", onClick);
       return btn;
@@ -610,7 +627,7 @@ const defaultCalendar = JSON.stringify(defaultCalendarEmbed);
       renderRoutine(morningListEl, "morning");
       renderRoutine(nightListEl, "night");
 
-      const saved = await loadState();
+      const saved = await loadRemotePageState(pageKey);
 
       const removedDefaults = {
         todos: uniqueStrings(saved?.removedDefaults?.todos),
@@ -663,19 +680,9 @@ const defaultCalendar = JSON.stringify(defaultCalendarEmbed);
   </script>
 
   <style>
-    .today-header-row {
-      display: flex;
-      justify-content: space-between;
-      align-items: center;
+    .today-surface-card {
+      display: grid;
       gap: 1rem;
-      flex-wrap: wrap;
-      margin-bottom: 1rem;
-    }
-
-    .today-btn-group {
-      display: flex;
-      gap: 0.5rem;
-      flex-wrap: wrap;
     }
 
     .today-form {
@@ -683,7 +690,6 @@ const defaultCalendar = JSON.stringify(defaultCalendarEmbed);
       align-items: center;
       gap: 0.75rem;
       flex-wrap: wrap;
-      margin-bottom: 1rem;
     }
 
     .today-form-hidden {
@@ -691,40 +697,14 @@ const defaultCalendar = JSON.stringify(defaultCalendarEmbed);
     }
 
     .today-action-row {
+      display: flex;
       gap: 0.75rem;
       flex-wrap: wrap;
-      margin-bottom: 1rem;
     }
 
     .today-input {
-      min-height: 44px;
-      padding: 0.8rem 0.95rem;
-      border-radius: 14px;
-      font-size: 0.98rem;
-    }
-
-    .today-btn {
-      display: inline-flex;
-      align-items: center;
-      justify-content: center;
-      min-height: 42px;
-      padding: 0.7rem 1rem;
-      border-radius: 999px;
-      border: none;
-      font-weight: 600;
-      font-size: 0.95rem;
-      line-height: 1;
-      cursor: pointer;
-      transition: transform 0.15s ease, opacity 0.15s ease;
-    }
-
-    .today-btn:hover {
-      transform: translateY(-1px);
-      opacity: 0.96;
-    }
-
-    .today-btn-danger {
-      opacity: 0.92;
+      flex: 1 1 320px;
+      min-height: 48px;
     }
 
     .today-list {
@@ -839,7 +819,7 @@ const defaultCalendar = JSON.stringify(defaultCalendarEmbed);
     }
 
     .today-calendar-help {
-      margin-bottom: 1rem;
+      margin: 0;
       line-height: 1.5;
     }
 

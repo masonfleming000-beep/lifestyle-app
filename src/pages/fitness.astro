@@ -5,7 +5,11 @@
  * weightlifting, and other exercise-related features.
  */
 import BaseLayout from "../layouts/BaseLayout.astro";
+import Button from "../components/Button.astro";
 import PageHero from "../components/PageHero.astro";
+import QuickLinkCard from "../components/QuickLinkCard.astro";
+import SectionHeader from "../components/SectionHeader.astro";
+import SurfaceCard from "../components/SurfaceCard.astro";
 import { fitnessLinks, weeklySplit } from "../data/fitness";
 
 const defaultWeeklySplit = JSON.stringify(weeklySplit);
@@ -21,33 +25,24 @@ const defaultWeeklySplit = JSON.stringify(weeklySplit);
   <section class="section">
     <div class="grid two">
       {fitnessLinks.map((item) => (
-        <a href={item.href} class="quick-link-card">
-          <h3>{item.title}</h3>
-          <p>{item.description}</p>
-        </a>
+        <QuickLinkCard href={item.href} title={item.title} text={item.description} />
       ))}
     </div>
   </section>
 
   <section class="section">
-    <article class="card">
-      <div class="section-header">
-        <div>
-          <h2 class="section-title">Weekly Training Notes</h2>
-          <p class="section-subtitle">
-            Edit, add, delete, or restore your default weekly notes.
-          </p>
-        </div>
-      </div>
-
-      <div class="editor-toolbar">
-        <button id="weekly-notes-edit-btn" type="button" class="button-secondary">
+    <SurfaceCard>
+      <SectionHeader
+        title="Weekly Training Notes"
+        subtitle="Edit, add, delete, or restore your default weekly notes."
+      >
+        <Button id="weekly-notes-edit-btn" type="button" variant="secondary">
           Edit
-        </button>
-      </div>
+        </Button>
+      </SectionHeader>
 
       <ul id="weekly-notes-list" class="list-clean editable-list"></ul>
-    </article>
+    </SurfaceCard>
   </section>
 
   <script define:vars={{ defaultWeeklySplit }}>
@@ -262,7 +257,7 @@ const defaultWeeklySplit = JSON.stringify(weeklySplit);
     function createDeleteButton(onClick) {
       const button = document.createElement("button");
       button.type = "button";
-      button.className = "routine-action-button";
+      button.className = "button-secondary routine-action-button";
       button.textContent = "Delete";
       button.addEventListener("click", onClick);
       return button;
@@ -271,7 +266,7 @@ const defaultWeeklySplit = JSON.stringify(weeklySplit);
     function createAddButton(label, onClick) {
       const button = document.createElement("button");
       button.type = "button";
-      button.className = "routine-action-button";
+      button.className = "button-primary routine-action-button";
       button.textContent = label;
       button.addEventListener("click", onClick);
       return button;
@@ -280,7 +275,7 @@ const defaultWeeklySplit = JSON.stringify(weeklySplit);
     function createRestoreButton(onClick) {
       const button = document.createElement("button");
       button.type = "button";
-      button.className = "routine-action-button";
+      button.className = "button-secondary routine-action-button";
       button.textContent = "Restore Defaults";
       button.addEventListener("click", onClick);
       return button;
@@ -429,18 +424,12 @@ const defaultWeeklySplit = JSON.stringify(weeklySplit);
   </script>
 
   <style>
-    .editor-toolbar {
-      display: flex;
-      justify-content: flex-end;
-      margin-bottom: 0.85rem;
-    }
-
     .editable-list {
       display: flex;
       flex-direction: column;
       gap: 0.85rem;
       padding: 0;
-      margin: 0;
+      margin: 1rem 0 0 0;
       list-style: none;
     }
 
@@ -499,14 +488,7 @@ const defaultWeeklySplit = JSON.stringify(weeklySplit);
     }
 
     .routine-action-button {
-      border: 1px solid var(--border-color, #d9d9d9);
-      background: transparent;
-      border-radius: 10px;
-      padding: 0.65rem 0.85rem;
-      cursor: pointer;
       white-space: nowrap;
-      font: inherit;
-      color: inherit;
     }
   </style>
 </BaseLayout>

@@ -5,6 +5,10 @@
  * exercise plans, and strength-training progress.
  */
 import BaseLayout from "../layouts/BaseLayout.astro";
+import Button from "../components/Button.astro";
+import PageHero from "../components/PageHero.astro";
+import SectionHeader from "../components/SectionHeader.astro";
+import SurfaceCard from "../components/SurfaceCard.astro";
 import { liftingGroups } from "../data/weightlifting";
 
 const defaultWeightliftingData = JSON.stringify({
@@ -25,25 +29,19 @@ const defaultWeightliftingData = JSON.stringify({
 ---
 
 <BaseLayout title="Weight Training | Lifestyle App" description="Weight training dashboard">
-  <section class="hero">
-    <div class="hero-card">
-      <p class="kicker">Weight Training</p>
-      <h1>Train by muscle group.</h1>
-      <p>
-        Same cleaner pattern as the Mind page — default groups, custom groups,
-        and a simple exercise add flow inside each section.
-      </p>
-    </div>
-  </section>
+  <PageHero
+    kicker="Weight Training"
+    title="Train by muscle group."
+    description="Use the same cleaner system as Mind — default groups, custom groups, and a simple exercise add flow inside each section."
+  />
 
   <section class="section">
-    <article class="card">
-      <div class="section-header">
-        <div>
-          <h2 class="section-title">Custom Sections</h2>
-          <p class="section-subtitle">Create your own muscle groups or workout buckets.</p>
-        </div>
-      </div>
+    <SurfaceCard>
+      <SectionHeader
+        title="Custom Sections"
+        subtitle="Create your own muscle groups or workout buckets."
+        align="start"
+      />
 
       <div class="custom-group-form">
         <input
@@ -52,13 +50,13 @@ const defaultWeightliftingData = JSON.stringify({
           type="text"
           placeholder="New section name (ex. Triceps, Forearms, Full Body)"
         />
-        <button type="button" class="secondary-btn" id="create-group-btn">
-          Add section
-        </button>
+        <Button type="button" variant="secondary" id="create-group-btn">
+          Add Section
+        </Button>
       </div>
 
       <div id="hidden-default-groups" class="hidden-default-groups"></div>
-    </article>
+    </SurfaceCard>
   </section>
 
   <section class="section">
@@ -66,18 +64,16 @@ const defaultWeightliftingData = JSON.stringify({
   </section>
 
   <section class="section">
-    <article class="card">
-      <div class="section-header">
-        <div>
-          <h2 class="section-title">Saved Weightlifting Workouts</h2>
-          <p class="section-subtitle">Completed workouts you can review or remove later.</p>
-        </div>
-      </div>
+    <SurfaceCard>
+      <SectionHeader
+        title="Saved Weightlifting Workouts"
+        subtitle="Completed workouts you can review or remove later."
+        align="start"
+      />
 
       <div id="saved-weightlifting-workouts"></div>
-    </article>
+    </SurfaceCard>
   </section>
-
   <script define:vars={{ defaultWeightliftingData }}>
     const pageKey = "weightlifting";
 
@@ -454,7 +450,7 @@ const defaultWeightliftingData = JSON.stringify({
                     <span>${escapeHtml(group.title)}</span>
                     <button
                       type="button"
-                      class="secondary-btn compact-btn"
+                      class="button-secondary compact-btn"
                       data-restore-hidden-group="${escapeHtml(group.id)}"
                     >
                       Restore
@@ -594,7 +590,7 @@ const defaultWeightliftingData = JSON.stringify({
             <div class="mind-item-actions">
               <button
                 type="button"
-                class="delete-btn"
+                class="danger-btn"
                 data-delete-exercise-id="${escapeHtml(exercise.id)}"
                 data-delete-exercise-group-id="${escapeHtml(group.id)}"
               >
@@ -681,11 +677,11 @@ const defaultWeightliftingData = JSON.stringify({
               </div>
 
               <div class="mind-form-actions">
-                <button type="submit" class="action-btn">Add Exercise</button>
+                <button type="submit" class="button-primary">Add Exercise</button>
 
                 <button
                   type="button"
-                  class="secondary-btn"
+                  class="button-secondary"
                   data-restore-exercises="${escapeHtml(group.id)}"
                   data-group-default="${group.isDefault ? "true" : "false"}"
                 >
@@ -694,7 +690,7 @@ const defaultWeightliftingData = JSON.stringify({
 
                 <button
                   type="button"
-                  class="${group.isDefault ? "secondary-btn" : "danger-btn"}"
+                  class="${group.isDefault ? "button-secondary" : "danger-btn"}"
                   data-delete-group-id="${escapeHtml(group.id)}"
                   data-group-default="${group.isDefault ? "true" : "false"}"
                 >
@@ -718,7 +714,7 @@ const defaultWeightliftingData = JSON.stringify({
             <div class="mind-form-actions">
               <button
                 type="button"
-                class="action-btn"
+                class="button-primary"
                 data-save-group-workout="${escapeHtml(group.id)}"
               >
                 Save Workout

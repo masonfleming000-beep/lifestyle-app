@@ -1,0 +1,38 @@
+---
+interface Props {
+  label: string;
+  variant?: 'primary' | 'secondary' | 'danger' | 'ghost' | 'icon';
+  size?: 'sm' | 'md';
+  type?: 'button' | 'submit' | 'reset';
+  disabled?: boolean;
+  icon?: string;
+}
+
+const {
+  label,
+  variant = 'secondary',
+  size = 'md',
+  type = 'button',
+  disabled = false,
+  icon = '',
+} = Astro.props;
+
+const className = [
+  variant === 'primary' ? 'button-primary' : variant === 'danger' ? 'danger-btn' : 'button-secondary',
+  variant === 'ghost' && 'button-ghost',
+  variant === 'icon' && 'button-icon',
+  size === 'sm' && 'button-sm',
+].filter(Boolean).join(' ');
+---
+
+<button type={type} class={className} disabled={disabled}>
+  {icon && <span aria-hidden="true">{icon}</span>}
+  <span>{label}</span>
+</button>
+
+<style>
+  .button-sm { padding: 0.5rem 0.75rem; font-size: 0.9rem; }
+  .button-ghost { background: transparent; border: 1px solid var(--border-soft); }
+  .button-icon { min-width: 2.5rem; justify-content: center; }
+  button { display: inline-flex; align-items: center; gap: 0.5rem; }
+</style>

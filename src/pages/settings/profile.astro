@@ -1,7 +1,10 @@
 ---
 import BaseLayout from "../../layouts/BaseLayout.astro";
 import PageHero from "../../components/PageHero.astro";
+import SurfaceCard from "../../components/SurfaceCard.astro";
 import SectionCard from "../../components/SectionCard.astro";
+import SectionHeader from "../../components/SectionHeader.astro";
+import Button from "../../components/Button.astro";
 import {
   PROFILE_SETTINGS_PAGE_KEY,
   DEFAULT_PROFILE_SETTINGS,
@@ -19,13 +22,12 @@ const defaultProfileSettingsJson = JSON.stringify(DEFAULT_PROFILE_SETTINGS);
 
   <section class="section">
     <div class="grid two profile-top-grid">
-      <article class="card profile-fixed-section-card profile-top-card">
-        <div class="section-header">
-          <div>
-            <h2 class="section-title">Account</h2>
-            <p class="section-subtitle">Login identity and recovery settings.</p>
-          </div>
-        </div>
+      <SurfaceCard className="profile-fixed-section-card profile-top-card">
+        <SectionHeader
+          title="Account"
+          subtitle="Login identity and recovery settings."
+          align="start"
+        />
 
         <div class="form-stack">
           <label class="field-group">
@@ -44,20 +46,19 @@ const defaultProfileSettingsJson = JSON.stringify(DEFAULT_PROFILE_SETTINGS);
           </label>
 
           <div class="button-row">
-            <button id="change-password-btn" type="button" class="ui-button ui-button-secondary">
+            <Button id="change-password-btn" type="button" variant="secondary">
               Change Password
-            </button>
+            </Button>
           </div>
         </div>
-      </article>
+      </SurfaceCard>
 
-      <article class="card soft profile-fixed-section-card profile-top-card profile-snapshot-card">
-        <div class="section-header">
-          <div>
-            <h2 class="section-title">Profile Snapshot</h2>
-            <p class="section-subtitle">Quick summary of how your public profile is configured.</p>
-          </div>
-        </div>
+      <SurfaceCard soft={true} className="profile-fixed-section-card profile-top-card profile-snapshot-card">
+        <SectionHeader
+          title="Profile Snapshot"
+          subtitle="Quick summary of how your public profile is configured."
+          align="start"
+        />
 
         <div class="summary-grid compact-summary">
           <div class="summary-metric">
@@ -87,7 +88,7 @@ const defaultProfileSettingsJson = JSON.stringify(DEFAULT_PROFILE_SETTINGS);
         </div>
 
         <div class="snapshot-spacer" aria-hidden="true"></div>
-      </article>
+      </SurfaceCard>
     </div>
   </section>
 
@@ -191,12 +192,12 @@ const defaultProfileSettingsJson = JSON.stringify(DEFAULT_PROFILE_SETTINGS);
                     </label>
 
                     <div class="avatar-upload-actions">
-                      <button id="avatar-upload-trigger" type="button" class="ui-button ui-button-secondary">
+                      <Button id="avatar-upload-trigger" type="button" variant="secondary">
                         Upload file
-                      </button>
-                      <button id="avatar-clear-btn" type="button" class="ui-button ui-button-secondary">
+                      </Button>
+                      <Button id="avatar-clear-btn" type="button" variant="secondary">
                         Clear avatar
-                      </button>
+                      </Button>
                     </div>
 
                     <p class="field-help">
@@ -763,27 +764,26 @@ const defaultProfileSettingsJson = JSON.stringify(DEFAULT_PROFILE_SETTINGS);
   </section>
 
   <section class="section">
-    <article class="card">
-      <div class="section-header">
-        <div>
-          <h2 class="section-title">Public profile preview</h2>
-          <p class="section-subtitle">See the interactive profile layout before saving</p>
-        </div>
-      </div>
+    <SurfaceCard>
+      <SectionHeader
+        title="Public profile preview"
+        subtitle="See the interactive profile layout before saving"
+        align="start"
+      />
       <div id="profile-preview-root">
         <p>Loading preview...</p>
       </div>
-    </article>
+    </SurfaceCard>
   </section>
 
   <section class="section">
-    <div class="profile-settings-actions card">
+    <SurfaceCard as="div" className="profile-settings-actions">
       <div id="profile-settings-status" class="save-status neutral">Loading...</div>
       <div class="button-row">
-        <button id="refresh-preview-btn" type="button" class="ui-button ui-button-secondary">Refresh Preview</button>
-        <button id="save-profile-settings-btn" type="button" class="ui-button">Save Profile Settings</button>
+        <Button id="refresh-preview-btn" type="button" variant="secondary">Refresh Preview</Button>
+        <Button id="save-profile-settings-btn" type="button" variant="primary">Save Profile Settings</Button>
       </div>
-    </div>
+    </SurfaceCard>
   </section>
 
   <script define:vars={{ pageKey: PROFILE_SETTINGS_PAGE_KEY, defaultProfileSettings: defaultProfileSettingsJson }}>

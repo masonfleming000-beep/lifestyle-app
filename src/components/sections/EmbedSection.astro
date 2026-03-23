@@ -1,0 +1,20 @@
+---
+import SurfaceCard from "../ui/SurfaceCard.astro";
+import SectionHeader from "../SectionHeader.astro";
+
+interface Props {
+  title: string;
+  subtitle?: string;
+  id?: string;
+}
+
+const { title, subtitle = "", id } = Astro.props;
+---
+
+<SurfaceCard id={id}>
+  <SectionHeader title={title} subtitle={subtitle}>
+    <slot name="actions" />
+  </SectionHeader>
+
+  <slot />
+</SurfaceCard>

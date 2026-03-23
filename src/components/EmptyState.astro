@@ -1,0 +1,42 @@
+---
+/**
+ * Shared placeholder state.
+ */
+interface Props {
+  title?: string;
+  text?: string;
+  compact?: boolean;
+}
+
+const {
+  title = "Nothing here yet",
+  text = "Add your first item to get started.",
+  compact = false,
+} = Astro.props;
+---
+
+<div class:list={["empty-state-card", "surface-section", compact && "empty-state-card-compact"]}>
+  {title && <h3 class="empty-state-title">{title}</h3>}
+  {text && <p class="empty-state">{text}</p>}
+  <slot />
+</div>
+
+<style>
+  .empty-state-card {
+    border: 1px dashed var(--border-medium);
+    border-radius: var(--radius-sm);
+    padding: 1rem;
+    text-align: center;
+    box-shadow: none;
+  }
+
+  .empty-state-card-compact {
+    padding: 0.8rem;
+  }
+
+  .empty-state-title {
+    margin: 0 0 0.35rem;
+    color: var(--text-main);
+    font-size: 1rem;
+  }
+</style>

@@ -1,0 +1,12 @@
+---
+import SectionCard from '../SectionCard.astro';
+import ActionRenderer from '../declarative/ActionRenderer.astro';
+interface Props { section: any; }
+const { section } = Astro.props;
+---
+<SectionCard title={section.title} subtitle={section.subtitle} open={section.open}>
+  <div class="editor-toolbar">
+    {section.actions?.map((action: any) => <ActionRenderer action={action} compact />)}
+  </div>
+  <div class="input-card">Calendar embed or summary goes here.</div>
+</SectionCard>

@@ -5,6 +5,11 @@
  * or professional information such as projects, experience, and details.
  */
 import BaseLayout from "../../layouts/BaseLayout.astro";
+import PageHero from "../../components/PageHero.astro";
+import SurfaceCard from "../../components/SurfaceCard.astro";
+import SectionHeader from "../../components/SectionHeader.astro";
+import Button from "../../components/Button.astro";
+import PageActions from "../../components/ui/PageActions.astro";
 
 const defaultCareerData = JSON.stringify({
   projects: [],
@@ -23,36 +28,26 @@ const defaultCareerData = JSON.stringify({
 ---
 
 <BaseLayout title="Career Information | Lifestyle App" description="Private information builder">
-  <section class="hero">
-    <div class="hero-card">
-      <p class="kicker">Career</p>
-      <h1>Information Builder</h1>
-      <p>
-        Add and organize your private career information here. Each section gets its
-        own form layout, and only items marked visible will appear in the portfolio.
-      </p>
-    </div>
-  </section>
-
-  <section class="section">
-    <div class="career-topbar">
-      <a href="/career" class="ghost-link">← Back to Career</a>
-      <a href="/career/portfolio" class="edu-button">Go to Portfolio</a>
-    </div>
-  </section>
+  <PageHero
+    kicker="Career"
+    title="Information Builder"
+    description="Add and organize your private career information here. Each section gets its own form layout, and only items marked visible will appear in the portfolio."
+  >
+    <PageActions>
+      <Button href="/career" variant="secondary">← Back to Career</Button>
+      <Button href="/career/portfolio" variant="primary">Go to Portfolio</Button>
+    </PageActions>
+  </PageHero>
 
   <section class="section">
     <div class="career-shell">
-      <article class="card career-panel-card">
-        <div class="career-panel-header">
-          <div>
-            <h2 class="section-title">Add New Entry</h2>
-            <p class="section-subtitle">
-              Pick a section first. The form changes based on what you're adding.
-            </p>
-          </div>
+      <SurfaceCard className="career-panel-card">
+        <SectionHeader
+          title="Add New Entry"
+          subtitle="Pick a section first. The form changes based on what you're adding."
+        >
           <div id="save-status" class="save-status neutral">Loading...</div>
-        </div>
+        </SectionHeader>
 
         <div class="dynamic-builder-shell">
           <label class="edu-label">
@@ -75,17 +70,13 @@ const defaultCareerData = JSON.stringify({
 
           <div id="dynamic-form-area"></div>
         </div>
-      </article>
+      </SurfaceCard>
 
-      <article class="card career-panel-card">
-        <div class="career-panel-header">
-          <div>
-            <h2 class="section-title">Saved Entries</h2>
-            <p class="section-subtitle">
-              Everything stays private here until marked visible for portfolio.
-            </p>
-          </div>
-        </div>
+      <SurfaceCard className="career-panel-card">
+        <SectionHeader
+          title="Saved Entries"
+          subtitle="Everything stays private here until marked visible for portfolio."
+        />
 
         <div class="saved-sections">
           <details class="saved-dropdown" open>
@@ -148,19 +139,14 @@ const defaultCareerData = JSON.stringify({
             <div id="info-star" class="grid one"></div>
           </details>
         </div>
-      </article>
+      </SurfaceCard>
 
-      <article class="card career-panel-card">
-        <div class="career-panel-header">
-          <div>
-            <h2 class="section-title">Actions</h2>
-          </div>
-        </div>
-
-        <button class="delete-mini-button danger-big" id="clear-all-btn" type="button">
+      <SurfaceCard className="career-panel-card">
+        <SectionHeader title="Actions" />
+        <Button id="clear-all-btn" type="button" variant="danger">
           Clear Everything
-        </button>
-      </article>
+        </Button>
+      </SurfaceCard>
     </div>
   </section>
 
@@ -586,7 +572,7 @@ const defaultCareerData = JSON.stringify({
               </label>
             </div>
 
-            <button class="edu-button" id="dynamic-save-project-btn" type="button">Save Project</button>
+            <button class="button-primary career-inline-button" id="dynamic-save-project-btn" type="button">Save Project</button>
           </div>
         `;
       }
@@ -632,7 +618,7 @@ const defaultCareerData = JSON.stringify({
               </label>
             </div>
 
-            <button class="edu-button" id="dynamic-save-school-btn" type="button">Save School Item</button>
+            <button class="button-primary career-inline-button" id="dynamic-save-school-btn" type="button">Save School Item</button>
           </div>
         `;
       }
@@ -678,7 +664,7 @@ const defaultCareerData = JSON.stringify({
               </label>
             </div>
 
-            <button class="edu-button" id="dynamic-save-exp-btn" type="button">Save Experience</button>
+            <button class="button-primary career-inline-button" id="dynamic-save-exp-btn" type="button">Save Experience</button>
           </div>
         `;
       }
@@ -704,7 +690,7 @@ const defaultCareerData = JSON.stringify({
               </label>
             </div>
 
-            <button class="edu-button" id="dynamic-save-about-btn" type="button">Save About Section</button>
+            <button class="button-primary career-inline-button" id="dynamic-save-about-btn" type="button">Save About Section</button>
           </div>
         `;
       }
@@ -729,7 +715,7 @@ const defaultCareerData = JSON.stringify({
               </label>
             </div>
 
-            <button class="edu-button" id="dynamic-save-looking-btn" type="button">Save Looking For</button>
+            <button class="button-primary career-inline-button" id="dynamic-save-looking-btn" type="button">Save Looking For</button>
           </div>
         `;
       }
@@ -754,7 +740,7 @@ const defaultCareerData = JSON.stringify({
               </label>
             </div>
 
-            <button class="edu-button" id="dynamic-save-pitch-btn" type="button">Save Pitch</button>
+            <button class="button-primary career-inline-button" id="dynamic-save-pitch-btn" type="button">Save Pitch</button>
           </div>
         `;
       }
@@ -784,7 +770,7 @@ const defaultCareerData = JSON.stringify({
               </label>
             </div>
 
-            <button class="edu-button" id="dynamic-save-stat-btn" type="button">Save Stat</button>
+            <button class="button-primary career-inline-button" id="dynamic-save-stat-btn" type="button">Save Stat</button>
           </div>
         `;
       }
@@ -819,7 +805,7 @@ const defaultCareerData = JSON.stringify({
               </label>
             </div>
 
-            <button class="edu-button" id="dynamic-save-contact-btn" type="button">Save Contact Info</button>
+            <button class="button-primary career-inline-button" id="dynamic-save-contact-btn" type="button">Save Contact Info</button>
           </div>
         `;
       }
@@ -858,7 +844,7 @@ const defaultCareerData = JSON.stringify({
               </label>
             </div>
 
-            <button class="edu-button" id="dynamic-save-resume-btn" type="button">Upload + Save Resume</button>
+            <button class="button-primary career-inline-button" id="dynamic-save-resume-btn" type="button">Upload + Save Resume</button>
           </div>
         `;
       }
@@ -888,7 +874,7 @@ const defaultCareerData = JSON.stringify({
               </label>
             </div>
 
-            <button class="edu-button" id="dynamic-save-timeline-btn" type="button">Save Timeline Item</button>
+            <button class="button-primary career-inline-button" id="dynamic-save-timeline-btn" type="button">Save Timeline Item</button>
           </div>
         `;
       }
@@ -918,7 +904,7 @@ const defaultCareerData = JSON.stringify({
               </label>
             </div>
 
-            <button class="edu-button" id="dynamic-save-rec-btn" type="button">Save Recommendation</button>
+            <button class="button-primary career-inline-button" id="dynamic-save-rec-btn" type="button">Save Recommendation</button>
           </div>
         `;
       }
@@ -958,7 +944,7 @@ const defaultCareerData = JSON.stringify({
               </label>
             </div>
 
-            <button class="edu-button" id="dynamic-save-star-btn" type="button">Save STAR Example</button>
+            <button class="button-primary career-inline-button" id="dynamic-save-star-btn" type="button">Save STAR Example</button>
           </div>
         `;
       }
@@ -1261,7 +1247,7 @@ const defaultCareerData = JSON.stringify({
 
         const previewButton = isPdfResume(item)
           ? `
-            <a class="edu-button mini secondary-button" href="${escapeHtml(item.fileUrl)}#toolbar=1" target="_blank" rel="noreferrer">
+            <a class="button-secondary career-inline-button career-inline-button-mini" href="${escapeHtml(item.fileUrl)}#toolbar=1" target="_blank" rel="noreferrer">
               View PDF
             </a>
           `
@@ -1270,10 +1256,10 @@ const defaultCareerData = JSON.stringify({
         return `
           <div class="resume-link-row">
             ${previewButton}
-            <a class="edu-button mini" href="${escapeHtml(item.fileUrl)}" target="_blank" rel="noreferrer">
+            <a class="button-primary career-inline-button career-inline-button-mini" href="${escapeHtml(item.fileUrl)}" target="_blank" rel="noreferrer">
               Open
             </a>
-            <a class="edu-button mini resume-download-btn" href="${escapeHtml(item.fileUrl)}" download>
+            <a class="button-primary career-inline-button career-inline-button-mini resume-download-btn" href="${escapeHtml(item.fileUrl)}" download>
               Download
             </a>
           </div>
@@ -1450,10 +1436,10 @@ const defaultCareerData = JSON.stringify({
               ${buildSavedCard(group, item)}
             </div>
             <div class="assignment-actions">
-              <button class="edu-button mini toggle-visibility-btn" type="button">
+              <button class="button-secondary career-inline-button career-inline-button-mini toggle-visibility-btn" type="button">
                 ${item.visible ? "Hide" : "Show"}
               </button>
-              <button class="delete-mini-button" type="button">Delete</button>
+              <button class="danger-btn career-inline-button career-inline-button-mini" type="button">Delete</button>
             </div>
           `;
 
@@ -1461,7 +1447,7 @@ const defaultCareerData = JSON.stringify({
             await toggleVisible(group, item.id);
           });
 
-          card.querySelector(".delete-mini-button")?.addEventListener("click", async () => {
+          card.querySelector(".danger-btn")?.addEventListener("click", async () => {
             await deleteItem(group, item.id);
           });
 
@@ -1523,20 +1509,6 @@ const defaultCareerData = JSON.stringify({
   </script>
 
   <style>
-    .career-topbar {
-      display: flex;
-      justify-content: space-between;
-      align-items: center;
-      gap: 1rem;
-      flex-wrap: wrap;
-    }
-
-    .ghost-link {
-      text-decoration: none;
-      font-weight: 700;
-      color: #2f5d62;
-    }
-
     .career-shell {
       display: grid;
       gap: 1.25rem;
@@ -1577,45 +1549,13 @@ const defaultCareerData = JSON.stringify({
       font-weight: 600;
     }
 
-    .edu-button {
-      appearance: none;
-      border: 0;
-      border-radius: 999px;
-      padding: 0.8rem 1rem;
-      font-weight: 700;
-      cursor: pointer;
-      background: #2f5d62;
-      color: white;
-      text-decoration: none;
-      display: inline-flex;
-      align-items: center;
-      justify-content: center;
-    }
-
-    .edu-button.mini {
-      padding: 0.6rem 0.9rem;
-      font-size: 0.92rem;
-    }
-
-    .secondary-button {
-      background: rgba(47, 93, 98, 0.12);
-      color: #2f5d62;
-    }
-
-    .delete-mini-button {
-      appearance: none;
-      border: 0;
-      border-radius: 999px;
-      padding: 0.65rem 0.9rem;
-      font-weight: 700;
-      cursor: pointer;
-      background: rgba(220, 38, 38, 0.1);
-      color: #b91c1c;
+    .career-inline-button {
       white-space: nowrap;
     }
 
-    .danger-big {
-      padding: 0.85rem 1rem;
+    .career-inline-button-mini {
+      padding: 0.6rem 0.9rem;
+      font-size: 0.92rem;
     }
 
     .assignment-card {
