@@ -7,6 +7,9 @@
 import BaseLayout from "../../layouts/BaseLayout.astro";
 import PageHero from "../../components/PageHero.astro";
 import Button from "../../components/Button.astro";
+import SurfaceCard from "../../components/SurfaceCard.astro";
+import SectionHeader from "../../components/SectionHeader.astro";
+import EmptyState from "../../components/EmptyState.astro";
 import PageActions from "../../components/ui/PageActions.astro";
 ---
 
@@ -23,7 +26,19 @@ import PageActions from "../../components/ui/PageActions.astro";
   </PageHero>
 
   <section class="section">
-    <div id="portfolio-root" class="grid one"></div>
+    <SurfaceCard className="portfolio-root-shell">
+      <SectionHeader
+        kicker="Portfolio"
+        title="Public portfolio sections"
+        subtitle="Only entries marked visible from Career Information are rendered here."
+      />
+      <div id="portfolio-root" class="grid one">
+        <EmptyState
+          title="Loading portfolio"
+          text="Selected public entries will appear here once your portfolio data loads."
+        />
+      </div>
+    </SurfaceCard>
   </section>
 
   <script is:inline>
@@ -158,8 +173,8 @@ import PageActions from "../../components/ui/PageActions.astro";
 
       return `
         <section class="section">
-          <details class="card dropdown-card portfolio-dropdown" open>
-            <summary class="dropdown-summary portfolio-summary">
+          <details class="dropdown-card expandable-section surface-dropdown portfolio-dropdown" open>
+            <summary class="portfolio-summary">
               <div>
                 ${kicker}
                 <h2 class="section-title">${escapeHtml(title)}</h2>
@@ -167,7 +182,7 @@ import PageActions from "../../components/ui/PageActions.astro";
               </div>
               <span class="dropdown-arrow">⌄</span>
             </summary>
-            <div class="dropdown-body portfolio-body">
+            <div class="dropdown-content portfolio-body">
               ${innerHtml}
             </div>
           </details>
@@ -487,7 +502,7 @@ import PageActions from "../../components/ui/PageActions.astro";
       if (!hasVisibleItems(data)) {
         html = `
           <section class="section">
-            <article class="card portfolio-empty-card">
+            <article class="empty-state-card portfolio-empty-card">
               <p class="kicker">Portfolio</p>
               <h2 class="section-title">Nothing selected yet</h2>
               <p>
@@ -527,6 +542,12 @@ import PageActions from "../../components/ui/PageActions.astro";
   </script>
 
   <style>
+
+    .portfolio-root-shell {
+      display: grid;
+      gap: 1.25rem;
+    }
+
     .portfolio-dropdown {
       overflow: hidden;
     }

@@ -7,8 +7,9 @@
 import BaseLayout from "../layouts/BaseLayout.astro";
 import Button from "../components/Button.astro";
 import PageHero from "../components/PageHero.astro";
-import SectionHeader from "../components/SectionHeader.astro";
-import SurfaceCard from "../components/SurfaceCard.astro";
+import ActionBar from "../components/ActionBar.astro";
+import ChecklistSection from "../components/sections/ChecklistSection.astro";
+import EmbedSection from "../components/sections/EmbedSection.astro";
 
 const defaultMorning = [
   "Brush teeth",
@@ -55,14 +56,16 @@ const defaultCalendar = JSON.stringify(defaultCalendarEmbed);
   />
 
   <section class="section">
-    <SurfaceCard className="today-surface-card">
-      <SectionHeader
-        title="Calendar"
-        subtitle="Add a Google Calendar embed to keep the day visible at a glance."
-        align="center"
-      >
-        <Button id="calendar-edit-btn" type="button" variant="secondary">Edit</Button>
-      </SectionHeader>
+    <EmbedSection
+      id="today-calendar-section"
+      title="Calendar"
+      subtitle="Add a Google Calendar embed to keep the day visible at a glance."
+    >
+      <ActionBar
+        slot="actions"
+        align="end"
+        actions={[{ label: "Edit", id: "calendar-edit-btn", variant: "secondary" }]}
+      />
 
       <form id="calendar-form" class="todo-form today-form today-form-hidden">
         <input
@@ -84,21 +87,29 @@ const defaultCalendar = JSON.stringify(defaultCalendarEmbed);
       </p>
 
       <div id="calendar-container" class="calendar-embed"></div>
-    </SurfaceCard>
+    </EmbedSection>
   </section>
 
   <section class="section">
-    <SurfaceCard className="today-surface-card">
-      <SectionHeader
-        title="Today"
-        subtitle="Capture tasks, mark them done, or restore the starter list."
-        align="center"
-      >
-        <Button id="todo-restore-btn" type="button" variant="secondary">Restore</Button>
-        <Button id="todo-edit-btn" type="button" variant="secondary">Edit</Button>
-      </SectionHeader>
+    <ChecklistSection
+      id="today-task-section"
+      title="Today"
+      listId="todo-list"
+      formId="todo-form"
+      items={starterTodos}
+      emptyText="No tasks yet. Add a task to get started."
+      mode="checklist"
+    >
+      <ActionBar
+        slot="actions"
+        align="end"
+        actions={[
+          { label: "Restore", id: "todo-restore-btn", variant: "secondary" },
+          { label: "Edit", id: "todo-edit-btn", variant: "secondary" },
+        ]}
+      />
 
-      <form id="todo-form" class="todo-form today-form today-form-hidden">
+      <form slot="form" id="todo-form" class="todo-form today-form today-form-hidden">
         <input
           id="todo-input"
           type="text"
@@ -107,24 +118,30 @@ const defaultCalendar = JSON.stringify(defaultCalendarEmbed);
         />
         <Button type="submit" variant="primary">Add</Button>
       </form>
-
-      <ul id="todo-list" class="todo-list today-list"></ul>
-    </SurfaceCard>
+    </ChecklistSection>
   </section>
 
   <section class="section">
     <div class="grid two">
-      <SurfaceCard className="today-surface-card today-checklist-card today-morning">
-        <SectionHeader
-          title="Morning"
-          subtitle="Reset, move, and prepare before the day accelerates."
-          align="center"
-        >
-          <Button id="morning-restore-btn" type="button" variant="secondary">Restore</Button>
-          <Button id="morning-edit-btn" type="button" variant="secondary">Edit</Button>
-        </SectionHeader>
+      <ChecklistSection
+        id="today-morning-section"
+        title="Morning"
+        listId="morning-list"
+        formId="morning-form"
+        items={defaultMorning.map((text) => ({ text, done: false }))}
+        emptyText="No morning items yet. Add one above."
+        mode="checklist"
+      >
+        <ActionBar
+          slot="actions"
+          align="end"
+          actions={[
+            { label: "Restore", id: "morning-restore-btn", variant: "secondary" },
+            { label: "Edit", id: "morning-edit-btn", variant: "secondary" },
+          ]}
+        />
 
-        <form id="morning-form" class="todo-form today-form today-form-hidden">
+        <form slot="form" id="morning-form" class="todo-form today-form today-form-hidden">
           <input
             id="morning-input"
             type="text"
@@ -133,21 +150,27 @@ const defaultCalendar = JSON.stringify(defaultCalendarEmbed);
           />
           <Button type="submit" variant="primary">Add</Button>
         </form>
+      </ChecklistSection>
 
-        <ul id="morning-list" class="routine-list today-list"></ul>
-      </SurfaceCard>
+      <ChecklistSection
+        id="today-night-section"
+        title="Night"
+        listId="night-list"
+        formId="night-form"
+        items={defaultNight.map((text) => ({ text, done: false }))}
+        emptyText="No night items yet. Add one above."
+        mode="checklist"
+      >
+        <ActionBar
+          slot="actions"
+          align="end"
+          actions={[
+            { label: "Restore", id: "night-restore-btn", variant: "secondary" },
+            { label: "Edit", id: "night-edit-btn", variant: "secondary" },
+          ]}
+        />
 
-      <SurfaceCard className="today-surface-card today-checklist-card today-night">
-        <SectionHeader
-          title="Night"
-          subtitle="Close the day well and set up tomorrow with less friction."
-          align="center"
-        >
-          <Button id="night-restore-btn" type="button" variant="secondary">Restore</Button>
-          <Button id="night-edit-btn" type="button" variant="secondary">Edit</Button>
-        </SectionHeader>
-
-        <form id="night-form" class="todo-form today-form today-form-hidden">
+        <form slot="form" id="night-form" class="todo-form today-form today-form-hidden">
           <input
             id="night-input"
             type="text"
@@ -156,9 +179,7 @@ const defaultCalendar = JSON.stringify(defaultCalendarEmbed);
           />
           <Button type="submit" variant="primary">Add</Button>
         </form>
-
-        <ul id="night-list" class="routine-list today-list"></ul>
-      </SurfaceCard>
+      </ChecklistSection>
     </div>
   </section>
 
@@ -680,7 +701,10 @@ const defaultCalendar = JSON.stringify(defaultCalendarEmbed);
   </script>
 
   <style>
-    .today-surface-card {
+    #today-calendar-section,
+    #today-task-section,
+    #today-morning-section,
+    #today-night-section {
       display: grid;
       gap: 1rem;
     }
@@ -828,7 +852,8 @@ const defaultCalendar = JSON.stringify(defaultCalendarEmbed);
       background: white;
     }
 
-    .today-checklist-card .today-list-item {
+    #today-morning-section .today-list-item,
+    #today-night-section .today-list-item {
       background: rgba(214, 153, 174, 0.22);
     }
 

@@ -1,6 +1,8 @@
 ---
 import BaseLayout from "../layouts/BaseLayout.astro";
+import ActionBar from "../components/ActionBar.astro";
 import Button from "../components/Button.astro";
+import FormCard from "../components/FormCard.astro";
 import PageHero from "../components/PageHero.astro";
 import SectionHeader from "../components/SectionHeader.astro";
 import SurfaceCard from "../components/SurfaceCard.astro";
@@ -28,30 +30,36 @@ const message = Astro.url.searchParams.get("message");
           {message || ""}
         </p>
 
-        <form id="login-form" class="auth-form auth-form-stack">
+        <FormCard formId="login-form" compact={true} className="auth-form-card" formClass="auth-form auth-form-stack">
           <label for="email">Email</label>
           <input id="email" name="email" type="email" required />
 
           <label for="password">Password</label>
           <input id="password" name="password" type="password" required />
 
-          <Button type="submit" variant="primary" className="auth-submit-button">
-            Sign in
+          <Fragment slot="actions">
+            <Button type="submit" variant="primary" className="auth-submit-button">
+              Sign in
+            </Button>
+          </Fragment>
+        </FormCard>
+
+        <ActionBar align="start">
+          <Button href="/api/auth/google/start" variant="secondary" className="google-button auth-oauth-button">
+            Continue with Google
           </Button>
-        </form>
+        </ActionBar>
 
-        <Button href="/api/auth/google/start" variant="secondary" className="google-button auth-oauth-button">
-          Continue with Google
-        </Button>
+        <div class="auth-footer-group">
+          <p class="auth-footer">
+            Don’t have an account?
+            <a href="/signup">Create one</a>
+          </p>
 
-        <p class="auth-footer">
-          Don’t have an account?
-          <a href="/signup">Create one</a>
-        </p>
-
-        <p class="auth-footer">
-          <a href="/forgot-password">Forgot password?</a>
-        </p>
+          <p class="auth-footer">
+            <a href="/forgot-password">Forgot password?</a>
+          </p>
+        </div>
       </SurfaceCard>
     </div>
   </section>
@@ -117,6 +125,13 @@ const message = Astro.url.searchParams.get("message");
       gap: 1rem;
     }
 
+    .auth-form-card {
+      padding: 0;
+      background: transparent;
+      border: 0;
+      box-shadow: none;
+    }
+
     .auth-form-stack {
       gap: 0.8rem;
     }
@@ -129,6 +144,11 @@ const message = Astro.url.searchParams.get("message");
 
     .auth-oauth-button {
       text-decoration: none;
+    }
+
+    .auth-footer-group {
+      display: grid;
+      gap: 0.25rem;
     }
   </style>
 </BaseLayout>

@@ -10,6 +10,8 @@ interface Props {
   submitLabel?: string;
   submitVariant?: "primary" | "secondary";
   compact?: boolean;
+  className?: string;
+  formClass?: string;
 }
 
 const {
@@ -20,10 +22,12 @@ const {
   submitLabel = "Save",
   submitVariant = "primary",
   compact = false,
+  className = "",
+  formClass = "",
 } = Astro.props;
 ---
 
-<article class:list={["input-card", "form-card", compact && "form-card-compact"]}>
+<article class:list={["input-card", "form-card", compact && "form-card-compact", className]}>
   {(title || subtitle || kicker) && (
     <div class="form-card-header">
       <div class="form-card-copy">
@@ -36,7 +40,7 @@ const {
     </div>
   )}
 
-  <form id={formId || undefined} class="todo-form form-stack form-card-form">
+  <form id={formId || undefined} class:list={["todo-form", "form-stack", "form-card-form", formClass]}>
     <slot />
 
     <div class="form-card-actions">

@@ -1,6 +1,8 @@
 ---
 import BaseLayout from "../layouts/BaseLayout.astro";
+import ActionBar from "../components/ActionBar.astro";
 import Button from "../components/Button.astro";
+import FormCard from "../components/FormCard.astro";
 import PageHero from "../components/PageHero.astro";
 import SectionHeader from "../components/SectionHeader.astro";
 import SurfaceCard from "../components/SurfaceCard.astro";
@@ -24,7 +26,7 @@ import SurfaceCard from "../components/SurfaceCard.astro";
 
         <p id="signup-message" class="auth-note" style="display:none;"></p>
 
-        <form id="signup-form" class="auth-form auth-form-stack">
+        <FormCard formId="signup-form" compact={true} className="auth-form-card" formClass="auth-form auth-form-stack">
           <label for="email">Email</label>
           <input id="email" name="email" type="email" required />
 
@@ -48,14 +50,18 @@ import SurfaceCard from "../components/SurfaceCard.astro";
             required
           />
 
-          <Button type="submit" variant="primary" className="auth-submit-button">
-            Create account
-          </Button>
-        </form>
+          <Fragment slot="actions">
+            <Button type="submit" variant="primary" className="auth-submit-button">
+              Create account
+            </Button>
+          </Fragment>
+        </FormCard>
 
-        <Button href="/api/auth/google/start" variant="secondary" className="google-button auth-oauth-button">
-          Continue with Google
-        </Button>
+        <ActionBar align="start">
+          <Button href="/api/auth/google/start" variant="secondary" className="google-button auth-oauth-button">
+            Continue with Google
+          </Button>
+        </ActionBar>
 
         <p class="auth-footer">
           Already have an account?
@@ -125,6 +131,13 @@ import SurfaceCard from "../components/SurfaceCard.astro";
     .auth-surface-card {
       display: grid;
       gap: 1rem;
+    }
+
+    .auth-form-card {
+      padding: 0;
+      background: transparent;
+      border: 0;
+      box-shadow: none;
     }
 
     .auth-form-stack {

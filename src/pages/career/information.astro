@@ -9,6 +9,9 @@ import PageHero from "../../components/PageHero.astro";
 import SurfaceCard from "../../components/SurfaceCard.astro";
 import SectionHeader from "../../components/SectionHeader.astro";
 import Button from "../../components/Button.astro";
+import ActionBar from "../../components/ActionBar.astro";
+import ExpandableSection from "../../components/ExpandableSection.astro";
+import EmptyState from "../../components/EmptyState.astro";
 import PageActions from "../../components/ui/PageActions.astro";
 
 const defaultCareerData = JSON.stringify({
@@ -79,73 +82,102 @@ const defaultCareerData = JSON.stringify({
         />
 
         <div class="saved-sections">
-          <details class="saved-dropdown" open>
-            <summary>Projects <span id="count-projects">0</span></summary>
-            <div id="info-projects" class="grid one"></div>
-          </details>
+          <ExpandableSection title="Projects" open={true} bodyClass="career-expand-body">
+            <span slot="summary-actions" id="count-projects" class="saved-count">0</span>
+            <div id="info-projects" class="grid one">
+              <EmptyState compact title="No projects yet" text="Saved project entries will appear here." />
+            </div>
+          </ExpandableSection>
 
-          <details class="saved-dropdown">
-            <summary>School Development <span id="count-school">0</span></summary>
-            <div id="info-school" class="grid one"></div>
-          </details>
+          <ExpandableSection title="School Development" bodyClass="career-expand-body">
+            <span slot="summary-actions" id="count-school" class="saved-count">0</span>
+            <div id="info-school" class="grid one">
+              <EmptyState compact title="No school development yet" text="Saved school items will appear here." />
+            </div>
+          </ExpandableSection>
 
-          <details class="saved-dropdown">
-            <summary>Work Experience <span id="count-experience">0</span></summary>
-            <div id="info-experience" class="grid one"></div>
-          </details>
+          <ExpandableSection title="Work Experience" bodyClass="career-expand-body">
+            <span slot="summary-actions" id="count-experience" class="saved-count">0</span>
+            <div id="info-experience" class="grid one">
+              <EmptyState compact title="No experience yet" text="Saved experience entries will appear here." />
+            </div>
+          </ExpandableSection>
 
-          <details class="saved-dropdown">
-            <summary>About / Story <span id="count-about">0</span></summary>
-            <div id="info-about" class="grid one"></div>
-          </details>
+          <ExpandableSection title="About / Story" bodyClass="career-expand-body">
+            <span slot="summary-actions" id="count-about" class="saved-count">0</span>
+            <div id="info-about" class="grid one">
+              <EmptyState compact title="No about entries yet" text="Saved about sections will appear here." />
+            </div>
+          </ExpandableSection>
 
-          <details class="saved-dropdown">
-            <summary>What I'm Looking For <span id="count-looking">0</span></summary>
-            <div id="info-looking" class="grid one"></div>
-          </details>
+          <ExpandableSection title="What I'm Looking For" bodyClass="career-expand-body">
+            <span slot="summary-actions" id="count-looking" class="saved-count">0</span>
+            <div id="info-looking" class="grid one">
+              <EmptyState compact title="Nothing added yet" text="Saved looking-for entries will appear here." />
+            </div>
+          </ExpandableSection>
 
-          <details class="saved-dropdown">
-            <summary>Pitch <span id="count-pitch">0</span></summary>
-            <div id="info-pitch" class="grid one"></div>
-          </details>
+          <ExpandableSection title="Pitch" bodyClass="career-expand-body">
+            <span slot="summary-actions" id="count-pitch" class="saved-count">0</span>
+            <div id="info-pitch" class="grid one">
+              <EmptyState compact title="No pitch entries yet" text="Saved pitch entries will appear here." />
+            </div>
+          </ExpandableSection>
 
-          <details class="saved-dropdown">
-            <summary>Stats <span id="count-stats">0</span></summary>
-            <div id="info-stats" class="grid one"></div>
-          </details>
+          <ExpandableSection title="Stats" bodyClass="career-expand-body">
+            <span slot="summary-actions" id="count-stats" class="saved-count">0</span>
+            <div id="info-stats" class="grid one">
+              <EmptyState compact title="No stats yet" text="Saved stat entries will appear here." />
+            </div>
+          </ExpandableSection>
 
-          <details class="saved-dropdown">
-            <summary>Contact Info <span id="count-contact">0</span></summary>
-            <div id="info-contact" class="grid one"></div>
-          </details>
+          <ExpandableSection title="Contact Info" bodyClass="career-expand-body">
+            <span slot="summary-actions" id="count-contact" class="saved-count">0</span>
+            <div id="info-contact" class="grid one">
+              <EmptyState compact title="No contact info yet" text="Saved contact entries will appear here." />
+            </div>
+          </ExpandableSection>
 
-          <details class="saved-dropdown">
-            <summary>Resume Upload <span id="count-resume">0</span></summary>
-            <div id="info-resume" class="grid one"></div>
-          </details>
+          <ExpandableSection title="Resume Upload" bodyClass="career-expand-body">
+            <span slot="summary-actions" id="count-resume" class="saved-count">0</span>
+            <div id="info-resume" class="grid one">
+              <EmptyState compact title="No resume uploaded yet" text="Saved resume entries will appear here." />
+            </div>
+          </ExpandableSection>
 
-          <details class="saved-dropdown">
-            <summary>Timeline <span id="count-timeline">0</span></summary>
-            <div id="info-timeline" class="grid one"></div>
-          </details>
+          <ExpandableSection title="Timeline" bodyClass="career-expand-body">
+            <span slot="summary-actions" id="count-timeline" class="saved-count">0</span>
+            <div id="info-timeline" class="grid one">
+              <EmptyState compact title="No timeline items yet" text="Saved timeline entries will appear here." />
+            </div>
+          </ExpandableSection>
 
-          <details class="saved-dropdown">
-            <summary>Recommendations <span id="count-recommendations">0</span></summary>
-            <div id="info-recommendations" class="grid one"></div>
-          </details>
+          <ExpandableSection title="Recommendations" bodyClass="career-expand-body">
+            <span slot="summary-actions" id="count-recommendations" class="saved-count">0</span>
+            <div id="info-recommendations" class="grid one">
+              <EmptyState compact title="No recommendations yet" text="Saved recommendations will appear here." />
+            </div>
+          </ExpandableSection>
 
-          <details class="saved-dropdown">
-            <summary>STAR Moments <span id="count-star">0</span></summary>
-            <div id="info-star" class="grid one"></div>
-          </details>
+          <ExpandableSection title="STAR Moments" bodyClass="career-expand-body">
+            <span slot="summary-actions" id="count-star" class="saved-count">0</span>
+            <div id="info-star" class="grid one">
+              <EmptyState compact title="No STAR entries yet" text="Saved STAR moments will appear here." />
+            </div>
+          </ExpandableSection>
         </div>
       </SurfaceCard>
 
       <SurfaceCard className="career-panel-card">
-        <SectionHeader title="Actions" />
-        <Button id="clear-all-btn" type="button" variant="danger">
-          Clear Everything
-        </Button>
+        <SectionHeader
+          title="Actions"
+          subtitle="Use this carefully. This clears every saved section on the page."
+        />
+        <ActionBar align="start">
+          <Button id="clear-all-btn" type="button" variant="danger">
+            Clear Everything
+          </Button>
+        </ActionBar>
       </SurfaceCard>
     </div>
   </section>
@@ -1743,5 +1775,27 @@ const defaultCareerData = JSON.stringify({
         grid-template-columns: 1fr;
       }
     }
+
+
+    .career-expand-body {
+      display: grid;
+      gap: 1rem;
+    }
+
+    .saved-count {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      min-width: 2rem;
+      min-height: 2rem;
+      padding: 0.2rem 0.6rem;
+      border-radius: 999px;
+      background: var(--resolved-section-color, rgba(255,255,255,0.65));
+      border: 1px solid var(--border-soft, rgba(15,23,42,0.08));
+      font-weight: 700;
+      font-size: 0.92rem;
+      color: var(--text-main);
+    }
+
   </style>
 </BaseLayout>

@@ -4,6 +4,7 @@
  * Introduces the lifestyle system and provides quick access
  * to major sections like Today, Fitness, Nutrition, Mind, and more.
  */
+import ActionBar from "../components/ActionBar.astro";
 import BaseLayout from "../layouts/BaseLayout.astro";
 import Button from "../components/Button.astro";
 import ExpandableSection from "../components/ExpandableSection.astro";
@@ -11,6 +12,7 @@ import FormCard from "../components/FormCard.astro";
 import PageHero from "../components/PageHero.astro";
 import QuickLinkCard from "../components/QuickLinkCard.astro";
 import SectionHeader from "../components/SectionHeader.astro";
+import SurfaceCard from "../components/SurfaceCard.astro";
 import { quotes, morals } from "../data/home";
 
 const navCards = [
@@ -33,35 +35,42 @@ const defaultMorals = JSON.stringify(morals);
     kicker="Home"
     title="Your life, organized simply."
     description="Use this page as the main hub. Tap into each area below."
-  />
+  >
+    <div class="page-hero-actions">
+      <Button href="/today" variant="primary">Open Today</Button>
+      <Button href="/career" variant="secondary">Career Hub</Button>
+    </div>
+  </PageHero>
 
   <section class="section">
-    <SectionHeader title="Navigate" subtitle="Choose a section.">
-      <div class="view-switcher" role="group" aria-label="Navigation layout">
-        <button
-          type="button"
-          class="button-secondary view-btn is-active"
-          data-view-btn="grid"
-          aria-pressed="true"
-        >
-          Grid
-        </button>
-        <button
-          type="button"
-          class="button-secondary view-btn"
-          data-view-btn="list"
-          aria-pressed="false"
-        >
-          List
-        </button>
-      </div>
-    </SectionHeader>
+    <SurfaceCard>
+      <SectionHeader title="Navigate" subtitle="Choose a section.">
+        <ActionBar align="end" wrap={true}>
+          <button
+            type="button"
+            class="button-secondary view-btn is-active"
+            data-view-btn="grid"
+            aria-pressed="true"
+          >
+            Grid
+          </button>
+          <button
+            type="button"
+            class="button-secondary view-btn"
+            data-view-btn="list"
+            aria-pressed="false"
+          >
+            List
+          </button>
+        </ActionBar>
+      </SectionHeader>
 
-    <div id="nav-cards" class="quick-links-grid quick-links-grid--grid">
-      {navCards.map((card) => (
-        <QuickLinkCard href={card.href} title={card.title} text={card.text} />
-      ))}
-    </div>
+      <div id="nav-cards" class="quick-links-grid quick-links-grid--grid">
+        {navCards.map((card) => (
+          <QuickLinkCard href={card.href} title={card.title} text={card.text} />
+        ))}
+      </div>
+    </SurfaceCard>
   </section>
 
   <section class="section">
@@ -75,11 +84,11 @@ const defaultMorals = JSON.stringify(morals);
         <input id="quote-author" type="text" placeholder="Author or reminder source" />
       </FormCard>
 
-      <div class="section-inline-actions">
+      <ActionBar class="section-inline-actions" align="start">
         <Button id="restore-quotes-btn" type="button" variant="secondary">
           Restore Default Quotes
         </Button>
-      </div>
+      </ActionBar>
 
       <div id="quotes-list" class="grid three"></div>
     </ExpandableSection>
@@ -95,11 +104,11 @@ const defaultMorals = JSON.stringify(morals);
         <textarea id="reminder-text" placeholder="Reminder details" rows="4" required></textarea>
       </FormCard>
 
-      <div class="section-inline-actions">
+      <ActionBar class="section-inline-actions" align="start">
         <Button id="restore-reminders-btn" type="button" variant="secondary">
           Restore Default Reminders
         </Button>
-      </div>
+      </ActionBar>
 
       <div id="reminders-list" class="grid three"></div>
     </ExpandableSection>
@@ -268,7 +277,7 @@ const defaultMorals = JSON.stringify(morals);
 
       state.quotes.forEach((quote, index) => {
         const article = document.createElement("article");
-        article.className = "card quote-card";
+        article.className = "quote-card surface-section home-quote-card";
 
         article.innerHTML = `
           <div>
@@ -307,11 +316,13 @@ const defaultMorals = JSON.stringify(morals);
 
       state.morals.forEach((item, index) => {
         const article = document.createElement("article");
-        article.className = "card";
+        article.className = "note-card note-card-padded home-reminder-card";
 
         article.innerHTML = `
-          <h3 class="card-title">${escapeHtml(item.title)}</h3>
-          <p>${escapeHtml(item.text)}</p>
+          <div>
+            <h3 class="card-title">${escapeHtml(item.title)}</h3>
+            <p>${escapeHtml(item.text)}</p>
+          </div>
           <button class="button-secondary delete-btn" data-reminder-index="${index}" type="button">Remove</button>
         `;
 
@@ -435,6 +446,13 @@ const defaultMorals = JSON.stringify(morals);
   </script>
 
   <style>
+    .page-hero-actions {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 0.75rem;
+      margin-top: 0.85rem;
+    }
+
     .view-switcher {
       display: inline-flex;
       align-items: center;
@@ -465,6 +483,37 @@ const defaultMorals = JSON.stringify(morals);
 
     .section-inline-actions {
       margin: 0 0 1rem 0;
+    }
+
+    .home-quote-card,
+    .home-reminder-card {
+      display: flex;
+      flex-direction: column;
+      gap: 0.9rem;
+      justify-content: space-between;
+      height: 100%;
+    }
+
+    .home-reminder-card p,
+    .home-quote-card .quote-text,
+    .home-quote-card .quote-author {
+      margin: 0;
+    }
+
+    .home-quote-card .quote-author {
+      display: inline-block;
+      margin-top: 0.5rem;
+      color: var(--text-secondary);
+      font-size: 0.95rem;
+    }
+
+    .home-reminder-card .card-title {
+      margin: 0 0 0.45rem;
+    }
+
+    .home-quote-card .delete-btn,
+    .home-reminder-card .delete-btn {
+      align-self: flex-start;
     }
 
     @media (max-width: 720px) {
