@@ -104,7 +104,12 @@ const publicProfileClientConfig = createPublicProfileClientConfig(username);
     }
 
     .profile-avatar-image {
-      background-repeat: no-repeat;
+      width: 100%;
+      height: 100%;
+      display: block;
+      object-fit: cover;
+      user-select: none;
+      -webkit-user-drag: none;
     }
 
     .profile-avatar-fallback {

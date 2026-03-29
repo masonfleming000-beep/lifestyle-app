@@ -1,0 +1,24 @@
+---
+interface Props {
+  as?: "article" | "div" | "section";
+  id?: string;
+  soft?: boolean;
+  hidden?: boolean;
+  className?: string;
+}
+
+const {
+  as = "article",
+  id,
+  soft = false,
+  hidden = false,
+  className = "",
+} = Astro.props;
+
+const Tag = as;
+const classes = ["card", soft && "soft", className].filter(Boolean).join(" ");
+---
+
+<Tag id={id} class={classes} hidden={hidden ? true : undefined}>
+  <slot />
+</Tag>

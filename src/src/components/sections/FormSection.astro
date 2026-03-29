@@ -1,0 +1,37 @@
+---
+import FormCard from "../FormCard.astro";
+import ActionRenderer from "../renderers/ActionRenderer.astro";
+import FieldRenderer from "../renderers/FieldRenderer.astro";
+import type { RendererFormCardSectionConfig } from "../../types/ui";
+
+interface Props {
+  section: RendererFormCardSectionConfig;
+}
+
+const { section } = Astro.props;
+const form = section.form;
+---
+
+<div class={section.sectionClassName || undefined}>
+  <FormCard
+    title={section.title}
+    subtitle={section.subtitle}
+    kicker={section.kicker}
+    formId={form.id}
+    compact={section.compact}
+    className={section.cardClassName || ""}
+    formClass={form.className || ""}
+  >
+    <div class={section.fieldsWrapperClassName || undefined}>
+      {form.fields.map((field) => <FieldRenderer field={field} />)}
+      <slot name="custom-fields" />
+    </div>
+
+    <ActionRenderer
+      slot="actions"
+      actions={form.actions || []}
+      align={section.actionsAlign || "start"}
+      className={section.actionsClassName || ""}
+    />
+  </FormCard>
+</div>

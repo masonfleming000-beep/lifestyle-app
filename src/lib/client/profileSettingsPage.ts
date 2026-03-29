@@ -17,6 +17,9 @@ export function initProfileSettingsPage(config: ProfileSettingsClientConfig) {
   let isSaving = false;
   let pendingSave = false;
   let previewRefreshTimer = null;
+  let avatarImageNaturalWidth = 0;
+  let avatarImageNaturalHeight = 0;
+  let cropDragState = null;
 
   function setStatus(text, mode = "neutral") {
     if (!statusEl) return;
@@ -247,6 +250,37 @@ export function initProfileSettingsPage(config: ProfileSettingsClientConfig) {
     if (el) el.textContent = text;
   }
 
+
+  function clamp(value, min, max) {
+    return Math.min(max, Math.max(min, value));
+  }
+
+  function setAvatarCropValue(id, value) {
+    const el = byId(id);
+    if (!el) return;
+    el.value = String(Math.round(clamp(Number(value) || 50, 0, 100)));
+  }
+
+  function getAvatarCropValue(id, fallback = 50) {
+    const el = byId(id);
+    const value = Number(el?.value ?? fallback);
+    return Number.isFinite(value) ? clamp(value, 0, 100) : fallback;
+  }
+
+  function getAvatarRenderMetrics(frameRect, zoom = 1) {
+    const naturalWidth = avatarImageNaturalWidth || frameRect.width || 1;
+    const naturalHeight = avatarImageNaturalHeight || frameRect.height || 1;
+    const coverScale = Math.max(
+      (frameRect.width || 1) / naturalWidth,
+      (frameRect.height || 1) / naturalHeight
+    );
+
+    return {
+      width: naturalWidth * coverScale * zoom,
+      height: naturalHeight * coverScale * zoom,
+    };
+  }
+
   function updateAvatarEditorPreview(nextState) {
     const shell = byId("avatar-stage-shell");
     const preview = byId("avatar-editor-preview");
@@ -273,12 +307,26 @@ export function initProfileSettingsPage(config: ProfileSettingsClientConfig) {
     const x = Number(nextState.avatarPositionX ?? 50);
     const y = Number(nextState.avatarPositionY ?? 50);
 
-    image.style.backgroundImage = source ? `url("${source}")` : "none";
-    image.style.backgroundSize = `${zoom * 100}%`;
-    image.style.backgroundPosition = `${x}% ${y}%`;
+    setAvatarCropValue("avatar-position-x", x);
+    setAvatarCropValue("avatar-position-y", y);
+
+    if (source) {
+      if (image.getAttribute("src") !== source) {
+        image.setAttribute("src", source);
+      }
+      image.alt = `${nextState.displayName || nextState.username || "Profile"} avatar`;
+      image.style.objectPosition = `${x}% ${y}%`;
+      image.style.transform = `scale(${zoom})`;
+      image.style.transformOrigin = `${x}% ${y}%`;
+      image.hidden = false;
+      fallback.style.display = "none";
+    } else {
+      image.hidden = true;
+      image.removeAttribute("src");
+      fallback.style.display = "grid";
+    }
 
     fallback.textContent = getAvatarInitial(nextState);
-    fallback.style.display = source ? "none" : "grid";
 
     if (nameEl) {
       nameEl.textContent = nextState.displayName || "Your profile";
@@ -290,8 +338,8 @@ export function initProfileSettingsPage(config: ProfileSettingsClientConfig) {
 
     updateRangeLabel("avatar-size-value", `${Number(nextState.avatarSize || 116)}px`);
     updateRangeLabel("avatar-zoom-value", `${Number(zoom).toFixed(2)}x`);
-    updateRangeLabel("avatar-position-x-value", `${x}%`);
-    updateRangeLabel("avatar-position-y-value", `${y}%`);
+    updateRangeLabel("avatar-position-x-value", `X ${Math.round(x)}%`);
+    updateRangeLabel("avatar-position-y-value", `Y ${Math.round(y)}%`);
   }
 
   function refreshSnapshot(nextState) {
@@ -902,11 +950,142 @@ export function initProfileSettingsPage(config: ProfileSettingsClientConfig) {
     }, 350);
   }
 
+
+  async function persistAvatarCrop(options = {}) {
+    const { silent = true, successMessage = "Avatar crop saved" } = options;
+    state = normalizeState(collectState());
+    refreshSnapshot(state);
+    applyTheme(state);
+    await saveState(state, { silent });
+    renderPreview({ profile: {} }, state);
+    schedulePreviewRefresh();
+
+    if (successMessage) {
+      setStatus(successMessage, "success");
+    }
+  }
+
+  function attachAvatarCropInteractions() {
+    const preview = byId("avatar-editor-preview");
+    const image = byId("avatar-editor-preview-image");
+    const fallback = byId("avatar-editor-preview-fallback");
+
+    if (!preview || !image || !fallback) return;
+
+    image.addEventListener("load", () => {
+      avatarImageNaturalWidth = image.naturalWidth || 0;
+      avatarImageNaturalHeight = image.naturalHeight || 0;
+      image.hidden = !getAvatarSource(normalizeState(collectState()));
+      fallback.style.display = image.hidden ? "grid" : "none";
+    });
+
+    image.addEventListener("error", () => {
+      avatarImageNaturalWidth = 0;
+      avatarImageNaturalHeight = 0;
+      image.hidden = true;
+      fallback.style.display = "grid";
+      setStatus("Avatar image loaded in state but could not be rendered.", "error");
+    });
+
+    if (image.complete && image.naturalWidth > 0) {
+      avatarImageNaturalWidth = image.naturalWidth || 0;
+      avatarImageNaturalHeight = image.naturalHeight || 0;
+      image.hidden = !getAvatarSource(normalizeState(collectState()));
+      fallback.style.display = image.hidden ? "grid" : "none";
+    }
+
+    const finishDrag = async () => {
+      if (!cropDragState) return;
+      const pointerId = cropDragState.pointerId;
+      cropDragState = null;
+      preview.classList.remove("is-dragging");
+      if (preview.hasPointerCapture?.(pointerId)) {
+        preview.releasePointerCapture(pointerId);
+      }
+      await persistAvatarCrop({ silent: true, successMessage: "Avatar crop saved" });
+    };
+
+    preview.addEventListener("pointerdown", (event) => {
+      const liveState = normalizeState(collectState());
+      if (!getAvatarSource(liveState)) return;
+
+      cropDragState = {
+        pointerId: event.pointerId,
+        startX: event.clientX,
+        startY: event.clientY,
+        startPositionX: getAvatarCropValue("avatar-position-x", liveState.avatarPositionX ?? 50),
+        startPositionY: getAvatarCropValue("avatar-position-y", liveState.avatarPositionY ?? 50),
+      };
+
+      preview.classList.add("is-dragging");
+      preview.setPointerCapture?.(event.pointerId);
+      event.preventDefault();
+    });
+
+    preview.addEventListener("pointermove", (event) => {
+      if (!cropDragState || cropDragState.pointerId !== event.pointerId) return;
+
+      const liveState = normalizeState(collectState());
+      const zoom = Number(liveState.avatarZoom || 1);
+      const frameRect = preview.getBoundingClientRect();
+      const renderMetrics = getAvatarRenderMetrics(frameRect, zoom);
+      const deltaX = event.clientX - cropDragState.startX;
+      const deltaY = event.clientY - cropDragState.startY;
+      const widthRange = (frameRect.width || 0) - renderMetrics.width;
+      const heightRange = (frameRect.height || 0) - renderMetrics.height;
+
+      const nextX = clamp(
+        cropDragState.startPositionX + (widthRange ? (deltaX / widthRange) * 100 : 0),
+        0,
+        100
+      );
+      const nextY = clamp(
+        cropDragState.startPositionY + (heightRange ? (deltaY / heightRange) * 100 : 0),
+        0,
+        100
+      );
+
+      setAvatarCropValue("avatar-position-x", nextX);
+      setAvatarCropValue("avatar-position-y", nextY);
+
+      const nextState = normalizeState({
+        ...liveState,
+        avatarPositionX: nextX,
+        avatarPositionY: nextY,
+      });
+
+      refreshSnapshot(nextState);
+      event.preventDefault();
+    });
+
+    preview.addEventListener("pointerup", () => {
+      finishDrag();
+    });
+
+    preview.addEventListener("pointercancel", () => {
+      finishDrag();
+    });
+
+    preview.addEventListener("lostpointercapture", () => {
+      finishDrag();
+    });
+  }
+
   async function syncFromInputs(options = {}) {
+    const shouldPersistCrop = options.persistCrop === true;
     state = normalizeState(collectState());
     refreshSnapshot(state);
     applyTheme(state);
     updateAvatarEditorPreview(state);
+
+    if (shouldPersistCrop) {
+      await persistAvatarCrop({
+        silent: options.silent !== false,
+        successMessage: options.successMessage || "Avatar crop saved",
+      });
+      return;
+    }
+
     await saveState(state, options);
     renderPreview({ profile: {} }, state);
     schedulePreviewRefresh();
@@ -1057,6 +1236,14 @@ export function initProfileSettingsPage(config: ProfileSettingsClientConfig) {
     byId("avatarFile")?.click();
   });
 
+  document.getElementById("avatar-save-crop-btn")?.addEventListener("click", async () => {
+    await syncFromInputs({
+      silent: true,
+      persistCrop: true,
+      successMessage: "Avatar crop saved",
+    });
+  });
+
   document.getElementById("avatarFile")?.addEventListener("change", async (event) => {
     const file = event.target?.files?.[0];
     await handleAvatarFileChange(file);
@@ -1088,6 +1275,7 @@ export function initProfileSettingsPage(config: ProfileSettingsClientConfig) {
     applyState(state);
     applyTheme(state);
     attachAutoSaveListeners();
+    attachAvatarCropInteractions();
 
     hasLoadedInitialState = true;
 

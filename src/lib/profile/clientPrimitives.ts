@@ -55,19 +55,24 @@ export function renderProfileAvatarMarkup(profile: any, options: {
       >
         ${source
           ? `
-            <div
+            <img
               class="${escapeProfileHtml(options.imageClassName)}"
+              src="${escapeProfileHtml(source)}"
+              alt="${escapeProfileHtml(displayName)}"
+              loading="lazy"
+              decoding="async"
+              draggable="false"
               style="
-                background-image:url('${escapeProfileHtml(source)}');
-                background-size:${zoom * 100}%;
-                background-position:${positionX}% ${positionY}%;
+                object-position:${positionX}% ${positionY}%;
+                transform:scale(${zoom});
+                transform-origin:${positionX}% ${positionY}%;
               "
               ${options.includeAriaLabel ? `aria-label="${escapeProfileHtml(displayName)}" role="img"` : ""}
-            ></div>
+              onerror="this.hidden=true; this.nextElementSibling && (this.nextElementSibling.style.display='grid');"
+            />
           `
-          : `
-            <div class="${escapeProfileHtml(options.fallbackClassName)}">${escapeProfileHtml(initial)}</div>
-          `}
+          : ""}
+        <div class="${escapeProfileHtml(options.fallbackClassName)}"${source ? ' style="display:none;"' : ""}>${escapeProfileHtml(initial)}</div>
       </div>
     </div>
   `;

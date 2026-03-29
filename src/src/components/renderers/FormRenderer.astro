@@ -1,0 +1,18 @@
+---
+import ActionRenderer from "./ActionRenderer.astro";
+import FieldRenderer from "./FieldRenderer.astro";
+import type { RendererFormConfig } from "../../types/ui";
+
+interface Props {
+  form?: RendererFormConfig;
+}
+
+const { form } = Astro.props;
+---
+
+{form && (
+  <form id={form.id} class:list={["todo-form", "today-form", form.className, form.hidden && "today-form-hidden"]}>
+    {form.fields.map((field) => <FieldRenderer field={field} />)}
+    {form.actions?.length ? <ActionRenderer actions={form.actions} /> : null}
+  </form>
+)}

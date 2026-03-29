@@ -1,0 +1,94 @@
+---
+import ExpandableSection from "../ExpandableSection.astro";
+import ActionRenderer from "../renderers/ActionRenderer.astro";
+import FormRenderer from "../renderers/FormRenderer.astro";
+import type {
+  ActionItemConfig,
+  NoteCollectionItem,
+  QuoteCollectionItem,
+  RendererCardCollectionVariant,
+  RendererFormConfig,
+} from "../../types/ui";
+
+interface Props {
+  id?: string;
+  title: string;
+  subtitle?: string;
+  kicker?: string;
+  open?: boolean;
+  listId: string;
+  form?: RendererFormConfig;
+  actions?: ActionItemConfig[];
+  items?: Array<QuoteCollectionItem | NoteCollectionItem>;
+  emptyText?: string;
+  sectionClassName?: string;
+  listClassName?: string;
+  cardVariant: RendererCardCollectionVariant;
+}
+
+const {
+  id,
+  title,
+  subtitle = "",
+  kicker = "",
+  open = false,
+  listId,
+  form,
+  actions = [],
+  items = [],
+  emptyText = "Nothing here yet.",
+  sectionClassName = "",
+  listClassName = "",
+  cardVariant,
+} = Astro.props;
+
+function isQuoteItem(item: QuoteCollectionItem | NoteCollectionItem): item is QuoteCollectionItem {
+  return "text" in item && !("title" in item);
+}
+---
+
+<div id={id || undefined} class={sectionClassName || undefined}>
+  <ExpandableSection title={title} subtitle={subtitle} kicker={kicker} open={open}>
+    {form && <FormRenderer form={form} />}
+    {actions.length > 0 && <ActionRenderer className="section-inline-actions" actions={actions} align="start" />}
+    <div id={listId} class:list={["grid", "three", listClassName]} data-card-variant={cardVariant}>
+      {items.length > 0 ? (
+        items.map((item, index) => (
+          cardVariant === "quote" && isQuoteItem(item) ? (
+            <article class="quote-card surface-section home-quote-card">
+              <div>
+                <p class="quote-text">“{item.text}”</p>
+                <span class="quote-author">{item.author || "Personal reminder"}</span>
+              </div>
+              <button
+                class="button-secondary delete-btn"
+                data-role="delete-quote"
+                data-index={String(index)}
+                type="button"
+              >
+                Remove
+              </button>
+            </article>
+          ) : (
+            <article class="note-card note-card-padded home-reminder-card">
+              <div>
+                {"title" in item && <h3 class="card-title">{item.title}</h3>}
+                <p>{item.text}</p>
+              </div>
+              <button
+                class="button-secondary delete-btn"
+                data-role="delete-reminder"
+                data-index={String(index)}
+                type="button"
+              >
+                Remove
+              </button>
+            </article>
+          )
+        ))
+      ) : (
+        <div class="today-empty-state">{emptyText}</div>
+      )}
+    </div>
+  </ExpandableSection>
+</div>

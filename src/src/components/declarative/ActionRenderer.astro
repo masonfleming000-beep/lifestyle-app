@@ -1,0 +1,16 @@
+---
+import Button from './Button.astro';
+import type { UIAction } from '../../lib/ui/types';
+interface Props { action: UIAction; compact?: boolean; }
+const { action, compact = false } = Astro.props;
+---
+<div data-action-id={action.id} data-handler={action.handler || undefined}>
+  <Button
+    label={action.label}
+    variant={action.variant}
+    size={compact ? 'sm' : (action.size || 'md')}
+    type={action.submit ? 'submit' : 'button'}
+    disabled={action.disabled}
+    icon={action.icon}
+  />
+</div>

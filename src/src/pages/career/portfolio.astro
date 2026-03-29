@@ -1,0 +1,195 @@
+---
+import BaseLayout from "../../layouts/BaseLayout.astro";
+import PageHero from "../../components/PageHero.astro";
+import Button from "../../components/Button.astro";
+import SurfaceCard from "../../components/SurfaceCard.astro";
+import SectionHeader from "../../components/SectionHeader.astro";
+import EmptyState from "../../components/EmptyState.astro";
+import PageActions from "../../components/ui/PageActions.astro";
+import {
+  careerInformationPageKey,
+  careerPortfolioHeroActions,
+  careerPortfolioSectionOrder,
+  careerPortfolioSectionTitles,
+} from "../../config/pages/careerShared";
+---
+
+<BaseLayout title="Career Portfolio | Lifestyle App" description="Public-facing portfolio">
+  <PageHero
+    kicker="Career / Portfolio"
+    title="Selected public portfolio"
+    description="This page only shows the items marked visible from the Information page."
+  >
+    <PageActions>
+      {careerPortfolioHeroActions.map((action) => (
+        <Button href={action.href} variant={action.variant || "secondary"}>{action.label}</Button>
+      ))}
+    </PageActions>
+  </PageHero>
+
+  <section class="section">
+    <SurfaceCard className="portfolio-root-shell">
+      <SectionHeader
+        kicker="Portfolio"
+        title="Public portfolio sections"
+        subtitle="Only entries marked visible from Career Information are rendered here."
+      />
+      <div id="portfolio-root" class="grid one">
+        <EmptyState
+          title="Loading portfolio"
+          text="Selected public entries will appear here once your portfolio data loads."
+        />
+      </div>
+    </SurfaceCard>
+  </section>
+
+  <script
+    id="career-portfolio-page-config"
+    type="application/json"
+    set:html={JSON.stringify({
+      sourcePageKey: careerInformationPageKey,
+      sectionOrder: careerPortfolioSectionOrder,
+      sectionTitles: careerPortfolioSectionTitles,
+    })}
+  />
+
+  <script>
+    import { initCareerPortfolioPage } from "../../lib/client/careerPortfolioPage";
+
+    const configElement = document.getElementById("career-portfolio-page-config");
+    const config = JSON.parse(configElement?.textContent || "{}");
+
+    initCareerPortfolioPage(config);
+  </script>
+
+  <style>
+
+    .portfolio-root-shell {
+      display: grid;
+      gap: 1.25rem;
+    }
+
+    .portfolio-dropdown {
+      overflow: hidden;
+    }
+
+    .portfolio-summary {
+      cursor: pointer;
+      list-style: none;
+      padding: 1rem 1.25rem;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 1rem;
+    }
+
+    .portfolio-summary::-webkit-details-marker {
+      display: none;
+    }
+
+    .portfolio-body {
+      padding: 0 1.25rem 1.25rem;
+    }
+
+    .portfolio-card-grid {
+      align-items: start;
+    }
+
+    .portfolio-entry-card,
+    .portfolio-empty-card,
+    .portfolio-stat-card,
+    .portfolio-quote-card,
+    .timeline-content {
+      height: 100%;
+    }
+
+    .entry-meta-grid,
+    .star-grid,
+    .metric-grid {
+      display: grid;
+      gap: 1rem;
+    }
+
+    .entry-meta-grid {
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+      margin-top: 1rem;
+    }
+
+    .metric-grid {
+      grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+    }
+
+    .timeline-list {
+      display: grid;
+      gap: 1rem;
+    }
+
+    .timeline-item {
+      display: grid;
+      grid-template-columns: auto 1fr;
+      gap: 0.85rem;
+      align-items: start;
+    }
+
+    .timeline-dot {
+      width: 0.8rem;
+      height: 0.8rem;
+      border-radius: 999px;
+      background: #2f5d62;
+      margin-top: 1rem;
+    }
+
+    .timeline-date {
+      font-weight: 700;
+      margin-bottom: 0.4rem;
+    }
+
+    .portfolio-quote-card {
+      border-left: 4px solid #2f5d62;
+    }
+
+    .quote-text {
+      font-size: 1.05rem;
+      margin-bottom: 0.6rem;
+    }
+
+    .quote-author {
+      color: var(--text-muted);
+      font-weight: 600;
+    }
+
+    .resume-actions {
+      display: flex;
+      gap: 0.75rem;
+      flex-wrap: wrap;
+      margin-top: 1rem;
+    }
+
+    .resume-preview-wrap {
+      margin-top: 1rem;
+      border: 1px solid rgba(47, 93, 98, 0.12);
+      border-radius: 1rem;
+      overflow: hidden;
+      background: #f8fafc;
+    }
+
+    .resume-preview-frame {
+      width: 100%;
+      min-height: 720px;
+      border: 0;
+      display: block;
+      background: white;
+    }
+
+    @media (max-width: 800px) {
+      .entry-meta-grid,
+      .star-grid {
+        grid-template-columns: 1fr;
+      }
+
+      .resume-preview-frame {
+        min-height: 520px;
+      }
+    }
+  </style>
+</BaseLayout>

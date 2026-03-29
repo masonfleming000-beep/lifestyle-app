@@ -1,0 +1,6 @@
+---
+import Button from './Button.astro';
+interface Props { label: string; icon: string; variant?: 'primary' | 'secondary' | 'danger' | 'ghost' | 'icon'; }
+const { label, icon, variant = 'icon' } = Astro.props;
+---
+<Button label={label} icon={icon} variant={variant} size="sm" />

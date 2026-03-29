@@ -1,0 +1,12 @@
+---
+import BaseLayout from "../layouts/BaseLayout.astro";
+import DeclarativePage from "../components/config/DeclarativePage.astro";
+import { careerPageConfig } from "../config/pages/career";
+---
+
+<BaseLayout
+  title={careerPageConfig.meta.title}
+  description={careerPageConfig.meta.description}
+>
+  <DeclarativePage config={careerPageConfig} />
+</BaseLayout>

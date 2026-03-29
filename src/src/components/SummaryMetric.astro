@@ -1,0 +1,15 @@
+---
+interface Props {
+  label: string;
+  value?: string;
+  id?: string;
+  className?: string;
+}
+
+const { label, value = "—", id, className = "" } = Astro.props as Props;
+---
+
+<div class={`summary-metric ${className}`.trim()}>
+  <p class="metric-label">{label}</p>
+  <p class="summary-value" id={id}>{value}</p>
+</div>

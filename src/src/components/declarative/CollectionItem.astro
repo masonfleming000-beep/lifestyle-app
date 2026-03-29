@@ -1,0 +1,25 @@
+---
+import ItemActions from './ItemActions.astro';
+import type { CollectionItemData, UIAction } from '../../lib/ui/types';
+interface Props { item: CollectionItemData; actions?: UIAction[]; mode?: 'list' | 'checklist'; }
+const { item, actions = [], mode = 'list' } = Astro.props;
+---
+<li class:list={['checklist-card-item', mode === 'checklist' ? 'routine-item' : 'todo-item', item.done && 'is-done']}>
+  {mode === 'checklist' ? (
+    <label class="checklist-card-toggle">
+      <input type="checkbox" checked={item.done} />
+      <span>{item.title}</span>
+    </label>
+  ) : (
+    <div class="collection-item-copy">
+      <strong>{item.title}</strong>
+      {item.description && <p>{item.description}</p>}
+      {item.meta?.length ? <small>{item.meta.join(' • ')}</small> : null}
+    </div>
+  )}
+  <ItemActions actions={actions} itemId={item.id} />
+</li>
+<style>
+  .collection-item-copy { display:grid; gap:0.2rem; }
+  .collection-item-copy p, .collection-item-copy small { margin:0; }
+</style>

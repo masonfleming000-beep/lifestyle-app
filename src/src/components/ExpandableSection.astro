@@ -1,0 +1,55 @@
+---
+/**
+ * Standardized expandable section built on <details>.
+ * Supports title, subtitle, kicker, action slot, and content slot.
+ */
+interface Props {
+  title: string;
+  subtitle?: string;
+  kicker?: string;
+  open?: boolean;
+  icon?: string;
+  bodyClass?: string;
+}
+
+const {
+  title,
+  subtitle = "",
+  kicker = "",
+  open = false,
+  icon = "+",
+  bodyClass = "",
+} = Astro.props;
+---
+
+<details class="dropdown-card expandable-section surface-dropdown" open={open}>
+  <summary>
+    <div class="expandable-section-summary-copy">
+      {kicker && <p class="kicker">{kicker}</p>}
+      <h2 class="section-title">{title}</h2>
+      {subtitle && <p class="section-subtitle">{subtitle}</p>}
+    </div>
+
+    <div class="expandable-section-summary-right">
+      <slot name="summary-actions" />
+      <span class="dropdown-arrow">{icon}</span>
+    </div>
+  </summary>
+
+  <div class:list={["dropdown-content", bodyClass]}>
+    <slot />
+  </div>
+</details>
+
+<style>
+  .expandable-section-summary-copy {
+    min-width: 0;
+  }
+
+  .expandable-section-summary-right {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.75rem;
+    flex: 0 0 auto;
+  }
+</style>

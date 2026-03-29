@@ -1,0 +1,24 @@
+---
+import "../../styles/config-driven-ui.css";
+import PageHero from "../PageHero.astro";
+import type { ConfigDrivenPage } from "../../types/ui";
+import PageNodeRenderer from "./PageNodeRenderer.astro";
+
+interface Props {
+  config: ConfigDrivenPage;
+}
+
+const { config } = Astro.props as Props;
+---
+
+<div class="declarative-page">
+  <PageHero
+    kicker={config.hero.kicker || ""}
+    title={config.hero.title}
+    description={config.hero.description || ""}
+  />
+
+  {config.sections.map((node) => (
+    <PageNodeRenderer node={node} />
+  ))}
+</div>

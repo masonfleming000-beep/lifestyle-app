@@ -1,0 +1,9 @@
+export { default as todayPage } from './today.config';
+export { default as cardioPage } from './cardio.config';
+export { default as cardioWorkoutsPage } from './cardio-workouts.config';
+export { default as weightliftingPage } from './weightlifting.config';
+export { default as nutritionPage } from './nutrition.config';
+export { default as workPage } from './work.config';
+export { default as hobbiesPage } from './hobbies.config';
+export { default as careerInformationPage } from './career-information.config';
+export { default as settingsProfilePage } from './settings-profile.config';

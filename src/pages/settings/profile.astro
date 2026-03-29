@@ -162,7 +162,7 @@ import { profileSettingsClientConfig } from "../../config/pages/profileSettings"
                         role="img"
                         aria-label="Avatar preview"
                       >
-                        <div id="avatar-editor-preview-image" class="avatar-editor-preview-image"></div>
+                        <img id="avatar-editor-preview-image" class="avatar-editor-preview-image" alt="" draggable="false" hidden />
                         <div id="avatar-editor-preview-fallback" class="avatar-editor-preview-fallback">U</div>
                       </div>
                     </div>
@@ -255,21 +255,25 @@ import { profileSettingsClientConfig } from "../../config/pages/profileSettings"
                       </div>
                     </label>
 
-                    <label class="field-group">
-                      <span class="field-label">Horizontal crop position</span>
-                      <div class="range-row">
-                        <input id="avatar-position-x" class="ui-range" type="range" min="0" max="100" step="1" />
-                        <span id="avatar-position-x-value" class="range-value">50%</span>
+                    <div class="avatar-crop-card">
+                      <div class="avatar-crop-copy">
+                        <span class="field-label">Crop position</span>
+                        <p class="field-help">
+                          Click and drag the avatar preview above to reposition the photo. Changes save when you finish dragging.
+                        </p>
                       </div>
-                    </label>
 
-                    <label class="field-group">
-                      <span class="field-label">Vertical crop position</span>
-                      <div class="range-row">
-                        <input id="avatar-position-y" class="ui-range" type="range" min="0" max="100" step="1" />
-                        <span id="avatar-position-y-value" class="range-value">50%</span>
+                      <input id="avatar-position-x" type="hidden" value="50" />
+                      <input id="avatar-position-y" type="hidden" value="50" />
+
+                      <div class="avatar-crop-readout" aria-live="polite">
+                        <span id="avatar-position-x-value" class="crop-value-pill">X 50%</span>
+                        <span id="avatar-position-y-value" class="crop-value-pill">Y 50%</span>
+                        <Button id="avatar-save-crop-btn" type="button" variant="secondary">
+                          Save crop
+                        </Button>
                       </div>
-                    </label>
+                    </div>
                   </div>
                 </div>
               </div>
@@ -1076,7 +1080,12 @@ import { profileSettingsClientConfig } from "../../config/pages/profileSettings"
     }
 
     .preview-profile-avatar-image {
-      background-repeat: no-repeat;
+      width: 100%;
+      height: 100%;
+      display: block;
+      object-fit: cover;
+      user-select: none;
+      -webkit-user-drag: none;
     }
 
     .preview-profile-avatar-fallback {
@@ -1230,6 +1239,16 @@ import { profileSettingsClientConfig } from "../../config/pages/profileSettings"
       flex: 0 0 auto;
     }
 
+    .avatar-editor-preview {
+      cursor: grab;
+      touch-action: none;
+      user-select: none;
+    }
+
+    .avatar-editor-preview.is-dragging {
+      cursor: grabbing;
+    }
+
     .avatar-editor-preview.circle {
       border-radius: 50%;
     }
@@ -1245,9 +1264,13 @@ import { profileSettingsClientConfig } from "../../config/pages/profileSettings"
     }
 
     .avatar-editor-preview-image {
-      background-repeat: no-repeat;
-      background-position: center;
-      background-size: cover;
+      width: 100%;
+      height: 100%;
+      display: block;
+      object-fit: cover;
+      pointer-events: none;
+      user-select: none;
+      -webkit-user-drag: none;
     }
 
     .avatar-editor-preview-fallback {
@@ -1281,6 +1304,41 @@ import { profileSettingsClientConfig } from "../../config/pages/profileSettings"
 
     .avatar-stage-handle {
       color: var(--text-muted);
+    }
+
+    .avatar-crop-card {
+      display: grid;
+      gap: 0.9rem;
+      padding: 1rem;
+      border-radius: 18px;
+      border: 1px dashed var(--border-soft);
+      background: color-mix(in srgb, var(--card-bg) 82%, transparent);
+    }
+
+    .avatar-crop-copy {
+      display: grid;
+      gap: 0.4rem;
+    }
+
+    .avatar-crop-readout {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 0.65rem;
+      align-items: center;
+    }
+
+    .crop-value-pill {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      min-width: 4.9rem;
+      padding: 0.45rem 0.75rem;
+      border-radius: 999px;
+      border: 1px solid var(--border-soft);
+      background: var(--input-bg);
+      font-size: 0.9rem;
+      font-weight: 700;
+      color: var(--text-main);
     }
 
     .avatar-settings-grid {

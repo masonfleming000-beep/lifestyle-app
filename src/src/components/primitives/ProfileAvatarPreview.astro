@@ -1,0 +1,30 @@
+---
+export interface Props {
+  shellId?: string;
+  previewId: string;
+  imageId: string;
+  fallbackId: string;
+  shellClassName?: string;
+  previewClassName?: string;
+  fallbackText?: string;
+  ariaLabel?: string;
+}
+
+const {
+  shellId,
+  previewId,
+  imageId,
+  fallbackId,
+  shellClassName = "",
+  previewClassName = "",
+  fallbackText = "U",
+  ariaLabel = "Avatar preview",
+} = Astro.props;
+---
+
+<div id={shellId} class={shellClassName}>
+  <div id={previewId} class={previewClassName} role="img" aria-label={ariaLabel}>
+    <div id={imageId} class="avatar-editor-preview-image"></div>
+    <div id={fallbackId} class="avatar-editor-preview-fallback">{fallbackText}</div>
+  </div>
+</div>

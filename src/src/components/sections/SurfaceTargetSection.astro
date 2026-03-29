@@ -1,0 +1,23 @@
+---
+import SurfaceCard from "../ui/SurfaceCard.astro";
+import SectionHeader from "../SectionHeader.astro";
+import ActionRenderer from "../renderers/ActionRenderer.astro";
+import type { RendererSurfaceTargetSectionConfig } from "../../types/ui";
+
+interface Props {
+  section: RendererSurfaceTargetSectionConfig;
+}
+
+const { section } = Astro.props;
+---
+
+<div class={section.sectionClassName || undefined}>
+  <SurfaceCard id={section.id} class={section.cardClassName || undefined} hidden={section.hidden ? true : undefined}>
+    <SectionHeader title={section.title} subtitle={section.subtitle} kicker={section.kicker} align="start">
+      {section.actions?.length ? <ActionRenderer actions={section.actions} align="end" /> : null}
+      <slot name="actions" />
+    </SectionHeader>
+
+    <div id={section.containerId} class={section.containerClassName || undefined}></div>
+  </SurfaceCard>
+</div>

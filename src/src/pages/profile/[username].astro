@@ -1,0 +1,287 @@
+---
+import BaseLayout from "../../layouts/BaseLayout.astro";
+import PageHero from "../../components/PageHero.astro";
+import ProfileLoadingState from "../../components/primitives/ProfileLoadingState.astro";
+import { createPublicProfileClientConfig } from "../../config/pages/publicProfile";
+
+const username = Astro.params.username ?? "";
+const publicProfileClientConfig = createPublicProfileClientConfig(username);
+---
+
+<BaseLayout title={`${username} | Public Profile`} description="Public profile page">
+  <div id="public-profile-page" data-username={username}>
+    <PageHero
+      kicker="Public Profile"
+      title="Profile"
+      description="A clean public view of work, highlights, achievements, and recent activity."
+    />
+
+    <section class="section">
+      <div id="public-profile-root" class="grid one">
+        <ProfileLoadingState
+          title="Loading profile"
+          subtitle="Fetching public profile data and public activity."
+          message="Loading public profile..."
+        />
+      </div>
+    </section>
+  </div>
+
+    <script id="public-profile-config" type="application/json" set:html={JSON.stringify(publicProfileClientConfig)} />
+
+  <script>
+    import { initPublicProfilePage } from "../../lib/client/publicProfilePage";
+
+    const configElement = document.getElementById("public-profile-config");
+    const config = JSON.parse(configElement?.textContent || "{}");
+
+    initPublicProfilePage(config);
+  </script>
+
+  <style is:global>
+    .public-profile-shell {
+      overflow: hidden;
+      border-radius: 28px;
+      background: var(--section-card-surface-color, var(--card-surface-color));
+      border: 1px solid var(--border-color);
+      box-shadow: var(--card-shadow);
+    }
+
+    .profile-banner {
+      min-height: 220px;
+      background:
+        linear-gradient(
+          135deg,
+          color-mix(in srgb, var(--hero-surface-color) 90%, var(--resolved-background-color)),
+          color-mix(in srgb, var(--hero-surface-color) 72%, var(--section-card-surface-color, var(--resolved-section-color))) 50%,
+          color-mix(in srgb, var(--resolved-background-color) 92%, var(--hero-surface-color))
+        );
+      background-size: cover;
+      background-position: center;
+    }
+
+    .profile-identity-body {
+      display: grid;
+      gap: 1rem;
+      padding: 1.5rem;
+      margin-top: -58px;
+      align-items: end;
+    }
+
+    .profile-avatar-row {
+      display: flex;
+      width: 100%;
+    }
+
+    .profile-avatar-align-left {
+      justify-content: flex-start;
+    }
+
+    .profile-avatar-align-center {
+      justify-content: center;
+    }
+
+    .profile-avatar-align-right {
+      justify-content: flex-end;
+    }
+
+    .profile-avatar-frame {
+      overflow: hidden;
+      border: 4px solid color-mix(in srgb, var(--section-card-surface-color, var(--card-surface-color)) 88%, var(--resolved-background-color));
+      box-shadow: 0 8px 28px rgba(15, 23, 42, 0.14);
+      background: var(--dropdown-card-surface-color, var(--card-surface-color));
+      position: relative;
+      flex: 0 0 auto;
+    }
+
+    .profile-avatar-frame.circle {
+      border-radius: 50%;
+    }
+
+    .profile-avatar-frame.square {
+      border-radius: 20px;
+    }
+
+    .profile-avatar-image,
+    .profile-avatar-fallback {
+      position: absolute;
+      inset: 0;
+    }
+
+    .profile-avatar-image {
+      width: 100%;
+      height: 100%;
+      display: block;
+      object-fit: cover;
+      user-select: none;
+      -webkit-user-drag: none;
+    }
+
+    .profile-avatar-fallback {
+      display: grid;
+      place-items: center;
+      font-size: 2rem;
+      font-weight: 800;
+      color: var(--text-main);
+    }
+
+    .profile-identity-copy {
+      flex: 1;
+      min-width: 260px;
+    }
+
+    .profile-name-row {
+      display: flex;
+      align-items: center;
+      gap: 0.75rem;
+      flex-wrap: wrap;
+    }
+
+    .profile-name-row h2,
+    .profile-headline,
+    .profile-bio {
+      margin: 0;
+    }
+
+    .profile-handle {
+      display: inline-flex;
+      align-items: center;
+      padding: 0.4rem 0.7rem;
+      border-radius: 999px;
+      background: var(--dropdown-card-surface-color, var(--card-surface-color));
+      border: 1px solid var(--border-color);
+      font-size: 0.92rem;
+      color: var(--text-muted);
+    }
+
+    .profile-headline {
+      margin-top: 0.35rem;
+      font-size: 1.05rem;
+      color: var(--text-secondary);
+    }
+
+    .profile-bio {
+      margin-top: 0.75rem;
+      color: var(--text-muted);
+      max-width: 70ch;
+      line-height: 1.6;
+    }
+
+    .profile-stat-card,
+    .chart-card,
+    .summary-card {
+      border-radius: 20px;
+      padding: 1rem 1.1rem;
+      background: var(--metric-surface-color, var(--card-surface-color));
+      border: 1px solid var(--border-color);
+    }
+
+    .chart-card {
+      color: var(--text-main);
+    }
+
+    .chart-header,
+    .control-grid {
+      display: grid;
+      gap: 1rem;
+    }
+
+    .control-grid {
+      grid-template-columns: repeat(3, minmax(0, 1fr));
+      margin-bottom: 1rem;
+    }
+
+    .field-group {
+      display: grid;
+      gap: 0.45rem;
+    }
+
+    .field-label {
+      font-size: 0.92rem;
+      font-weight: 700;
+      color: var(--text-label);
+    }
+
+    .ui-select {
+      width: 100%;
+      border-radius: 14px;
+      border: 1px solid var(--border-color);
+      background: var(--input-surface-color);
+      padding: 0.85rem 1rem;
+      font: inherit;
+      color: var(--text-main);
+    }
+
+    .sparkline {
+      width: 100%;
+      height: 120px;
+      display: block;
+      margin-top: 0.5rem;
+    }
+
+    .chart-axis-row {
+      display: flex;
+      justify-content: space-between;
+      font-size: 0.8rem;
+      color: var(--text-muted);
+      margin-top: 0.35rem;
+    }
+
+    .badge-row,
+    .activity-stack {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 0.75rem;
+    }
+
+    .profile-badge {
+      border: 1px solid var(--border-color);
+      background: var(--dropdown-card-surface-color, var(--card-surface-color));
+      border-radius: 999px;
+      padding: 0.65rem 0.95rem;
+      white-space: nowrap;
+    }
+
+    .portfolio-link-btn {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      border-radius: 999px;
+      padding: 0.8rem 1.1rem;
+      background: var(--button-bg);
+      color: var(--button-text);
+      text-decoration: none;
+      font-weight: 700;
+    }
+
+    .empty-profile-card {
+      text-align: center;
+      padding: 2rem;
+    }
+
+    .top-gap-sm {
+      margin-top: 0.65rem;
+    }
+
+    @media (max-width: 900px) {
+      .control-grid {
+        grid-template-columns: 1fr;
+      }
+    }
+
+    @media (max-width: 720px) {
+      .profile-identity-body {
+        margin-top: -40px;
+        padding: 1rem;
+      }
+
+      .profile-banner {
+        min-height: 170px;
+      }
+
+      .profile-avatar-fallback {
+        font-size: 1.6rem;
+      }
+    }
+  </style>
+</BaseLayout>

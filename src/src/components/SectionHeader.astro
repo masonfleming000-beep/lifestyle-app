@@ -1,0 +1,55 @@
+---
+/**
+ * Shared section header with title, subtitle, kicker, and actions.
+ */
+interface Props {
+  title: string;
+  subtitle?: string;
+  kicker?: string;
+  align?: "start" | "end" | "center";
+}
+
+const {
+  title,
+  subtitle = "",
+  kicker = "",
+  align = "end",
+} = Astro.props;
+---
+
+<div class:list={["section-header", `section-header-align-${align}`]}>
+  <div class="section-header-copy">
+    {kicker && <p class="kicker">{kicker}</p>}
+    <h2 class="section-title">{title}</h2>
+    {subtitle && <p class="section-subtitle">{subtitle}</p>}
+  </div>
+
+  <div class="section-header-actions">
+    <slot />
+  </div>
+</div>
+
+<style>
+  .section-header-copy {
+    min-width: 0;
+  }
+
+  .section-header-actions {
+    display: flex;
+    flex-wrap: wrap;
+    justify-content: flex-end;
+    gap: 0.6rem;
+  }
+
+  .section-header-align-start {
+    align-items: start;
+  }
+
+  .section-header-align-center {
+    align-items: center;
+  }
+
+  .section-header-align-end {
+    align-items: end;
+  }
+</style>

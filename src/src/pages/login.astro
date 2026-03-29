@@ -1,0 +1,24 @@
+---
+import BaseLayout from "../layouts/BaseLayout.astro";
+import AuthPage from "../components/auth/AuthPage.astro";
+import { loginClientConfig, loginPageConfig } from "../config/pages/auth";
+
+const message = Astro.url.searchParams.get("message") || "";
+const pageConfig = loginPageConfig(message);
+const clientConfig = loginClientConfig(message);
+---
+
+<BaseLayout title={pageConfig.title} description={pageConfig.description}>
+  <AuthPage config={pageConfig} />
+
+  <script id="login-page-config" type="application/json" set:html={JSON.stringify(clientConfig)} />
+
+  <script>
+    import { initAuthFormPage } from "../lib/client/authForms";
+
+    const configElement = document.getElementById("login-page-config");
+    const config = JSON.parse(configElement?.textContent || "{}");
+
+    initAuthFormPage(config);
+  </script>
+</BaseLayout>

@@ -1,0 +1,1452 @@
+---
+import BaseLayout from "../../layouts/BaseLayout.astro";
+import PageHero from "../../components/PageHero.astro";
+import SurfaceCard from "../../components/SurfaceCard.astro";
+import SectionCard from "../../components/SectionCard.astro";
+import SectionHeader from "../../components/SectionHeader.astro";
+import Button from "../../components/Button.astro";
+import { profileSettingsClientConfig } from "../../config/pages/profileSettings";
+
+---
+
+<BaseLayout title="Profile Settings | Lifestyle App" description="Manage your profile and visibility settings">
+  <PageHero
+    kicker="Profile Settings"
+    title="Profile settings"
+    description="Manage your account details, public profile, privacy controls, and appearance in one place."
+  />
+
+  <section class="section">
+    <div class="grid two profile-top-grid">
+      <SurfaceCard className="profile-fixed-section-card profile-top-card">
+        <SectionHeader
+          title="Account"
+          subtitle="Login identity and recovery settings."
+          align="start"
+        />
+
+        <div class="form-stack">
+          <label class="field-group">
+            <span class="field-label">Email</span>
+            <input id="email" class="ui-input" type="email" autocomplete="email" />
+          </label>
+
+          <label class="field-group">
+            <span class="field-label">Username</span>
+            <input id="username" class="ui-input" type="text" autocomplete="username" />
+          </label>
+
+          <label class="field-group">
+            <span class="field-label">Handle</span>
+            <input id="handle" class="ui-input" type="text" autocomplete="nickname" />
+          </label>
+
+          <div class="button-row">
+            <Button id="change-password-btn" type="button" variant="secondary">
+              Change Password
+            </Button>
+          </div>
+        </div>
+      </SurfaceCard>
+
+      <SurfaceCard soft={false} className="profile-fixed-section-card profile-top-card profile-snapshot-card">
+        <SectionHeader
+          title="Profile Snapshot"
+          subtitle="Quick summary of how your public profile is configured."
+          align="start"
+        />
+
+        <div class="summary-grid compact-summary">
+          <div class="summary-metric">
+            <p class="metric-label">Display Name</p>
+            <p class="summary-value" id="snapshot-display-name">—</p>
+          </div>
+          <div class="summary-metric">
+            <p class="metric-label">Headline</p>
+            <p class="summary-value" id="snapshot-headline">—</p>
+          </div>
+          <div class="summary-metric">
+            <p class="metric-label">Location</p>
+            <p class="summary-value" id="snapshot-location">—</p>
+          </div>
+          <div class="summary-metric">
+            <p class="metric-label">Theme</p>
+            <p class="summary-value" id="snapshot-theme">—</p>
+          </div>
+          <div class="summary-metric">
+            <p class="metric-label">Avatar Visible</p>
+            <p class="summary-value" id="snapshot-avatar-visible">—</p>
+          </div>
+          <div class="summary-metric">
+            <p class="metric-label">Avatar Align</p>
+            <p class="summary-value" id="snapshot-avatar-align">—</p>
+          </div>
+        </div>
+
+        <div class="snapshot-spacer" aria-hidden="true"></div>
+      </SurfaceCard>
+    </div>
+  </section>
+
+  <section class="section">
+    <div class="grid one">
+      <SectionCard title="Public Profile" subtitle="What people see on your profile" open={true}>
+        <div class="form-stack">
+          <div class="grid two profile-field-grid">
+            <label class="field-group">
+              <span class="field-label">Display Name</span>
+              <input id="displayName" class="ui-input" type="text" autocomplete="name" />
+            </label>
+
+            <label class="field-group">
+              <span class="field-label">Headline</span>
+              <input id="headline" class="ui-input" type="text" autocomplete="organization-title" />
+            </label>
+
+            <label class="field-group">
+              <span class="field-label">Location</span>
+              <input id="location" class="ui-input" type="text" autocomplete="address-level2" />
+            </label>
+
+            <label class="field-group">
+              <span class="field-label">Avatar URL</span>
+              <input id="avatarUrl" class="ui-input" type="url" autocomplete="url" />
+            </label>
+          </div>
+
+          <label class="field-group">
+            <span class="field-label">Banner URL</span>
+            <input id="bannerUrl" class="ui-input" type="url" autocomplete="url" />
+          </label>
+
+          <label class="field-group">
+            <span class="field-label">Bio</span>
+            <textarea id="bio" class="ui-textarea" autocomplete="off"></textarea>
+          </label>
+        </div>
+      </SectionCard>
+
+      <SectionCard title="Avatar Editor" subtitle="Full-width avatar editor for public profile placement and cropping" open={true}>
+        <div class="avatar-editor-card">
+          <details class="avatar-editor-dropdown" open>
+            <summary class="avatar-editor-summary">
+              <div>
+                <h3 class="avatar-editor-title">Open avatar editor</h3>
+                <p class="avatar-editor-subtitle">
+                  Upload an avatar, preview front-facing profile placement, and adjust crop, zoom, visibility, and size.
+                </p>
+              </div>
+              <span class="avatar-editor-chevron" aria-hidden="true">⌄</span>
+            </summary>
+
+            <div class="avatar-editor-body">
+              <div class="avatar-editor-preview-wrap">
+                <div class="avatar-stage-label-row">
+                  <h4 class="avatar-stage-title">Public profile avatar preview</h4>
+                  <p class="avatar-stage-copy">
+                    This card spans the page width so placement matches the front-facing profile proportions.
+                  </p>
+                </div>
+
+                <div class="avatar-profile-stage">
+                  <div class="avatar-banner-preview"></div>
+
+                  <div class="avatar-profile-stage-body">
+                    <div
+                      id="avatar-stage-shell"
+                      class="avatar-stage-shell avatar-align-left"
+                    >
+                      <div
+                        id="avatar-editor-preview"
+                        class="avatar-editor-preview circle"
+                        role="img"
+                        aria-label="Avatar preview"
+                      >
+                        <img id="avatar-editor-preview-image" class="avatar-editor-preview-image" alt="" draggable="false" hidden />
+                        <div id="avatar-editor-preview-fallback" class="avatar-editor-preview-fallback">U</div>
+                      </div>
+                    </div>
+
+                    <div class="avatar-stage-settings-anchor">
+                      <div class="avatar-stage-meta">
+                        <p class="avatar-stage-identity" id="avatar-stage-display-name">Your profile</p>
+                        <p class="avatar-stage-handle" id="avatar-stage-handle">@username</p>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              </div>
+
+              <div class="avatar-settings-grid">
+                <div class="avatar-upload-card">
+                  <h4 class="mini-section-title">Avatar Source</h4>
+
+                  <div class="form-stack">
+                    <label class="field-group">
+                      <span class="field-label">Upload avatar file</span>
+                      <input id="avatarFile" class="ui-input file-input" type="file" accept="image/*" />
+                    </label>
+
+                    <div class="avatar-upload-actions">
+                      <Button id="avatar-upload-trigger" type="button" variant="secondary">
+                        Upload file
+                      </Button>
+                      <Button id="avatar-clear-btn" type="button" variant="secondary">
+                        Clear avatar
+                      </Button>
+                    </div>
+
+                    <p class="field-help">
+                      You can use either an uploaded file or the Avatar URL field above. Uploaded image is also used on the public profile.
+                    </p>
+                  </div>
+                </div>
+
+                <div class="avatar-controls-card">
+                  <h4 class="mini-section-title">Avatar Placement & Crop</h4>
+
+                  <div class="form-stack">
+                    <label class="settings-toggle-card" for="avatar-visible">
+                      <div class="settings-toggle-copy">
+                        <span class="settings-toggle-title">Display avatar on public profile</span>
+                        <span class="settings-toggle-description">Turn avatar display on or off.</span>
+                      </div>
+                      <input id="avatar-visible" class="settings-checkbox" type="checkbox" />
+                    </label>
+
+                    <label class="field-group">
+                      <span class="field-label">Avatar alignment on public profile</span>
+                      <select id="avatar-alignment" class="ui-select">
+                        <option value="left">Left aligned</option>
+                        <option value="center">Middle</option>
+                        <option value="right">Right aligned</option>
+                      </select>
+                    </label>
+
+                    <label class="field-group">
+                      <span class="field-label">Avatar shape</span>
+                      <select id="avatar-shape" class="ui-select">
+                        <option value="circle">Circle</option>
+                        <option value="square">Square</option>
+                      </select>
+                    </label>
+
+                    <label class="settings-toggle-card" for="avatar-circular-crop">
+                      <div class="settings-toggle-copy">
+                        <span class="settings-toggle-title">Use circular crop editor</span>
+                        <span class="settings-toggle-description">Let users position and zoom their image inside the crop frame.</span>
+                      </div>
+                      <input id="avatar-circular-crop" class="settings-checkbox" type="checkbox" />
+                    </label>
+
+                    <label class="field-group">
+                      <span class="field-label">Avatar size</span>
+                      <div class="range-row">
+                        <input id="avatar-size" class="ui-range" type="range" min="72" max="220" step="1" />
+                        <span id="avatar-size-value" class="range-value">116px</span>
+                      </div>
+                    </label>
+
+                    <label class="field-group">
+                      <span class="field-label">Image zoom</span>
+                      <div class="range-row">
+                        <input id="avatar-zoom" class="ui-range" type="range" min="1" max="3" step="0.01" />
+                        <span id="avatar-zoom-value" class="range-value">1x</span>
+                      </div>
+                    </label>
+
+                    <div class="avatar-crop-card">
+                      <div class="avatar-crop-copy">
+                        <span class="field-label">Crop position</span>
+                        <p class="field-help">
+                          Click and drag the avatar preview above to reposition the photo. Changes save when you finish dragging.
+                        </p>
+                      </div>
+
+                      <input id="avatar-position-x" type="hidden" value="50" />
+                      <input id="avatar-position-y" type="hidden" value="50" />
+
+                      <div class="avatar-crop-readout" aria-live="polite">
+                        <span id="avatar-position-x-value" class="crop-value-pill">X 50%</span>
+                        <span id="avatar-position-y-value" class="crop-value-pill">Y 50%</span>
+                        <Button id="avatar-save-crop-btn" type="button" variant="secondary">
+                          Save crop
+                        </Button>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </details>
+        </div>
+      </SectionCard>
+
+      <SectionCard title="Privacy & Visibility" subtitle="Control what the public profile shows">
+        <div class="settings-toggle-list">
+          <label class="settings-toggle-card" for="visibility-profile">
+            <div class="settings-toggle-copy">
+              <span class="settings-toggle-title">Public profile enabled</span>
+              <span class="settings-toggle-description">Allow your public profile page to be visible.</span>
+            </div>
+            <input id="visibility-profile" class="settings-checkbox" type="checkbox" />
+          </label>
+
+          <label class="settings-toggle-card" for="visibility-avatar">
+            <div class="settings-toggle-copy">
+              <span class="settings-toggle-title">Show avatar</span>
+              <span class="settings-toggle-description">Display the avatar area on the public profile.</span>
+            </div>
+            <input id="visibility-avatar" class="settings-checkbox" type="checkbox" />
+          </label>
+
+          <label class="settings-toggle-card" for="visibility-bio">
+            <div class="settings-toggle-copy">
+              <span class="settings-toggle-title">Show bio</span>
+              <span class="settings-toggle-description">Display your written intro on the public profile.</span>
+            </div>
+            <input id="visibility-bio" class="settings-checkbox" type="checkbox" />
+          </label>
+
+          <label class="settings-toggle-card" for="visibility-stats">
+            <div class="settings-toggle-copy">
+              <span class="settings-toggle-title">Show stats</span>
+              <span class="settings-toggle-description">Include interactive stats and progress data.</span>
+            </div>
+            <input id="visibility-stats" class="settings-checkbox" type="checkbox" />
+          </label>
+
+          <label class="settings-toggle-card" for="visibility-portfolio">
+            <div class="settings-toggle-copy">
+              <span class="settings-toggle-title">Show portfolio button</span>
+              <span class="settings-toggle-description">Expose your portfolio link or portfolio area.</span>
+            </div>
+            <input id="visibility-portfolio" class="settings-checkbox" type="checkbox" />
+          </label>
+
+          <label class="settings-toggle-card" for="visibility-activity">
+            <div class="settings-toggle-copy">
+              <span class="settings-toggle-title">Show recent activity</span>
+              <span class="settings-toggle-description">Let others see your latest visible activity.</span>
+            </div>
+            <input id="visibility-activity" class="settings-checkbox" type="checkbox" />
+          </label>
+
+          <label class="settings-toggle-card" for="visibility-achievements">
+            <div class="settings-toggle-copy">
+              <span class="settings-toggle-title">Show achievements</span>
+              <span class="settings-toggle-description">Display badges, milestones, and accomplishments.</span>
+            </div>
+            <input id="visibility-achievements" class="settings-checkbox" type="checkbox" />
+          </label>
+
+          <label class="settings-toggle-card" for="visibility-contact">
+            <div class="settings-toggle-copy">
+              <span class="settings-toggle-title">Show contact section</span>
+              <span class="settings-toggle-description">Allow visitors to see your contact area.</span>
+            </div>
+            <input id="visibility-contact" class="settings-checkbox" type="checkbox" />
+          </label>
+        </div>
+      </SectionCard>
+
+      <SectionCard title="Stats Sources" subtitle="Choose which app areas contribute public stats">
+        <div class="settings-toggle-list compact-toggle-list">
+          <label class="settings-toggle-card" for="stats-fitness">
+            <div class="settings-toggle-copy">
+              <span class="settings-toggle-title">Fitness</span>
+              <span class="settings-toggle-description">Use workout and cardio data in public stats.</span>
+            </div>
+            <input id="stats-fitness" class="settings-checkbox" type="checkbox" />
+          </label>
+
+          <label class="settings-toggle-card" for="stats-hobbies">
+            <div class="settings-toggle-copy">
+              <span class="settings-toggle-title">Hobbies</span>
+              <span class="settings-toggle-description">Include hobbies and learning progress.</span>
+            </div>
+            <input id="stats-hobbies" class="settings-checkbox" type="checkbox" />
+          </label>
+        </div>
+      </SectionCard>
+
+      <SectionCard title="Interactive Stats Display" subtitle="Configure exactly how the public stats view behaves">
+        <div class="form-stack">
+          <div class="settings-toggle-list">
+            <label class="settings-toggle-card" for="stats-display-auto">
+              <div class="settings-toggle-copy">
+                <span class="settings-toggle-title">Use interactive formatted stats</span>
+                <span class="settings-toggle-description">Show the richer interactive version of public stats.</span>
+              </div>
+              <input id="stats-display-auto" class="settings-checkbox" type="checkbox" />
+            </label>
+
+            <label class="settings-toggle-card" for="stats-display-overview">
+              <div class="settings-toggle-copy">
+                <span class="settings-toggle-title">Show overview cards</span>
+                <span class="settings-toggle-description">Display top-level summary cards first.</span>
+              </div>
+              <input id="stats-display-overview" class="settings-checkbox" type="checkbox" />
+            </label>
+
+            <label class="settings-toggle-card" for="stats-display-sections">
+              <div class="settings-toggle-copy">
+                <span class="settings-toggle-title">Show lifting section summary</span>
+                <span class="settings-toggle-description">Include grouped weightlifting summaries.</span>
+              </div>
+              <input id="stats-display-sections" class="settings-checkbox" type="checkbox" />
+            </label>
+
+            <label class="settings-toggle-card" for="stats-display-workouts">
+              <div class="settings-toggle-copy">
+                <span class="settings-toggle-title">Show workout charts</span>
+                <span class="settings-toggle-description">Display strength workout charts when available.</span>
+              </div>
+              <input id="stats-display-workouts" class="settings-checkbox" type="checkbox" />
+            </label>
+
+            <label class="settings-toggle-card" for="stats-display-cardio">
+              <div class="settings-toggle-copy">
+                <span class="settings-toggle-title">Show cardio charts</span>
+                <span class="settings-toggle-description">Display cardio data and chart sections.</span>
+              </div>
+              <input id="stats-display-cardio" class="settings-checkbox" type="checkbox" />
+            </label>
+
+            <label class="settings-toggle-card" for="stats-display-recent">
+              <div class="settings-toggle-copy">
+                <span class="settings-toggle-title">Show recent sessions</span>
+                <span class="settings-toggle-description">Highlight your latest visible sessions.</span>
+              </div>
+              <input id="stats-display-recent" class="settings-checkbox" type="checkbox" />
+            </label>
+          </div>
+
+          <div class="grid three profile-select-grid">
+            <label class="field-group">
+              <span class="field-label">Default Time Range</span>
+              <select id="stats-default-range" class="ui-select">
+                <option value="7d">7 days</option>
+                <option value="30d">30 days</option>
+                <option value="90d">90 days</option>
+                <option value="6m">6 months</option>
+                <option value="1y">1 year</option>
+                <option value="all">All time</option>
+              </select>
+            </label>
+
+            <label class="field-group">
+              <span class="field-label">Default Lifting Section</span>
+              <select id="stats-default-section" class="ui-select">
+                <option value="all">All sections</option>
+                <option value="shoulders">Shoulders</option>
+                <option value="chest">Chest</option>
+                <option value="back">Back</option>
+                <option value="legs">Legs</option>
+                <option value="arms">Arms</option>
+                <option value="core">Core</option>
+              </select>
+            </label>
+
+            <label class="field-group">
+              <span class="field-label">Default Workout</span>
+              <select id="stats-default-workout" class="ui-select">
+                <option value="all">All workouts</option>
+                <option value="reverse-cable-crossovers">Reverse Cable Crossovers</option>
+                <option value="bench-press">Bench Press</option>
+                <option value="lat-pulldown">Lat Pulldown</option>
+                <option value="squat">Squat</option>
+                <option value="deadlift">Deadlift</option>
+              </select>
+            </label>
+          </div>
+
+          <div class="grid three profile-select-grid">
+            <label class="field-group">
+              <span class="field-label">Default Cardio Type</span>
+              <select id="stats-default-cardio-type" class="ui-select">
+                <option value="all">All cardio</option>
+                <option value="steady">Steady</option>
+                <option value="recovery">Recovery</option>
+                <option value="long-run">Long Run</option>
+                <option value="tempo">Tempo</option>
+                <option value="intervals">Intervals</option>
+                <option value="hiit">HIIT</option>
+                <option value="fartlek">Fartlek</option>
+                <option value="hills">Hills</option>
+                <option value="power">Power</option>
+              </select>
+            </label>
+
+            <label class="field-group">
+              <span class="field-label">Default Hobby</span>
+              <select id="stats-default-hobby-id" class="ui-select">
+                <option value="all">All hobbies</option>
+                <option value="reading">Reading</option>
+                <option value="drumming">Drumming</option>
+              </select>
+            </label>
+
+            <label class="field-group">
+              <span class="field-label">Default Hobby Stage</span>
+              <select id="stats-default-hobby-stage-id" class="ui-select">
+                <option value="all">All stages</option>
+                <option value="beginner">Beginner</option>
+                <option value="intermediate">Intermediate</option>
+                <option value="advanced">Advanced</option>
+              </select>
+            </label>
+          </div>
+
+          <div class="grid three profile-select-grid">
+            <label class="field-group">
+              <span class="field-label">Portfolio Mode</span>
+              <select id="stats-portfolio-mode" class="ui-select">
+                <option value="link">Link only</option>
+                <option value="full">Full</option>
+              </select>
+            </label>
+          </div>
+        </div>
+      </SectionCard>
+
+      <SectionCard title="Notifications" subtitle="Choose how profile-related updates reach you">
+        <div class="settings-toggle-list compact-toggle-list">
+          <label class="settings-toggle-card" for="notifications-email">
+            <div class="settings-toggle-copy">
+              <span class="settings-toggle-title">Email</span>
+              <span class="settings-toggle-description">Send updates to your inbox.</span>
+            </div>
+            <input id="notifications-email" class="settings-checkbox" type="checkbox" />
+          </label>
+
+          <label class="settings-toggle-card" for="notifications-push">
+            <div class="settings-toggle-copy">
+              <span class="settings-toggle-title">Push</span>
+              <span class="settings-toggle-description">Send device push alerts.</span>
+            </div>
+            <input id="notifications-push" class="settings-checkbox" type="checkbox" />
+          </label>
+
+          <label class="settings-toggle-card" for="notifications-product">
+            <div class="settings-toggle-copy">
+              <span class="settings-toggle-title">Product updates</span>
+              <span class="settings-toggle-description">Hear about new features and improvements.</span>
+            </div>
+            <input id="notifications-product" class="settings-checkbox" type="checkbox" />
+          </label>
+
+          <label class="settings-toggle-card" for="notifications-reminders">
+            <div class="settings-toggle-copy">
+              <span class="settings-toggle-title">Reminders</span>
+              <span class="settings-toggle-description">Receive profile-related reminder notifications.</span>
+            </div>
+            <input id="notifications-reminders" class="settings-checkbox" type="checkbox" />
+          </label>
+
+          <label class="settings-toggle-card" for="notifications-marketing">
+            <div class="settings-toggle-copy">
+              <span class="settings-toggle-title">Marketing</span>
+              <span class="settings-toggle-description">Allow promotional updates and campaigns.</span>
+            </div>
+            <input id="notifications-marketing" class="settings-checkbox" type="checkbox" />
+          </label>
+        </div>
+      </SectionCard>
+
+      <SectionCard title="App Appearance" subtitle="Control colors, textures, text size, and theme">
+        <div class="grid three profile-select-grid">
+          <label class="field-group">
+            <span class="field-label">Apply changes to</span>
+            <select id="ui-scope" class="ui-select">
+              <option value="global">All pages</option>
+              <option value="page">This page only</option>
+            </select>
+          </label>
+
+          <label class="field-group">
+            <span class="field-label">Color Mode</span>
+            <select id="ui-mode" class="ui-select">
+              <option value="custom">custom</option>
+              <option value="light">light</option>
+              <option value="dark">dark</option>
+            </select>
+          </label>
+
+          <label class="field-group">
+            <span class="field-label">Text Size</span>
+            <select id="ui-text-size" class="ui-select">
+              <option value="sm">sm</option>
+              <option value="md">md</option>
+              <option value="lg">lg</option>
+              <option value="xl">xl</option>
+            </select>
+          </label>
+        </div>
+
+        <div class="grid two profile-select-grid">
+          <label class="field-group">
+            <span class="field-label">Header Color</span>
+            <input id="ui-header-color" class="ui-input" type="color" />
+          </label>
+          <label class="field-group">
+            <span class="field-label">Header Texture</span>
+            <select id="ui-header-texture" class="ui-select">
+              <option value="solid">solid</option>
+              <option value="gradient">gradient</option>
+              <option value="checkered">checkered</option>
+              <option value="smoothed">smoothed</option>
+              <option value="matte">matte</option>
+            </select>
+          </label>
+
+          <label class="field-group">
+            <span class="field-label">Section Color</span>
+            <input id="ui-section-color" class="ui-input" type="color" />
+          </label>
+          <label class="field-group">
+            <span class="field-label">Section Texture</span>
+            <select id="ui-section-texture" class="ui-select">
+              <option value="solid">solid</option>
+              <option value="gradient">gradient</option>
+              <option value="checkered">checkered</option>
+              <option value="smoothed">smoothed</option>
+              <option value="matte">matte</option>
+            </select>
+          </label>
+
+          <label class="field-group">
+            <span class="field-label">Background Color</span>
+            <input id="ui-background-color" class="ui-input" type="color" />
+          </label>
+          <label class="field-group">
+            <span class="field-label">Background Texture</span>
+            <select id="ui-background-texture" class="ui-select">
+              <option value="solid">solid</option>
+              <option value="gradient">gradient</option>
+              <option value="checkered">checkered</option>
+              <option value="smoothed">smoothed</option>
+              <option value="matte">matte</option>
+            </select>
+          </label>
+
+          <label class="field-group">
+            <span class="field-label">Dropdown Color</span>
+            <input id="ui-dropdown-color" class="ui-input" type="color" />
+          </label>
+          <label class="field-group">
+            <span class="field-label">Dropdown Texture</span>
+            <select id="ui-dropdown-texture" class="ui-select">
+              <option value="solid">solid</option>
+              <option value="gradient">gradient</option>
+              <option value="checkered">checkered</option>
+              <option value="smoothed">smoothed</option>
+              <option value="matte">matte</option>
+            </select>
+          </label>
+        </div>
+      </SectionCard>
+
+      <SectionCard title="Component Appearance" subtitle="Choose which surface each reusable component should use">
+        <div class="grid two profile-select-grid">
+          <label class="field-group">
+            <span class="field-label">Navbar Surface</span>
+            <select id="component-navbar-surface" class="ui-select">
+              <option value="header">header</option>
+              <option value="section">section</option>
+              <option value="background">background</option>
+              <option value="dropdown">dropdown</option>
+            </select>
+          </label>
+
+          <label class="field-group">
+            <span class="field-label">Hero Surface</span>
+            <select id="component-hero-surface" class="ui-select">
+              <option value="header">header</option>
+              <option value="section">section</option>
+              <option value="background">background</option>
+              <option value="dropdown">dropdown</option>
+            </select>
+          </label>
+
+          <label class="field-group">
+            <span class="field-label">Section Card Surface</span>
+            <select id="component-section-card-surface" class="ui-select">
+              <option value="section">section</option>
+              <option value="header">header</option>
+              <option value="background">background</option>
+              <option value="dropdown">dropdown</option>
+            </select>
+          </label>
+
+          <label class="field-group">
+            <span class="field-label">Quick Link Card Surface</span>
+            <select id="component-quick-link-card-surface" class="ui-select">
+              <option value="section">section</option>
+              <option value="header">header</option>
+              <option value="background">background</option>
+              <option value="dropdown">dropdown</option>
+            </select>
+          </label>
+
+          <label class="field-group">
+            <span class="field-label">Quote Card Surface</span>
+            <select id="component-quote-card-surface" class="ui-select">
+              <option value="section">section</option>
+              <option value="header">header</option>
+              <option value="background">background</option>
+              <option value="dropdown">dropdown</option>
+            </select>
+          </label>
+
+          <label class="field-group">
+            <span class="field-label">Stat Card Surface</span>
+            <select id="component-stat-card-surface" class="ui-select">
+              <option value="section">section</option>
+              <option value="header">header</option>
+              <option value="background">background</option>
+              <option value="dropdown">dropdown</option>
+            </select>
+          </label>
+
+          <label class="field-group">
+            <span class="field-label">Generic Card Surface</span>
+            <select id="component-card-surface" class="ui-select">
+              <option value="section">section</option>
+              <option value="header">header</option>
+              <option value="background">background</option>
+              <option value="dropdown">dropdown</option>
+            </select>
+          </label>
+
+          <label class="field-group">
+            <span class="field-label">Dropdown Card Surface</span>
+            <select id="component-dropdown-card-surface" class="ui-select">
+              <option value="dropdown">dropdown</option>
+              <option value="section">section</option>
+              <option value="header">header</option>
+              <option value="background">background</option>
+            </select>
+          </label>
+
+          <label class="field-group">
+            <span class="field-label">Embed Surface</span>
+            <select id="component-embed-surface" class="ui-select">
+              <option value="section">section</option>
+              <option value="header">header</option>
+              <option value="background">background</option>
+              <option value="dropdown">dropdown</option>
+            </select>
+          </label>
+
+          <label class="field-group">
+            <span class="field-label">Metric Surface</span>
+            <select id="component-metric-surface" class="ui-select">
+              <option value="section">section</option>
+              <option value="header">header</option>
+              <option value="background">background</option>
+              <option value="dropdown">dropdown</option>
+            </select>
+          </label>
+
+          <label class="field-group">
+            <span class="field-label">Input Surface</span>
+            <select id="component-input-surface" class="ui-select">
+              <option value="section">section</option>
+              <option value="header">header</option>
+              <option value="background">background</option>
+              <option value="dropdown">dropdown</option>
+            </select>
+          </label>
+        </div>
+      </SectionCard>
+    </div>
+  </section>
+
+  <section class="section">
+    <SurfaceCard>
+      <SectionHeader
+        title="Public profile preview"
+        subtitle="See the interactive profile layout before saving"
+        align="start"
+      />
+      <div id="profile-preview-root">
+        <p>Loading preview...</p>
+      </div>
+    </SurfaceCard>
+  </section>
+
+  <section class="section">
+    <SurfaceCard as="div" className="profile-settings-actions">
+      <div id="profile-settings-status" class="save-status neutral">Loading...</div>
+      <div class="button-row">
+        <Button id="refresh-preview-btn" type="button" variant="secondary">Refresh Preview</Button>
+        <Button id="save-profile-settings-btn" type="button" variant="primary">Save Profile Settings</Button>
+      </div>
+    </SurfaceCard>
+  </section>
+
+    <script id="profile-settings-config" type="application/json" set:html={JSON.stringify(profileSettingsClientConfig)} />
+
+  <script>
+    import { initProfileSettingsPage } from "../../lib/client/profileSettingsPage";
+
+    const configElement = document.getElementById("profile-settings-config");
+    const config = JSON.parse(configElement?.textContent || "{}");
+
+    initProfileSettingsPage(config);
+  </script>
+
+  <style is:global>
+    .profile-top-grid {
+      align-items: stretch;
+    }
+
+    .profile-top-card {
+      height: 100%;
+      display: flex;
+      flex-direction: column;
+    }
+
+    .profile-snapshot-card .compact-summary {
+      flex: 1;
+      align-content: start;
+    }
+
+    .snapshot-spacer {
+      min-height: 6.75rem;
+      width: 100%;
+    }
+
+    .form-stack {
+      display: grid;
+      gap: 1rem;
+    }
+
+    .field-group {
+      display: grid;
+      gap: 0.5rem;
+      min-width: 0;
+    }
+
+    .field-label {
+      font-size: 0.92rem;
+      font-weight: 700;
+      color: var(--text-label);
+    }
+
+    .field-help {
+      margin: 0;
+      font-size: 0.92rem;
+      color: var(--text-muted);
+      line-height: 1.5;
+    }
+
+    .mini-section-title {
+      margin: 0 0 1rem;
+      font-size: 1rem;
+      font-weight: 800;
+      color: var(--text-main);
+    }
+
+    .ui-input,
+    .ui-select,
+    .ui-textarea {
+      width: 100%;
+      min-width: 0;
+      border-radius: 14px;
+      border: 1px solid var(--border-medium);
+      background: var(--input-bg);
+      padding: 0.9rem 1rem;
+      font: inherit;
+      color: var(--text-main);
+      box-sizing: border-box;
+      transition: border-color 0.18s ease, box-shadow 0.18s ease, background 0.18s ease;
+    }
+
+    .ui-input:focus,
+    .ui-select:focus,
+    .ui-textarea:focus,
+    .ui-range:focus {
+      outline: none;
+      border-color: var(--text-main);
+      box-shadow: 0 0 0 4px color-mix(in srgb, var(--text-main) 12%, transparent);
+    }
+
+    .ui-textarea {
+      resize: vertical;
+      min-height: 120px;
+    }
+
+    .ui-range {
+      width: 100%;
+      accent-color: var(--text-main);
+    }
+
+    .range-row {
+      display: grid;
+      grid-template-columns: minmax(0, 1fr) auto;
+      gap: 0.85rem;
+      align-items: center;
+    }
+
+    .range-value {
+      min-width: 4.5rem;
+      text-align: right;
+      font-weight: 700;
+      color: var(--text-main);
+    }
+
+    .ui-button {
+      border: none;
+      border-radius: 999px;
+      padding: 0.82rem 1.15rem;
+      font: inherit;
+      font-weight: 700;
+      background: var(--button-bg);
+      color: var(--button-text);
+      cursor: pointer;
+      transition: transform 0.18s ease, opacity 0.18s ease, box-shadow 0.18s ease;
+    }
+
+    .ui-button:hover {
+      transform: translateY(-1px);
+    }
+
+    .ui-button-secondary {
+      background: var(--button-secondary-bg);
+      color: var(--button-secondary-text);
+      border: 1px solid var(--border-soft);
+      box-shadow: none;
+    }
+
+    .button-row,
+    .avatar-upload-actions {
+      display: flex;
+      gap: 0.75rem;
+      flex-wrap: wrap;
+      align-items: center;
+    }
+
+    .settings-toggle-list {
+      display: grid;
+      gap: 0.85rem;
+    }
+
+    .compact-toggle-list {
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+    }
+
+    .settings-toggle-card {
+      display: grid;
+      grid-template-columns: minmax(0, 1fr) auto;
+      align-items: center;
+      gap: 1rem;
+      width: 100%;
+      padding: 1rem 1.05rem;
+      border-radius: 18px;
+      border: 1px solid var(--border-soft);
+      background: var(--card-bg);
+      cursor: pointer;
+      box-sizing: border-box;
+      transition: transform 0.18s ease, border-color 0.18s ease, box-shadow 0.18s ease;
+    }
+
+    .settings-toggle-card:hover {
+      transform: translateY(-1px);
+      box-shadow: var(--shadow);
+    }
+
+    .settings-toggle-copy {
+      display: grid;
+      gap: 0.22rem;
+      min-width: 0;
+    }
+
+    .settings-toggle-title {
+      display: block;
+      font-weight: 700;
+      color: var(--text-main);
+      line-height: 1.35;
+      word-break: break-word;
+    }
+
+    .settings-toggle-description {
+      display: block;
+      font-size: 0.92rem;
+      line-height: 1.45;
+      color: var(--text-muted);
+      word-break: break-word;
+    }
+
+    .settings-checkbox {
+      width: 1.1rem;
+      height: 1.1rem;
+      flex: 0 0 auto;
+      margin: 0;
+      accent-color: var(--text-main);
+      justify-self: end;
+      align-self: center;
+    }
+
+    .compact-summary {
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+      gap: 0.85rem;
+    }
+
+    .summary-metric {
+      min-width: 0;
+    }
+
+    .summary-value {
+      word-break: break-word;
+    }
+
+    .profile-settings-actions {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      gap: 1rem;
+      flex-wrap: wrap;
+    }
+
+    .preview-stack {
+      display: grid;
+      gap: 1rem;
+    }
+
+    .preview-card,
+    .preview-stat-card {
+      border-radius: 18px;
+      padding: 1rem;
+      border: 1px solid var(--border-soft);
+      background: var(--card-bg);
+    }
+
+    .preview-profile-hero-card {
+      overflow: hidden;
+      padding: 0;
+    }
+
+    .preview-profile-banner {
+      min-height: 150px;
+      background: linear-gradient(135deg, #cfdef3 0%, #e0f2fe 50%, #f8fafc 100%);
+      background-size: cover;
+      background-position: center;
+    }
+
+    .preview-profile-body {
+      padding: 1rem 1rem 1.1rem;
+      margin-top: -38px;
+    }
+
+    .preview-profile-avatar-row {
+      display: flex;
+      margin-bottom: 0.85rem;
+    }
+
+    .preview-avatar-align-left {
+      justify-content: flex-start;
+    }
+
+    .preview-avatar-align-center {
+      justify-content: center;
+    }
+
+    .preview-avatar-align-right {
+      justify-content: flex-end;
+    }
+
+    .preview-profile-avatar {
+      overflow: hidden;
+      background: #dbeafe;
+      border: 4px solid #fff;
+      box-shadow: 0 8px 28px rgba(15, 23, 42, 0.14);
+      position: relative;
+    }
+
+    .preview-profile-avatar.circle {
+      border-radius: 50%;
+    }
+
+    .preview-profile-avatar.square {
+      border-radius: 20px;
+    }
+
+    .preview-profile-avatar-image,
+    .preview-profile-avatar-fallback {
+      position: absolute;
+      inset: 0;
+    }
+
+    .preview-profile-avatar-image {
+      width: 100%;
+      height: 100%;
+      display: block;
+      object-fit: cover;
+      user-select: none;
+      -webkit-user-drag: none;
+    }
+
+    .preview-profile-avatar-fallback {
+      display: grid;
+      place-items: center;
+      font-size: 2rem;
+      font-weight: 800;
+      color: #0f172a;
+    }
+
+    .preview-profile-copy h3,
+    .preview-profile-copy p {
+      margin: 0;
+    }
+
+    .preview-profile-copy {
+      display: grid;
+      gap: 0.35rem;
+    }
+
+    .profile-field-grid,
+    .profile-select-grid {
+      gap: 1rem;
+    }
+
+    .avatar-editor-card {
+      width: 100%;
+    }
+
+    .avatar-editor-dropdown {
+      width: 100%;
+      border-radius: 24px;
+      border: 1px solid var(--border-soft);
+      background: var(--card-bg);
+      overflow: hidden;
+    }
+
+    .avatar-editor-summary {
+      list-style: none;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 1rem;
+      width: 100%;
+      padding: 1.15rem 1.25rem;
+      cursor: pointer;
+      user-select: none;
+    }
+
+    .avatar-editor-summary::-webkit-details-marker {
+      display: none;
+    }
+
+    .avatar-editor-title {
+      margin: 0;
+      font-size: 1.05rem;
+      font-weight: 800;
+      color: var(--text-main);
+    }
+
+    .avatar-editor-subtitle {
+      margin: 0.35rem 0 0;
+      color: var(--text-muted);
+      line-height: 1.45;
+    }
+
+    .avatar-editor-chevron {
+      font-size: 1.4rem;
+      color: var(--text-muted);
+      transition: transform 0.18s ease;
+    }
+
+    .avatar-editor-dropdown[open] .avatar-editor-chevron {
+      transform: rotate(180deg);
+    }
+
+    .avatar-editor-body {
+      border-top: 1px solid var(--border-soft);
+      padding: 1.25rem;
+      display: grid;
+      gap: 1.25rem;
+    }
+
+    .avatar-editor-preview-wrap {
+      display: grid;
+      gap: 1rem;
+    }
+
+    .avatar-stage-label-row {
+      display: grid;
+      gap: 0.35rem;
+    }
+
+    .avatar-stage-title {
+      margin: 0;
+      font-size: 1rem;
+      font-weight: 800;
+      color: var(--text-main);
+    }
+
+    .avatar-stage-copy {
+      margin: 0;
+      color: var(--text-muted);
+      line-height: 1.45;
+    }
+
+    .avatar-profile-stage {
+      width: 100%;
+      border-radius: 28px;
+      overflow: hidden;
+      background: rgba(255, 255, 255, 0.84);
+      border: 1px solid rgba(15, 23, 42, 0.08);
+      box-shadow: 0 14px 40px rgba(15, 23, 42, 0.08);
+    }
+
+    .avatar-banner-preview {
+      min-height: 180px;
+      background: linear-gradient(135deg, #cfdef3 0%, #e0f2fe 50%, #f8fafc 100%);
+    }
+
+    .avatar-profile-stage-body {
+      padding: 1.5rem;
+      margin-top: -58px;
+      display: grid;
+      gap: 1rem;
+    }
+
+    .avatar-stage-shell {
+      display: flex;
+      width: 100%;
+    }
+
+    .avatar-align-left {
+      justify-content: flex-start;
+    }
+
+    .avatar-align-center {
+      justify-content: center;
+    }
+
+    .avatar-align-right {
+      justify-content: flex-end;
+    }
+
+    .avatar-editor-preview {
+      position: relative;
+      overflow: hidden;
+      background: #dbeafe;
+      border: 4px solid #fff;
+      box-shadow: 0 8px 28px rgba(15, 23, 42, 0.14);
+      flex: 0 0 auto;
+    }
+
+    .avatar-editor-preview {
+      cursor: grab;
+      touch-action: none;
+      user-select: none;
+    }
+
+    .avatar-editor-preview.is-dragging {
+      cursor: grabbing;
+    }
+
+    .avatar-editor-preview.circle {
+      border-radius: 50%;
+    }
+
+    .avatar-editor-preview.square {
+      border-radius: 20px;
+    }
+
+    .avatar-editor-preview-image,
+    .avatar-editor-preview-fallback {
+      position: absolute;
+      inset: 0;
+    }
+
+    .avatar-editor-preview-image {
+      width: 100%;
+      height: 100%;
+      display: block;
+      object-fit: cover;
+      pointer-events: none;
+      user-select: none;
+      -webkit-user-drag: none;
+    }
+
+    .avatar-editor-preview-fallback {
+      display: grid;
+      place-items: center;
+      font-size: clamp(1.5rem, 4vw, 2.4rem);
+      font-weight: 800;
+      color: #0f172a;
+    }
+
+    .avatar-stage-settings-anchor {
+      display: flex;
+      justify-content: flex-start;
+    }
+
+    .avatar-stage-meta {
+      display: grid;
+      gap: 0.25rem;
+    }
+
+    .avatar-stage-identity,
+    .avatar-stage-handle {
+      margin: 0;
+    }
+
+    .avatar-stage-identity {
+      font-size: 1.15rem;
+      font-weight: 800;
+      color: var(--text-main);
+    }
+
+    .avatar-stage-handle {
+      color: var(--text-muted);
+    }
+
+    .avatar-crop-card {
+      display: grid;
+      gap: 0.9rem;
+      padding: 1rem;
+      border-radius: 18px;
+      border: 1px dashed var(--border-soft);
+      background: color-mix(in srgb, var(--card-bg) 82%, transparent);
+    }
+
+    .avatar-crop-copy {
+      display: grid;
+      gap: 0.4rem;
+    }
+
+    .avatar-crop-readout {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 0.65rem;
+      align-items: center;
+    }
+
+    .crop-value-pill {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      min-width: 4.9rem;
+      padding: 0.45rem 0.75rem;
+      border-radius: 999px;
+      border: 1px solid var(--border-soft);
+      background: var(--input-bg);
+      font-size: 0.9rem;
+      font-weight: 700;
+      color: var(--text-main);
+    }
+
+    .avatar-settings-grid {
+      display: grid;
+      grid-template-columns: minmax(0, 1fr) minmax(0, 1.35fr);
+      gap: 1rem;
+      width: 100%;
+    }
+
+    .avatar-upload-card,
+    .avatar-controls-card {
+      border-radius: 20px;
+      border: 1px solid var(--border-soft);
+      background: var(--card-bg);
+      padding: 1rem;
+    }
+
+    .file-input {
+      padding-block: 0.72rem;
+    }
+
+    @media (max-width: 900px) {
+      .compact-toggle-list,
+      .compact-summary,
+      .avatar-settings-grid {
+        grid-template-columns: 1fr;
+      }
+    }
+
+    @media (max-width: 720px) {
+      .settings-toggle-card {
+        grid-template-columns: minmax(0, 1fr) auto;
+        gap: 0.85rem;
+        padding: 0.95rem;
+      }
+
+      .settings-checkbox {
+        width: 1rem;
+        height: 1rem;
+      }
+
+      .profile-settings-actions {
+        align-items: stretch;
+      }
+
+      .profile-settings-actions .button-row {
+        width: 100%;
+      }
+
+      .profile-settings-actions .ui-button {
+        flex: 1 1 100%;
+      }
+
+      .avatar-profile-stage-body {
+        margin-top: -40px;
+        padding: 1rem;
+      }
+
+      .avatar-banner-preview {
+        min-height: 150px;
+      }
+    }
+
+    @media (max-width: 560px) {
+      .settings-toggle-card {
+        padding: 0.9rem;
+      }
+
+      .settings-toggle-title {
+        font-size: 0.98rem;
+      }
+
+      .settings-toggle-description {
+        font-size: 0.88rem;
+      }
+
+      .ui-input,
+      .ui-select,
+      .ui-textarea {
+        padding: 0.85rem 0.95rem;
+      }
+
+      .avatar-editor-summary,
+      .avatar-editor-body {
+        padding-inline: 1rem;
+      }
+
+      .range-row {
+        grid-template-columns: 1fr;
+      }
+
+      .range-value {
+        text-align: left;
+      }
+    }
+  </style>
+
+  <style>
+    .profile-fixed-section-card {
+      background: var(--resolved-section-color);
+    }
+
+    .profile-fixed-section-card.soft {
+      background: color-mix(in srgb, var(--resolved-section-color) 94%, var(--resolved-background-color));
+    }
+
+    .profile-top-grid > * {
+      align-self: stretch;
+    }
+  </style>
+</BaseLayout>

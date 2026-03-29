@@ -1,0 +1,45 @@
+---
+import ChecklistSection from "../sections/ChecklistSection.astro";
+import EmbedSection from "../sections/EmbedSection.astro";
+import type {
+  RendererChecklistSectionConfig,
+  RendererEmbedSectionConfig,
+} from "../../types/ui";
+
+interface Props {
+  section: RendererChecklistSectionConfig | RendererEmbedSectionConfig;
+}
+
+const { section } = Astro.props;
+---
+
+{section.kind === "checklist" ? (
+  <ChecklistSection
+    id={section.id}
+    title={section.title}
+    subtitle={section.subtitle}
+    kicker={section.kicker}
+    listId={section.listId}
+    items={section.items || []}
+    emptyText={section.emptyText}
+    mode={section.mode || "checklist"}
+    actions={section.actions}
+    form={section.form}
+    sectionClassName={section.sectionClassName}
+    listDataKey={section.listDataKey}
+  />
+) : (
+  <EmbedSection
+    id={section.id}
+    title={section.title}
+    subtitle={section.subtitle}
+    kicker={section.kicker}
+    actions={section.actions}
+    form={section.form}
+    helperText={section.helperText}
+    auxiliaryActions={section.auxiliaryActions}
+    containerId={section.containerId}
+    containerClassName={section.containerClassName}
+    sectionClassName={section.sectionClassName}
+  />
+)}

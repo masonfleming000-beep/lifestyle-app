@@ -1,0 +1,15 @@
+---
+interface Props { legend?: string; description?: string; }
+const { legend = '', description = '' } = Astro.props;
+---
+<fieldset class="input-card field-group">
+  {legend && <legend class="section-title">{legend}</legend>}
+  {description && <p class="section-subtitle">{description}</p>}
+  <div class="field-group-grid">
+    <slot />
+  </div>
+</fieldset>
+<style>
+  .field-group { display:grid; gap:0.75rem; }
+  .field-group-grid { display:grid; gap:0.75rem; }
+</style>

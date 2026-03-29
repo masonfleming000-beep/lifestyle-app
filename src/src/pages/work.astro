@@ -1,0 +1,959 @@
+---
+/**
+ * Work page.
+ * Organizes job, project, task, and productivity-related content
+ * for professional workflow tracking inside the app.
+ */
+import BaseLayout from "../layouts/BaseLayout.astro";
+import PageHero from "../components/PageHero.astro";
+import SurfaceCard from "../components/SurfaceCard.astro";
+import SectionHeader from "../components/SectionHeader.astro";
+import FormCard from "../components/FormCard.astro";
+import Button from "../components/Button.astro";
+
+const defaultWorkData = JSON.stringify({
+  projects: [
+    { id: "work-internal", name: "Internal", color: "#2f5d62" },
+    { id: "work-client", name: "Client Work", color: "#2563eb" },
+    { id: "work-meetings", name: "Meetings", color: "#6a3fa0" },
+  ],
+  tasks: [],
+  meetings: [],
+});
+---
+
+<BaseLayout title="Work | Lifestyle App" description="Work dashboard">
+    <PageHero
+    kicker="Work"
+    title="Work dashboard"
+    description="Track projects, tasks, meetings, and the work that needs attention first."
+  />
+
+  <section class="section">
+    <div class="education-shell">
+      <details class="dropdown-card surface-dropdown education-panel" open>
+        <summary>
+          <div>
+            <h2 class="section-title">Due This Week</h2>
+            <p class="section-subtitle">Closest deadlines first.</p>
+          </div>
+          <span class="dropdown-arrow">⌄</span>
+        </summary>
+        <div class="dropdown-content">
+          <div id="due-this-week" class="education-list"></div>
+        </div>
+      </details>
+
+      <SurfaceCard className="education-panel">
+        <SectionHeader
+          title="Upcoming Meetings"
+          subtitle="Today and next on deck."
+          align="start"
+        />
+        <div id="meetings-list" class="education-list"></div>
+      </SurfaceCard>
+
+      <details class="dropdown-card surface-dropdown education-panel" open>
+        <summary>
+          <div>
+            <h2 class="section-title">All Upcoming Tasks</h2>
+            <p class="section-subtitle">Sorted by due date and time.</p>
+          </div>
+          <span class="dropdown-arrow">⌄</span>
+        </summary>
+        <div class="dropdown-content">
+          <div id="all-upcoming" class="education-list"></div>
+        </div>
+      </details>
+
+      <FormCard
+        title="Add Task"
+        subtitle="Add work by section, deadline, and priority."
+        formId="task-form"
+        submitLabel="Add Task"
+      >
+        <div class="edu-form-grid">
+          <label class="edu-label">
+            <span>Task name</span>
+            <input type="text" id="task-title" required placeholder="Send revised proposal" />
+          </label>
+
+          <label class="edu-label">
+            <span>Due date</span>
+            <input type="date" id="task-due-date" required />
+          </label>
+
+          <label class="edu-label">
+            <span>Due time</span>
+            <input type="time" id="task-due-time" />
+          </label>
+
+          <label class="edu-label">
+            <span>Section</span>
+            <select id="task-project" required>
+              <option value="">Select a section</option>
+            </select>
+          </label>
+
+          <label class="edu-label">
+            <span>Priority</span>
+            <select id="task-priority">
+              <option value="medium">Medium</option>
+              <option value="low">Low</option>
+              <option value="high">High</option>
+              <option value="urgent">Urgent</option>
+            </select>
+          </label>
+
+          <label class="edu-label">
+            <span>Status</span>
+            <select id="task-status">
+              <option value="todo">To do</option>
+              <option value="in-progress">In progress</option>
+              <option value="blocked">Blocked</option>
+              <option value="done">Done</option>
+            </select>
+          </label>
+
+          <label class="edu-label">
+            <span>Estimated hours</span>
+            <input
+              type="number"
+              id="task-estimated-hours"
+              min="0"
+              step="0.5"
+              placeholder="2"
+            />
+          </label>
+
+          <label class="edu-label edu-label-full">
+            <span>Notes</span>
+            <textarea id="task-notes" rows="4" placeholder="Context, next steps, blockers, links..."></textarea>
+          </label>
+        </div>
+      </FormCard>
+
+      <FormCard
+        title="Add Meeting"
+        subtitle="Schedule meetings and keep them grouped by section."
+        formId="meeting-form"
+        submitLabel="Add Meeting"
+      >
+        <div class="edu-form-grid">
+          <label class="edu-label">
+            <span>Meeting title</span>
+            <input type="text" id="meeting-title" required placeholder="Weekly team sync" />
+          </label>
+
+          <label class="edu-label">
+            <span>Date</span>
+            <input type="date" id="meeting-date" required />
+          </label>
+
+          <label class="edu-label">
+            <span>Start time</span>
+            <input type="time" id="meeting-start" required />
+          </label>
+
+          <label class="edu-label">
+            <span>End time</span>
+            <input type="time" id="meeting-end" required />
+          </label>
+
+          <label class="edu-label">
+            <span>Section</span>
+            <select id="meeting-project">
+              <option value="">No section</option>
+            </select>
+          </label>
+
+          <label class="edu-label">
+            <span>Location / link</span>
+            <input type="text" id="meeting-location" placeholder="Zoom, Room 204, Meet link..." />
+          </label>
+
+          <label class="edu-label edu-label-full">
+            <span>Notes</span>
+            <textarea id="meeting-notes" rows="4" placeholder="Agenda, attendees, prep notes..."></textarea>
+          </label>
+        </div>
+      </FormCard>
+
+      <SurfaceCard className="education-panel">
+        <SectionHeader
+          title="Sections"
+          subtitle="Group your tasks and meetings by team, client, or workstream."
+        >
+          <Button id="restore-projects-btn" type="button">Restore Defaults</Button>
+        </SectionHeader>
+
+        <FormCard formId="project-form" submitLabel="Add Section" compact={true}>
+          <div class="edu-form-grid class-grid">
+            <label class="edu-label">
+              <span>Section name</span>
+              <input type="text" id="project-name" required placeholder="Client Onboarding" />
+            </label>
+
+            <div class="edu-label">
+              <span>Color</span>
+              <input type="hidden" id="project-color" value="#2f5d62" />
+
+              <div class="color-picker-row" id="project-color-picker">
+                <button type="button" class="color-swatch is-selected" data-color="#2f5d62" style="background:#2f5d62;"></button>
+                <button type="button" class="color-swatch" data-color="#111827" style="background:#111827;"></button>
+                <button type="button" class="color-swatch" data-color="#6b7280" style="background:#6b7280;"></button>
+                <button type="button" class="color-swatch" data-color="#2563eb" style="background:#2563eb;"></button>
+                <button type="button" class="color-swatch" data-color="#38bdf8" style="background:#38bdf8;"></button>
+                <button type="button" class="color-swatch" data-color="#16a34a" style="background:#16a34a;"></button>
+                <button type="button" class="color-swatch" data-color="#4ade80" style="background:#4ade80;"></button>
+                <button type="button" class="color-swatch" data-color="#dc2626" style="background:#dc2626;"></button>
+                <button type="button" class="color-swatch" data-color="#f87171" style="background:#f87171;"></button>
+                <button type="button" class="color-swatch" data-color="#ea580c" style="background:#ea580c;"></button>
+                <button type="button" class="color-swatch" data-color="#fb923c" style="background:#fb923c;"></button>
+                <button type="button" class="color-swatch" data-color="#fde047" style="background:#fde047;"></button>
+                <button type="button" class="color-swatch" data-color="#6a3fa0" style="background:#6a3fa0;"></button>
+                <button type="button" class="color-swatch" data-color="#a78bfa" style="background:#a78bfa;"></button>
+                <button type="button" class="color-swatch" data-color="#db2777" style="background:#db2777;"></button>
+                <button type="button" class="color-swatch" data-color="#7a4b2a" style="background:#7a4b2a;"></button>
+              </div>
+            </div>
+          </div>
+        </FormCard>
+
+        <div id="project-list" class="class-list"></div>
+      </SurfaceCard>
+
+      <details class="card education-panel completed-panel">
+        <summary class="completed-summary">
+          <span>Completed Tasks</span>
+          <span id="completed-count" class="completed-count">0</span>
+        </summary>
+        <div id="completed-list" class="education-list completed-list"></div>
+      </details>
+    </div>
+  </section>
+</BaseLayout>
+
+<script define:vars={{ defaultWorkData }}>
+  const pageKey = "work";
+
+  function makeId() {
+    if (window.crypto && typeof window.crypto.randomUUID === "function") {
+      return window.crypto.randomUUID();
+    }
+    return "id-" + Date.now() + "-" + Math.random().toString(16).slice(2);
+  }
+
+  function cloneDefaults() {
+    return JSON.parse(defaultWorkData);
+  }
+
+  function uniqueStrings(items = []) {
+    return [...new Set(items.filter(Boolean))];
+  }
+
+  function mergeDefaultProjects(savedProjects, defaultProjects, removedProjectIds = []) {
+    const removedSet = new Set(removedProjectIds || []);
+    const merged = [...(savedProjects || [])];
+
+    defaultProjects.forEach((defaultProject) => {
+      const exists = merged.some((project) => project.id === defaultProject.id);
+      if (!exists && !removedSet.has(defaultProject.id)) {
+        merged.push({ ...defaultProject });
+      }
+    });
+
+    return merged;
+  }
+
+  function normalizeWorkData(raw) {
+    const defaults = cloneDefaults();
+    const parsed = raw && typeof raw === "object" ? raw : {};
+
+    return {
+      projects: Array.isArray(parsed.projects) ? parsed.projects : defaults.projects,
+      tasks: Array.isArray(parsed.tasks) ? parsed.tasks : defaults.tasks,
+      meetings: Array.isArray(parsed.meetings) ? parsed.meetings : defaults.meetings,
+      removedDefaults:
+        parsed && typeof parsed.removedDefaults === "object" && parsed.removedDefaults
+          ? parsed.removedDefaults
+          : { projects: [] },
+    };
+  }
+
+  async function loadState() {
+    try {
+      const res = await fetch(`/api/state?pageKey=${encodeURIComponent(pageKey)}`, {
+        credentials: "include",
+        cache: "no-store",
+      });
+
+      if (!res.ok) return null;
+
+      const data = await res.json();
+      return data?.state ?? null;
+    } catch (error) {
+      console.error("Failed to load work state:", error);
+      return null;
+    }
+  }
+
+  let hasLoadedInitialState = false;
+  let isSaving = false;
+  let pendingSave = false;
+
+  async function saveState() {
+    if (!hasLoadedInitialState) return;
+
+    if (isSaving) {
+      pendingSave = true;
+      return;
+    }
+
+    isSaving = true;
+
+    try {
+      await fetch("/api/state", {
+        method: "POST",
+        credentials: "include",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          pageKey,
+          state: {
+            projects,
+            tasks,
+            meetings,
+            removedDefaults,
+          },
+        }),
+      });
+    } catch (error) {
+      console.error("Failed to save work state:", error);
+    } finally {
+      isSaving = false;
+
+      if (pendingSave) {
+        pendingSave = false;
+        await saveState();
+      }
+    }
+  }
+
+  let projects = cloneDefaults().projects;
+  let tasks = cloneDefaults().tasks;
+  let meetings = cloneDefaults().meetings;
+  let removedDefaults = {
+    projects: [],
+  };
+
+  const taskForm = document.getElementById("task-form");
+  const meetingForm = document.getElementById("meeting-form");
+  const projectForm = document.getElementById("project-form");
+
+  const taskTitleInput = document.getElementById("task-title");
+  const taskDueDateInput = document.getElementById("task-due-date");
+  const taskDueTimeInput = document.getElementById("task-due-time");
+  const taskProjectSelect = document.getElementById("task-project");
+  const taskPriorityInput = document.getElementById("task-priority");
+  const taskStatusInput = document.getElementById("task-status");
+  const taskEstimatedHoursInput = document.getElementById("task-estimated-hours");
+  const taskNotesInput = document.getElementById("task-notes");
+
+  const meetingTitleInput = document.getElementById("meeting-title");
+  const meetingDateInput = document.getElementById("meeting-date");
+  const meetingStartInput = document.getElementById("meeting-start");
+  const meetingEndInput = document.getElementById("meeting-end");
+  const meetingProjectSelect = document.getElementById("meeting-project");
+  const meetingLocationInput = document.getElementById("meeting-location");
+  const meetingNotesInput = document.getElementById("meeting-notes");
+
+  const projectNameInput = document.getElementById("project-name");
+  const projectColorInput = document.getElementById("project-color");
+  const projectColorPicker = document.getElementById("project-color-picker");
+  const restoreProjectsBtn = document.getElementById("restore-projects-btn");
+
+  const projectList = document.getElementById("project-list");
+  const dueTodayEl = document.getElementById("due-today");
+  const dueThisWeekEl = document.getElementById("due-this-week");
+  const meetingsListEl = document.getElementById("meetings-list");
+  const allUpcomingEl = document.getElementById("all-upcoming");
+  const completedListEl = document.getElementById("completed-list");
+  const completedCountEl = document.getElementById("completed-count");
+
+  const defaultProjectIds = new Set(cloneDefaults().projects.map((project) => project.id));
+
+  function getProjectById(projectId) {
+    return projects.find((project) => project.id === projectId);
+  }
+
+  function markDefaultProjectDeleted(projectId) {
+    if (!defaultProjectIds.has(projectId)) return;
+
+    const arr = removedDefaults.projects || [];
+    if (!arr.includes(projectId)) {
+      removedDefaults.projects = [...arr, projectId];
+    }
+  }
+
+  function unmarkDefaultProjectDeleted(projectId) {
+    const arr = removedDefaults.projects || [];
+    removedDefaults.projects = arr.filter((id) => id !== projectId);
+  }
+
+  function startOfToday() {
+    const now = new Date();
+    now.setHours(0, 0, 0, 0);
+    return now;
+  }
+
+  function parseDate(dateStr) {
+    if (!dateStr) return null;
+    const date = new Date(dateStr + "T00:00:00");
+    return Number.isNaN(date.getTime()) ? null : date;
+  }
+
+  function parseDateTime(dateStr, timeStr) {
+    if (!dateStr) return null;
+    const date = new Date(`${dateStr}T${timeStr || "23:59"}:00`);
+    return Number.isNaN(date.getTime()) ? null : date;
+  }
+
+  function daysUntil(dateStr) {
+    const today = startOfToday();
+    const due = parseDate(dateStr);
+    if (!due) return null;
+    return Math.ceil((due - today) / (1000 * 60 * 60 * 24));
+  }
+
+  function formatDate(dateStr) {
+    const date = parseDate(dateStr);
+    if (!date) return "No date";
+    return date.toLocaleDateString("en-US", {
+      month: "short",
+      day: "numeric",
+      year: "numeric",
+    });
+  }
+
+  function formatTime(timeStr) {
+    if (!timeStr) return "";
+    const [hours, minutes] = timeStr.split(":");
+    const date = new Date();
+    date.setHours(Number(hours), Number(minutes), 0, 0);
+    return date.toLocaleTimeString("en-US", {
+      hour: "numeric",
+      minute: "2-digit",
+    });
+  }
+
+  function escapeHtml(value) {
+    return String(value ?? "")
+      .replaceAll("&", "&amp;")
+      .replaceAll("<", "&lt;")
+      .replaceAll(">", "&gt;")
+      .replaceAll('"', "&quot;")
+      .replaceAll("'", "&#039;");
+  }
+
+  function priorityRank(priority) {
+    const map = { urgent: 0, high: 1, medium: 2, low: 3 };
+    return map[priority] ?? 99;
+  }
+
+  function sortTasks(items) {
+    return [...items].sort((a, b) => {
+      const aTime = parseDateTime(a.dueDate, a.dueTime)?.getTime() ?? Number.MAX_SAFE_INTEGER;
+      const bTime = parseDateTime(b.dueDate, b.dueTime)?.getTime() ?? Number.MAX_SAFE_INTEGER;
+
+      if (aTime !== bTime) return aTime - bTime;
+      return priorityRank(a.priority) - priorityRank(b.priority);
+    });
+  }
+
+  function sortMeetings(items) {
+    return [...items].sort((a, b) => {
+      const aTime = parseDateTime(a.date, a.startTime)?.getTime() ?? Number.MAX_SAFE_INTEGER;
+      const bTime = parseDateTime(b.date, b.startTime)?.getTime() ?? Number.MAX_SAFE_INTEGER;
+      return aTime - bTime;
+    });
+  }
+
+  function getUpcomingTasks() {
+    return sortTasks(tasks.filter((task) => !task.completed));
+  }
+
+  function getCompletedTasks() {
+    return sortTasks(tasks.filter((task) => task.completed)).reverse();
+  }
+
+  function getDueTodayTasks() {
+    return getUpcomingTasks().filter((task) => {
+      const diff = daysUntil(task.dueDate);
+      return diff === 0;
+    });
+  }
+
+  function getDueThisWeekTasks() {
+    return getUpcomingTasks().filter((task) => {
+      const diff = daysUntil(task.dueDate);
+      return diff !== null && diff >= 0 && diff <= 7;
+    });
+  }
+
+  function getUpcomingMeetings() {
+    const now = new Date();
+    return sortMeetings(
+      meetings.filter((meeting) => {
+        const start = parseDateTime(meeting.date, meeting.startTime);
+        return start && start.getTime() >= now.getTime() - 60 * 1000;
+      })
+    );
+  }
+
+  function populateProjectSelects() {
+    taskProjectSelect.innerHTML = '<option value="">Select a section</option>';
+    meetingProjectSelect.innerHTML = '<option value="">No section</option>';
+
+    projects.forEach((project) => {
+      const taskOption = document.createElement("option");
+      taskOption.value = project.id;
+      taskOption.textContent = project.name;
+      taskProjectSelect.appendChild(taskOption);
+
+      const meetingOption = document.createElement("option");
+      meetingOption.value = project.id;
+      meetingOption.textContent = project.name;
+      meetingProjectSelect.appendChild(meetingOption);
+    });
+  }
+
+  function setSelectedColor(color) {
+    projectColorInput.value = color;
+
+    if (!projectColorPicker) return;
+
+    projectColorPicker.querySelectorAll("[data-color]").forEach((swatch) => {
+      swatch.classList.remove("is-selected");
+      if (swatch.getAttribute("data-color") === color) {
+        swatch.classList.add("is-selected");
+      }
+    });
+  }
+
+  function bindColorPicker() {
+    if (!projectColorPicker) return;
+
+    projectColorPicker.querySelectorAll("[data-color]").forEach((button) => {
+      button.addEventListener("click", () => {
+        const color = button.getAttribute("data-color") || "#2f5d62";
+        setSelectedColor(color);
+      });
+    });
+  }
+
+  function createBadge(text, tone = "default") {
+    return `<span class="work-badge work-badge-${tone}">${escapeHtml(text)}</span>`;
+  }
+
+  function restoreDefaultProjects() {
+    const defaults = cloneDefaults().projects.map((item) => ({
+      id: item.id,
+      name: item.name,
+      color: item.color || "#2f5d62",
+    }));
+
+    removedDefaults.projects = [];
+
+    defaults.forEach((defaultProject) => {
+      const exists = projects.some((project) => project.id === defaultProject.id);
+      if (!exists) {
+        projects.push(defaultProject);
+      }
+    });
+  }
+
+  function renderProjects() {
+    projectList.innerHTML = "";
+
+    if (!projects.length) {
+      projectList.innerHTML = '<p class="empty-state">No sections yet.</p>';
+      populateProjectSelects();
+      return;
+    }
+
+    projects.forEach((project) => {
+      const item = document.createElement("div");
+      item.className = "class-chip-row";
+      item.innerHTML = `
+        <div class="class-chip-display">
+          <span class="class-dot" style="background:${project.color}"></span>
+          <span>${escapeHtml(project.name)}</span>
+        </div>
+        <button type="button" class="delete-mini-button" data-project-id="${project.id}">
+          Remove
+        </button>
+      `;
+      projectList.appendChild(item);
+    });
+
+    populateProjectSelects();
+
+    projectList.querySelectorAll("[data-project-id]").forEach((button) => {
+      button.addEventListener("click", async () => {
+        const projectId = button.getAttribute("data-project-id");
+
+        markDefaultProjectDeleted(projectId);
+
+        projects = projects.filter((project) => project.id !== projectId);
+        tasks = tasks.filter((task) => task.projectId !== projectId);
+        meetings = meetings.map((meeting) =>
+          meeting.projectId === projectId ? { ...meeting, projectId: "" } : meeting
+        );
+
+        renderAll();
+        await saveState();
+      });
+    });
+  }
+
+  function createTaskCard(task) {
+    const project = getProjectById(task.projectId);
+    const card = document.createElement("article");
+    card.className = "assignment-card";
+
+    const dueDiff = daysUntil(task.dueDate);
+    let dueText = formatDate(task.dueDate);
+
+    if (dueDiff === 0) dueText = "Due today";
+    else if (dueDiff === 1) dueText = "Due tomorrow";
+    else if (dueDiff !== null && dueDiff > 1) dueText = `Due in ${dueDiff} days`;
+    else if (dueDiff !== null && dueDiff < 0) dueText = `${Math.abs(dueDiff)} day(s) late`;
+
+    const statusTone =
+      task.status === "done"
+        ? "done"
+        : task.status === "blocked"
+        ? "blocked"
+        : task.status === "in-progress"
+        ? "progress"
+        : "default";
+
+    const priorityTone =
+      task.priority === "urgent"
+        ? "blocked"
+        : task.priority === "high"
+        ? "progress"
+        : task.priority === "low"
+        ? "low"
+        : "default";
+
+    card.innerHTML = `
+      <label class="assignment-check-wrap">
+        <input type="checkbox" class="assignment-check" ${task.completed ? "checked" : ""} />
+        <span></span>
+      </label>
+
+      <div class="assignment-main">
+        <div class="assignment-topline">
+          <h3 class="assignment-title">${escapeHtml(task.title)}</h3>
+          ${
+            project
+              ? `<span class="assignment-class-tag" style="background:${project.color}22; color:${project.color}; border-color:${project.color}55">${escapeHtml(project.name)}</span>`
+              : ""
+          }
+          ${createBadge(task.priority, priorityTone)}
+          ${createBadge(task.status, statusTone)}
+        </div>
+
+        <div class="assignment-meta">
+          <span>${dueText}</span>
+          <span>${formatDate(task.dueDate)}</span>
+          ${task.dueTime ? `<span>${formatTime(task.dueTime)}</span>` : ""}
+          ${task.estimatedHours ? `<span>${task.estimatedHours} hr est.</span>` : ""}
+        </div>
+
+        ${task.notes ? `<p class="work-notes">${escapeHtml(task.notes)}</p>` : ""}
+      </div>
+
+      <button type="button" class="delete-mini-button task-delete">Delete</button>
+    `;
+
+    const checkbox = card.querySelector(".assignment-check");
+    const deleteButton = card.querySelector(".task-delete");
+
+    checkbox.addEventListener("change", async () => {
+      tasks = tasks.map((item) =>
+        item.id === task.id
+          ? {
+              ...item,
+              completed: checkbox.checked,
+              status: checkbox.checked ? "done" : item.status === "done" ? "todo" : item.status,
+            }
+          : item
+      );
+      renderTasks();
+      await saveState();
+    });
+
+    deleteButton.addEventListener("click", async () => {
+      tasks = tasks.filter((item) => item.id !== task.id);
+      renderTasks();
+      await saveState();
+    });
+
+    return card;
+  }
+
+  function createMeetingCard(meeting) {
+    const project = getProjectById(meeting.projectId);
+    const card = document.createElement("article");
+    card.className = "assignment-card work-meeting-card";
+
+    card.innerHTML = `
+      <div class="assignment-main">
+        <div class="assignment-topline">
+          <h3 class="assignment-title">${escapeHtml(meeting.title)}</h3>
+          ${
+            project
+              ? `<span class="assignment-class-tag" style="background:${project.color}22; color:${project.color}; border-color:${project.color}55">${escapeHtml(project.name)}</span>`
+              : ""
+          }
+          ${createBadge("meeting", "default")}
+        </div>
+
+        <div class="assignment-meta">
+          <span>${formatDate(meeting.date)}</span>
+          <span>${formatTime(meeting.startTime)} - ${formatTime(meeting.endTime)}</span>
+          ${meeting.location ? `<span>${escapeHtml(meeting.location)}</span>` : ""}
+        </div>
+
+        ${meeting.notes ? `<p class="work-notes">${escapeHtml(meeting.notes)}</p>` : ""}
+      </div>
+
+      <button type="button" class="delete-mini-button meeting-delete">Delete</button>
+    `;
+
+    const deleteButton = card.querySelector(".meeting-delete");
+
+    deleteButton.addEventListener("click", async () => {
+      meetings = meetings.filter((item) => item.id !== meeting.id);
+      renderMeetings();
+      await saveState();
+    });
+
+    return card;
+  }
+
+  function renderTasks() {
+    const dueToday = getDueTodayTasks();
+    const dueThisWeek = getDueThisWeekTasks();
+    const upcoming = getUpcomingTasks();
+    const completed = getCompletedTasks();
+
+    if (dueTodayEl) dueTodayEl.innerHTML = "";
+    dueThisWeekEl.innerHTML = "";
+    allUpcomingEl.innerHTML = "";
+    completedListEl.innerHTML = "";
+
+    if (dueTodayEl) {
+      if (!dueToday.length) {
+        dueTodayEl.innerHTML = '<p class="empty-state">Nothing due today.</p>';
+      } else {
+        dueToday.forEach((task) => dueTodayEl.appendChild(createTaskCard(task)));
+      }
+    }
+
+    if (!dueThisWeek.length) {
+      dueThisWeekEl.innerHTML = '<p class="empty-state">Nothing due this week.</p>';
+    } else {
+      dueThisWeek.forEach((task) => dueThisWeekEl.appendChild(createTaskCard(task)));
+    }
+
+    if (!upcoming.length) {
+      allUpcomingEl.innerHTML = '<p class="empty-state">No upcoming tasks.</p>';
+    } else {
+      upcoming.forEach((task) => allUpcomingEl.appendChild(createTaskCard(task)));
+    }
+
+    if (!completed.length) {
+      completedListEl.innerHTML = '<p class="empty-state">No completed tasks yet.</p>';
+    } else {
+      completed.forEach((task) => completedListEl.appendChild(createTaskCard(task)));
+    }
+
+    completedCountEl.textContent = String(completed.length);
+  }
+
+  function renderMeetings() {
+    const upcoming = getUpcomingMeetings();
+    meetingsListEl.innerHTML = "";
+
+    if (!upcoming.length) {
+      meetingsListEl.innerHTML = '<p class="empty-state">No upcoming meetings.</p>';
+      return;
+    }
+
+    upcoming.slice(0, 6).forEach((meeting) => {
+      meetingsListEl.appendChild(createMeetingCard(meeting));
+    });
+  }
+
+  function renderAll() {
+    renderProjects();
+    renderTasks();
+    renderMeetings();
+  }
+
+  async function init() {
+    bindColorPicker();
+    setSelectedColor(projectColorInput.value || "#2f5d62");
+
+    renderAll();
+
+    const saved = normalizeWorkData(await loadState());
+    const defaults = cloneDefaults();
+
+    removedDefaults = {
+      projects: uniqueStrings(saved?.removedDefaults?.projects),
+    };
+
+    projects = mergeDefaultProjects(
+      Array.isArray(saved.projects)
+        ? saved.projects.map((item) => ({
+            id: item.id,
+            name: item.name,
+            color: item.color || "#2f5d62",
+          }))
+        : [],
+      defaults.projects.map((item) => ({
+        id: item.id,
+        name: item.name,
+        color: item.color || "#2f5d62",
+      })),
+      removedDefaults.projects
+    );
+
+    tasks = (saved.tasks || []).map((item) => ({
+      id: item.id,
+      title: item.title,
+      dueDate: item.dueDate,
+      dueTime: item.dueTime || null,
+      projectId: item.projectId || "",
+      priority: item.priority || "medium",
+      status: item.status || (item.completed ? "done" : "todo"),
+      estimatedHours: item.estimatedHours ?? null,
+      notes: item.notes || "",
+      completed: !!item.completed,
+      createdAt: item.createdAt || new Date().toISOString(),
+    }));
+
+    meetings = (saved.meetings || []).map((item) => ({
+      id: item.id,
+      title: item.title,
+      date: item.date,
+      startTime: item.startTime,
+      endTime: item.endTime,
+      projectId: item.projectId || "",
+      location: item.location || "",
+      notes: item.notes || "",
+      createdAt: item.createdAt || new Date().toISOString(),
+    }));
+
+    hasLoadedInitialState = true;
+    renderAll();
+  }
+
+  taskForm?.addEventListener("submit", async (event) => {
+    event.preventDefault();
+
+    const title = taskTitleInput.value.trim();
+    const dueDate = taskDueDateInput.value;
+    const dueTime = taskDueTimeInput.value;
+    const projectId = taskProjectSelect.value;
+    const priority = taskPriorityInput.value;
+    const status = taskStatusInput.value;
+    const estimatedHours = taskEstimatedHoursInput.value.trim();
+    const notes = taskNotesInput.value.trim();
+
+    if (!title || !dueDate || !projectId) return;
+
+    const completed = status === "done";
+
+    tasks.push({
+      id: makeId(),
+      title,
+      dueDate,
+      dueTime: dueTime || null,
+      projectId,
+      priority,
+      status,
+      estimatedHours: estimatedHours ? Number(estimatedHours) : null,
+      notes,
+      completed,
+      createdAt: new Date().toISOString(),
+    });
+
+    taskForm.reset();
+    renderTasks();
+    await saveState();
+  });
+
+  meetingForm?.addEventListener("submit", async (event) => {
+    event.preventDefault();
+
+    const title = meetingTitleInput.value.trim();
+    const date = meetingDateInput.value;
+    const startTime = meetingStartInput.value;
+    const endTime = meetingEndInput.value;
+    const projectId = meetingProjectSelect.value;
+    const location = meetingLocationInput.value.trim();
+    const notes = meetingNotesInput.value.trim();
+
+    if (!title || !date || !startTime || !endTime) return;
+
+    meetings.push({
+      id: makeId(),
+      title,
+      date,
+      startTime,
+      endTime,
+      projectId,
+      location,
+      notes,
+      createdAt: new Date().toISOString(),
+    });
+
+    meetingForm.reset();
+    renderMeetings();
+    await saveState();
+  });
+
+  projectForm?.addEventListener("submit", async (event) => {
+    event.preventDefault();
+
+    const name = projectNameInput.value.trim();
+    const color = projectColorInput.value || "#2f5d62";
+
+    if (!name) return;
+
+    projects.push({
+      id: makeId(),
+      name,
+      color,
+      createdAt: new Date().toISOString(),
+    });
+
+    projectForm.reset();
+    setSelectedColor("#2f5d62");
+    renderProjects();
+    await saveState();
+  });
+
+  restoreProjectsBtn?.addEventListener("click", async () => {
+    restoreDefaultProjects();
+    renderProjects();
+    await saveState();
+  });
+
+  init();
+</script>

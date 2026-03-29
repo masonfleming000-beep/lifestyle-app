@@ -1,0 +1,189 @@
+---
+import BaseLayout from "../layouts/BaseLayout.astro";
+import PageRenderer from "../components/renderers/PageRenderer.astro";
+import { todayClientConfig, todayPageConfig } from "../config/pages/today";
+---
+
+<BaseLayout title="Today | Lifestyle App">
+  <PageRenderer config={todayPageConfig} />
+
+  <script id="today-page-config" type="application/json" set:html={JSON.stringify(todayClientConfig)} />
+
+  <script>
+    import { initTodayPage } from "../lib/client/todayPage";
+
+    const configElement = document.getElementById("today-page-config");
+    const config = JSON.parse(configElement?.textContent || "{}");
+
+    initTodayPage(config);
+  </script>
+
+  <style>
+    .today-section-shell,
+    #today-calendar-section,
+    #today-task-section,
+    #today-morning-section,
+    #today-night-section {
+      display: grid;
+      gap: 1rem;
+    }
+
+    .today-form {
+      display: flex;
+      align-items: center;
+      gap: 0.75rem;
+      flex-wrap: wrap;
+    }
+
+    .today-form-hidden {
+      display: none;
+    }
+
+    .today-action-row {
+      display: flex;
+      gap: 0.75rem;
+      flex-wrap: wrap;
+    }
+
+    .today-input-wrap {
+      flex: 1 1 320px;
+    }
+
+    .today-input {
+      width: 100%;
+      min-height: 48px;
+    }
+
+    .today-empty-state {
+      padding: 1rem 1.1rem;
+      border-radius: 16px;
+      background: rgba(255, 255, 255, 0.28);
+      border: 1px dashed rgba(20, 30, 50, 0.18);
+    }
+
+    .today-list-item {
+      list-style: none;
+      margin: 0;
+      padding: 0;
+      background: rgba(255, 255, 255, 0.26);
+      border: 1px solid rgba(20, 30, 50, 0.08);
+      border-radius: 16px;
+      overflow: hidden;
+    }
+
+    .today-item-row {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 0.9rem;
+      width: 100%;
+      padding: 0.95rem 1rem;
+    }
+
+    .today-item-main {
+      display: flex !important;
+      flex-direction: row !important;
+      align-items: center !important;
+      justify-content: flex-start !important;
+      gap: 0.9rem !important;
+      flex: 1 1 auto;
+      min-width: 0;
+      width: 100%;
+      margin: 0;
+      text-align: left;
+      cursor: pointer;
+    }
+
+    .today-checkbox {
+      appearance: none;
+      -webkit-appearance: none;
+      display: inline-block !important;
+      vertical-align: middle;
+      width: 1.45rem !important;
+      height: 1.45rem !important;
+      min-width: 1.45rem !important;
+      min-height: 1.45rem !important;
+      margin: 0 !important;
+      flex: 0 0 1.45rem !important;
+      border: 2px solid rgba(20, 30, 50, 0.35);
+      border-radius: 0.38rem;
+      background: #fff;
+      position: relative;
+      cursor: pointer;
+    }
+
+    .today-checkbox:hover {
+      border-color: rgba(20, 30, 50, 0.55);
+    }
+
+    .today-checkbox:checked {
+      background: #111c44;
+      border-color: #111c44;
+    }
+
+    .today-checkbox:checked::after {
+      content: "";
+      position: absolute;
+      left: 0.42rem;
+      top: 0.14rem;
+      width: 0.33rem;
+      height: 0.72rem;
+      border: solid #fff;
+      border-width: 0 2px 2px 0;
+      transform: rotate(45deg);
+    }
+
+    .today-item-text {
+      display: block;
+      flex: 1 1 auto;
+      min-width: 0;
+      font-size: 1rem;
+      line-height: 1.45;
+      color: rgba(20, 30, 50, 0.88);
+      word-break: break-word;
+      text-align: left;
+    }
+
+    .today-list-item.is-done .today-item-text {
+      text-decoration: line-through;
+      opacity: 0.58;
+    }
+
+    .today-delete-btn {
+      flex: 0 0 auto;
+      min-height: 36px;
+      padding: 0.55rem 0.8rem;
+      font-size: 0.88rem;
+      border-radius: 12px;
+    }
+
+    .today-calendar-help {
+      margin: 0;
+      line-height: 1.5;
+    }
+
+    .today-calendar-frame {
+      border-radius: 18px;
+      background: white;
+    }
+
+    #today-morning-section .today-list-item,
+    #today-night-section .today-list-item {
+      background: rgba(214, 153, 174, 0.22);
+    }
+
+    @media (max-width: 640px) {
+      .today-item-row {
+        align-items: flex-start;
+      }
+
+      .today-item-main {
+        align-items: flex-start !important;
+      }
+
+      .today-delete-btn {
+        align-self: center;
+      }
+    }
+  </style>
+</BaseLayout>

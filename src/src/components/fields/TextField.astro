@@ -1,0 +1,10 @@
+---
+import type { FieldConfig } from '../../lib/ui/types';
+interface Props { field: FieldConfig; }
+const { field } = Astro.props;
+---
+<label class="form-stack">
+  <span>{field.label}</span>
+  <input id={field.id} name={field.name} type="text" value={String(field.value ?? '')} placeholder={field.placeholder} required={field.required} />
+  {field.helpText && <small>{field.helpText}</small>}
+</label>

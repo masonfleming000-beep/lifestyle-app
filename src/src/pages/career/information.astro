@@ -1,0 +1,368 @@
+---
+import BaseLayout from "../../layouts/BaseLayout.astro";
+import PageHero from "../../components/PageHero.astro";
+import SurfaceCard from "../../components/SurfaceCard.astro";
+import SectionHeader from "../../components/SectionHeader.astro";
+import Button from "../../components/Button.astro";
+import ActionBar from "../../components/ActionBar.astro";
+import PageActions from "../../components/ui/PageActions.astro";
+import CountedExpandablePanel from "../../components/primitives/CountedExpandablePanel.astro";
+import {
+  careerBuilderOptions,
+  careerInformationDefaults,
+  careerInformationHeroActions,
+  careerInformationPageKey,
+  careerInformationSections,
+} from "../../config/pages/careerShared";
+---
+
+<BaseLayout title="Career Information | Lifestyle App" description="Private information builder">
+  <PageHero
+    kicker="Career"
+    title="Information Builder"
+    description="Add and organize your private career information here. Each section gets its own form layout, and only items marked visible will appear in the portfolio."
+  >
+    <PageActions>
+      {careerInformationHeroActions.map((action) => (
+        <Button href={action.href} variant={action.variant || "secondary"}>{action.label}</Button>
+      ))}
+    </PageActions>
+  </PageHero>
+
+  <section class="section">
+    <div class="career-shell">
+      <SurfaceCard className="career-panel-card">
+        <SectionHeader
+          title="Add New Entry"
+          subtitle="Pick a section first. The form changes based on what you're adding."
+        >
+          <div id="save-status" class="save-status neutral">Loading...</div>
+        </SectionHeader>
+
+        <div class="dynamic-builder-shell">
+          <label class="edu-label">
+            <span>Section</span>
+            <select id="dynamic-section-select" class="form-input">
+              {careerBuilderOptions.map((option) => (
+                <option value={option.value}>{option.label}</option>
+              ))}
+            </select>
+          </label>
+
+          <div id="dynamic-form-area"></div>
+        </div>
+      </SurfaceCard>
+
+      <SurfaceCard className="career-panel-card">
+        <SectionHeader
+          title="Saved Entries"
+          subtitle="Everything stays private here until marked visible for portfolio."
+        />
+
+        <div class="saved-sections">
+          {careerInformationSections.map((section) => (
+            <CountedExpandablePanel
+              title={section.title}
+              countId={section.countId}
+              containerId={section.containerId}
+              emptyTitle={section.emptyTitle}
+              emptyText={section.emptyText}
+              open={Boolean(section.open)}
+              bodyClass="career-expand-body"
+            />
+          ))}
+        </div>
+      </SurfaceCard>
+
+      <SurfaceCard className="career-panel-card">
+        <SectionHeader
+          title="Actions"
+          subtitle="Use this carefully. This clears every saved section on the page."
+        />
+        <ActionBar align="start">
+          <Button id="clear-all-btn" type="button" variant="danger">
+            Clear Everything
+          </Button>
+        </ActionBar>
+      </SurfaceCard>
+    </div>
+  </section>
+
+  <script
+    id="career-information-page-config"
+    type="application/json"
+    set:html={JSON.stringify({
+      pageKey: careerInformationPageKey,
+      defaults: careerInformationDefaults,
+      sections: careerInformationSections,
+    })}
+  />
+
+  <script>
+    import { initCareerInformationPage } from "../../lib/client/careerInformationPage";
+
+    const configElement = document.getElementById("career-information-page-config");
+    const config = JSON.parse(configElement?.textContent || "{}");
+
+    initCareerInformationPage(config);
+  </script>
+
+  <style>
+    .career-shell {
+      display: grid;
+      gap: 1.25rem;
+    }
+
+    .career-panel-card {
+      border-radius: 1.25rem;
+    }
+
+    .career-panel-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: flex-start;
+      gap: 1rem;
+      margin-bottom: 1rem;
+      flex-wrap: wrap;
+    }
+
+    .grid.one {
+      grid-template-columns: 1fr;
+    }
+
+    .edu-label {
+      display: grid;
+      gap: 0.45rem;
+      margin-bottom: 0.95rem;
+    }
+
+    .edu-label span {
+      font-weight: 600;
+    }
+
+    .check-row {
+      display: flex;
+      align-items: center;
+      gap: 0.65rem;
+      margin-bottom: 1rem;
+      font-weight: 600;
+    }
+
+    .career-inline-button {
+      white-space: nowrap;
+    }
+
+    .career-inline-button-mini {
+      padding: 0.6rem 0.9rem;
+      font-size: 0.92rem;
+    }
+
+    .assignment-card {
+      display: flex;
+      justify-content: space-between;
+      align-items: flex-start;
+      gap: 1rem;
+      padding: 1rem;
+      border-radius: 1rem;
+      border: 1px solid rgba(0, 0, 0, 0.08);
+      background: white;
+      margin-bottom: 0.85rem;
+    }
+
+    .assignment-main {
+      flex: 1;
+      min-width: 0;
+    }
+
+    .assignment-actions {
+      display: flex;
+      gap: 0.55rem;
+      flex-wrap: wrap;
+      justify-content: flex-end;
+    }
+
+    .selector-state {
+      display: inline-flex;
+      align-items: center;
+      padding: 0.3rem 0.65rem;
+      border-radius: 999px;
+      font-size: 0.8rem;
+      font-weight: 700;
+      margin-bottom: 0.75rem;
+      background: rgba(107, 114, 128, 0.12);
+      color: #4b5563;
+    }
+
+    .selector-state.selected {
+      background: rgba(22, 163, 74, 0.12);
+      color: #15803d;
+    }
+
+    .saved-sections {
+      display: grid;
+      gap: 0.9rem;
+    }
+
+    .saved-dropdown {
+      border: 1px solid rgba(47, 93, 98, 0.12);
+      border-radius: 1rem;
+      background: rgba(47, 93, 98, 0.04);
+      overflow: hidden;
+    }
+
+    .saved-dropdown summary {
+      cursor: pointer;
+      list-style: none;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      gap: 1rem;
+      padding: 1rem 1.1rem;
+      font-weight: 700;
+    }
+
+    .saved-dropdown summary::-webkit-details-marker {
+      display: none;
+    }
+
+    .saved-dropdown > div {
+      padding: 0 1rem 1rem;
+    }
+
+    .dynamic-builder-shell {
+      display: grid;
+      gap: 1rem;
+    }
+
+    .dynamic-form-card {
+      padding: 1rem;
+      border-radius: 1rem;
+      background: rgba(47, 93, 98, 0.04);
+      border: 1px solid rgba(47, 93, 98, 0.1);
+    }
+
+    .dynamic-form-grid {
+      display: grid;
+      gap: 0.9rem;
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+    }
+
+    .dynamic-form-grid.one {
+      grid-template-columns: 1fr;
+    }
+
+    .dynamic-form-full {
+      grid-column: 1 / -1;
+    }
+
+    .section-helper {
+      margin: 0 0 0.8rem;
+      color: #6b7280;
+    }
+
+    .empty-state {
+      margin: 0;
+      color: #6b7280;
+    }
+
+    .list-clean {
+      margin-top: 0.5rem;
+    }
+
+    .save-status {
+      display: inline-flex;
+      align-items: center;
+      padding: 0.45rem 0.8rem;
+      border-radius: 999px;
+      font-size: 0.85rem;
+      font-weight: 700;
+    }
+
+    .save-status.neutral {
+      background: rgba(107, 114, 128, 0.12);
+      color: #4b5563;
+    }
+
+    .save-status.success {
+      background: rgba(22, 163, 74, 0.12);
+      color: #15803d;
+    }
+
+    .save-status.error {
+      background: rgba(220, 38, 38, 0.12);
+      color: #b91c1c;
+    }
+
+    .resume-link-row {
+      display: flex;
+      gap: 0.6rem;
+      flex-wrap: wrap;
+      margin-top: 0.85rem;
+      margin-bottom: 0.85rem;
+    }
+
+    .resume-download-btn {
+      background: rgba(47, 93, 98, 0.12);
+      color: #2f5d62;
+    }
+
+    .resume-preview-wrap {
+      margin-top: 0.9rem;
+      border: 1px solid rgba(47, 93, 98, 0.12);
+      border-radius: 1rem;
+      overflow: hidden;
+      background: #f8fafc;
+    }
+
+    .resume-preview-frame {
+      width: 100%;
+      min-height: 640px;
+      border: 0;
+      display: block;
+      background: white;
+    }
+
+    @media (max-width: 900px) {
+      .assignment-card {
+        flex-direction: column;
+      }
+
+      .assignment-actions {
+        width: 100%;
+        justify-content: flex-start;
+      }
+
+      .resume-preview-frame {
+        min-height: 480px;
+      }
+    }
+
+    @media (max-width: 800px) {
+      .dynamic-form-grid {
+        grid-template-columns: 1fr;
+      }
+    }
+
+
+    .career-expand-body {
+      display: grid;
+      gap: 1rem;
+    }
+
+    .saved-count {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      min-width: 2rem;
+      min-height: 2rem;
+      padding: 0.2rem 0.6rem;
+      border-radius: 999px;
+      background: var(--resolved-section-color, rgba(255,255,255,0.65));
+      border: 1px solid var(--border-soft, rgba(15,23,42,0.08));
+      font-weight: 700;
+      font-size: 0.92rem;
+      color: var(--text-main);
+    }
+
+  </style>
+</BaseLayout>

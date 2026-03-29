@@ -1,0 +1,21 @@
+---
+import PageHero from '../PageHero.astro';
+import PageActions from './PageActions.astro';
+import SectionRenderer from './SectionRenderer.astro';
+import type { PageConfig } from '../../lib/ui/types';
+interface Props { config: PageConfig; }
+const { config } = Astro.props;
+---
+{config.hero && (
+  <PageHero kicker={config.hero.kicker} title={config.hero.title} description={config.hero.description}>
+    {config.hero.actions?.length ? <PageActions actions={config.hero.actions} /> : null}
+  </PageHero>
+)}
+
+<div class="page-renderer-stack">
+  {config.sections.map((section) => <SectionRenderer section={section} />)}
+</div>
+
+<style>
+  .page-renderer-stack { display:grid; gap:1rem; }
+</style>

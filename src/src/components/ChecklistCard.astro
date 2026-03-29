@@ -1,0 +1,213 @@
+---
+/**
+ * Standardized editable checklist/list card.
+ * Supports shared header/actions, optional empty state,
+ * optional add form slot, and both checklist + plain list modes.
+ */
+interface ListItemObject {
+  text: string;
+  done?: boolean;
+  id?: string | number;
+}
+
+interface Props {
+  id?: string;
+  title: string;
+  subtitle?: string;
+  kicker?: string;
+  items?: Array<string | ListItemObject>;
+  emptyText?: string;
+  listId?: string;
+  formId?: string;
+  mode?: "checklist" | "list";
+  compact?: boolean;
+  padded?: boolean;
+  listDataKey?: string;
+}
+
+const {
+  id = "",
+  title,
+  subtitle = "",
+  kicker = "",
+  items = [],
+  emptyText = "No items yet.",
+  listId = "",
+  formId = "",
+  mode = "checklist",
+  compact = false,
+  padded = true,
+  listDataKey = "",
+} = Astro.props;
+
+const normalizedItems = items.map((item, index) => {
+  if (typeof item === "string") {
+    return { id: index, text: item, done: false };
+  }
+
+  return {
+    id: item.id ?? index,
+    text: item.text,
+    done: Boolean(item.done),
+  };
+});
+---
+
+<article
+  id={id || undefined}
+  class:list={[
+    "checklist-card",
+    "surface-section",
+    compact && "checklist-card-compact",
+    padded && "checklist-card-padded",
+  ]}
+>
+  <div class="checklist-card-header">
+    <div class="checklist-card-heading">
+      {kicker && <p class="kicker">{kicker}</p>}
+      <h2 class="section-title">{title}</h2>
+      {subtitle && <p class="section-subtitle">{subtitle}</p>}
+    </div>
+
+    <div class="checklist-card-actions">
+      <slot name="actions" />
+    </div>
+  </div>
+
+  <slot name="before-list" />
+
+  {
+    normalizedItems.length > 0 ? (
+      <ul
+        id={listId || undefined}
+        data-section-key={listDataKey || undefined}
+        class:list={[
+          "checklist-card-list",
+          mode === "checklist" ? "routine-list" : "list-clean",
+        ]}
+      >
+        {normalizedItems.map((item) => (
+          <li
+            class:list={[
+              "checklist-card-item",
+              mode === "checklist" ? "routine-item" : "todo-item",
+              item.done && "is-done",
+            ]}
+            data-item-id={String(item.id)}
+          >
+            {mode === "checklist" ? (
+              <label class="checklist-card-toggle">
+                <input type="checkbox" checked={item.done} />
+                <span>{item.text}</span>
+              </label>
+            ) : (
+              <span class="checklist-card-text">{item.text}</span>
+            )}
+
+            <slot name="item-actions" />
+          </li>
+        ))}
+      </ul>
+    ) : (
+      <div class="checklist-card-empty-wrap">
+        <slot name="empty">
+          <p class="empty-state">{emptyText}</p>
+        </slot>
+      </div>
+    )
+  }
+
+  <slot />
+
+  <div class="checklist-card-form-wrap">
+    <slot name="form">
+      {formId && (
+        <form id={formId} class="todo-form form-stack checklist-card-form" hidden>
+          <slot name="form-fields" />
+        </form>
+      )}
+    </slot>
+  </div>
+</article>
+
+<style>
+  .checklist-card {
+    width: 100%;
+    border-radius: var(--radius);
+    border: 1px solid var(--border-soft);
+    box-shadow: var(--card-shadow);
+    background: var(--resolved-section-color);
+    color: var(--text-main);
+  }
+
+  .checklist-card-padded {
+    padding: 1rem;
+  }
+
+  .checklist-card-compact {
+    padding: 0.8rem;
+  }
+
+  .checklist-card-header {
+    display: flex;
+    align-items: end;
+    justify-content: space-between;
+    gap: 1rem;
+    margin-bottom: 0.85rem;
+  }
+
+  .checklist-card-heading {
+    min-width: 0;
+  }
+
+  .checklist-card-actions {
+    display: flex;
+    flex-wrap: wrap;
+    justify-content: end;
+    gap: 0.6rem;
+  }
+
+  .checklist-card-list {
+    display: grid;
+    gap: 0.8rem;
+    margin: 0;
+    padding: 0;
+    list-style: none;
+  }
+
+  .checklist-card-item {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 0.8rem;
+  }
+
+  .checklist-card-toggle {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.7rem;
+    min-width: 0;
+    color: inherit;
+  }
+
+  .checklist-card-toggle input {
+    flex-shrink: 0;
+  }
+
+  .checklist-card-toggle span,
+  .checklist-card-text {
+    min-width: 0;
+    overflow-wrap: anywhere;
+  }
+
+  .checklist-card-item.is-done .checklist-card-toggle span,
+  .checklist-card-item.is-done .checklist-card-text {
+    text-decoration: line-through;
+    color: var(--text-muted);
+  }
+
+  .checklist-card-empty-wrap,
+  .checklist-card-form-wrap {
+    margin-top: 0.9rem;
+  }
+</style>
