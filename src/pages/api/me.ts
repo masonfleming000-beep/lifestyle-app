@@ -15,6 +15,7 @@ type ProfileSettingsState = {
   displayName?: string;
   handle?: string;
   avatarUrl?: string;
+  avatarFileDataUrl?: string;
 };
 
 async function loadProfileSettings(request: Request, baseUrl: URL): Promise<ProfileSettingsState | null> {
@@ -74,6 +75,8 @@ export const GET: APIRoute = async ({ cookies, request, url }) => {
 
     const avatarUrl =
       typeof profile?.avatarUrl === "string" ? profile.avatarUrl : "";
+    const avatarFileDataUrl =
+      typeof profile?.avatarFileDataUrl === "string" ? profile.avatarFileDataUrl : "";
 
     return new Response(
       JSON.stringify({
@@ -86,6 +89,7 @@ export const GET: APIRoute = async ({ cookies, request, url }) => {
           displayName,
           handle,
           avatarUrl,
+          avatarFileDataUrl,
         },
       }),
       {

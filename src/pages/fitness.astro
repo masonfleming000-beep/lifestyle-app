@@ -7,9 +7,11 @@ import {
   fitnessPageConfig,
 } from "../config/pages/fitness";
 
-const fitnessPageKey = fitnessPageClientConfig.pageKey;
-const fitnessDefaults = JSON.stringify(fitnessPageClientConfig.defaults);
-const fitnessSections = JSON.stringify(fitnessEditableSections);
+const fitnessClientConfig = {
+  pageKey: fitnessPageClientConfig.pageKey,
+  defaults: fitnessPageClientConfig.defaults,
+  sections: fitnessEditableSections,
+};
 ---
 
 <BaseLayout
@@ -18,13 +20,18 @@ const fitnessSections = JSON.stringify(fitnessEditableSections);
 >
   <DeclarativePage config={fitnessPageConfig} />
 
-  <script define:vars={{ fitnessPageKey, fitnessDefaults, fitnessSections }}>
+  <script
+    id="fitness-page-config"
+    type="application/json"
+    set:html={JSON.stringify(fitnessClientConfig)}
+  />
+
+  <script>
     import { initFitnessPage } from "../lib/client/fitnessPage";
 
-    void initFitnessPage({
-      pageKey: fitnessPageKey,
-      defaults: JSON.parse(fitnessDefaults),
-      sections: JSON.parse(fitnessSections),
-    });
+    const configElement = document.getElementById("fitness-page-config");
+    const config = JSON.parse(configElement?.textContent || "{}");
+
+    void initFitnessPage(config);
   </script>
 </BaseLayout>
