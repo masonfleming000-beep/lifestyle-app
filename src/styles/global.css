@@ -15,8 +15,8 @@
   --dropdown-color: #ffffff;
 
   --header-texture: solid;
-  --section-texture: matte;
-  --background-texture: smoothed;
+  --section-texture: solid;
+  --background-texture: solid;
   --dropdown-texture: solid;
 
   --font-size-base: 16px;

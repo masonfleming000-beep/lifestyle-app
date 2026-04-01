@@ -63,8 +63,8 @@ const {
           textSize: "md",
           surfaces: {
             header: { color: "#ffffff", texture: "solid" },
-            section: { color: "#ffffff", texture: "matte" },
-            background: { color: "#f8fafc", texture: "smoothed" },
+            section: { color: "#ffffff", texture: "solid" },
+            background: { color: "#f8fafc", texture: "solid" },
             dropdown: { color: "#ffffff", texture: "solid" },
           },
           components: {
@@ -263,8 +263,8 @@ const {
           root.dataset.textSize = ui.textSize || "md";
 
           root.dataset.headerTexture = effectiveSurfaces.header?.texture || "solid";
-          root.dataset.sectionTexture = effectiveSurfaces.section?.texture || "matte";
-          root.dataset.backgroundTexture = effectiveSurfaces.background?.texture || "smoothed";
+          root.dataset.sectionTexture = effectiveSurfaces.section?.texture || "solid";
+          root.dataset.backgroundTexture = effectiveSurfaces.background?.texture || "solid";
           root.dataset.dropdownTexture = effectiveSurfaces.dropdown?.texture || "solid";
 
           root.dataset.navbarSurface = ui.components.navbar?.surface || "header";

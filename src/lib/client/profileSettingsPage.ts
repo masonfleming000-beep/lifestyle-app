@@ -144,8 +144,8 @@ export function initProfileSettingsPage(config: ProfileSettingsClientConfig) {
       textSize: "md",
       surfaces: {
         header: { color: "#ffffff", texture: "solid" },
-        section: { color: "#ffffff", texture: "matte" },
-        background: { color: "#f8fafc", texture: "smoothed" },
+        section: { color: "#ffffff", texture: "solid" },
+        background: { color: "#f8fafc", texture: "solid" },
         dropdown: { color: "#ffffff", texture: "solid" },
       },
       components: {

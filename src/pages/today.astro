@@ -65,8 +65,8 @@ import { todayClientConfig, todayPageConfig } from "../config/pages/today";
       list-style: none;
       margin: 0;
       padding: 0;
-      background: rgba(255, 255, 255, 0.26);
-      border: 1px solid rgba(20, 30, 50, 0.08);
+      background: color-mix(in srgb, var(--card-surface-color, var(--resolved-section-color)) 96%, transparent);
+      border: 1px solid var(--border-soft);
       border-radius: 16px;
       overflow: hidden;
     }
@@ -139,7 +139,7 @@ import { todayClientConfig, todayPageConfig } from "../config/pages/today";
       min-width: 0;
       font-size: 1rem;
       line-height: 1.45;
-      color: rgba(20, 30, 50, 0.88);
+      color: var(--text-main);
       word-break: break-word;
       text-align: left;
     }
@@ -167,10 +167,6 @@ import { todayClientConfig, todayPageConfig } from "../config/pages/today";
       background: white;
     }
 
-    #today-morning-section .today-list-item,
-    #today-night-section .today-list-item {
-      background: rgba(214, 153, 174, 0.22);
-    }
 
     @media (max-width: 640px) {
       .today-item-row {
