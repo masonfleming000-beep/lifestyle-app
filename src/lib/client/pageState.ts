@@ -117,9 +117,17 @@ export function createApiPageStore<State>(options: ApiPageStoreOptions<State>): 
   }
 
   function buildShadowRecord(): ShadowRecord {
+    const serializedState = serialize(state);
+    const existingShadow = readShadow();
+    const existingStateJson = existingShadow ? JSON.stringify(existingShadow.state) : "";
+    const nextStateJson = JSON.stringify(serializedState);
+
     return {
-      savedAt: new Date().toISOString(),
-      state: serialize(state),
+      savedAt:
+        existingShadow && existingStateJson === nextStateJson && existingShadow.savedAt
+          ? existingShadow.savedAt
+          : new Date().toISOString(),
+      state: serializedState,
     };
   }
 
