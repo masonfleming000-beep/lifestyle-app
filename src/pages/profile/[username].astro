@@ -42,8 +42,8 @@ const publicProfileClientConfig = createPublicProfileClientConfig(username);
     .public-profile-shell {
       overflow: hidden;
       border-radius: 28px;
-      background: rgba(255, 255, 255, 0.84);
-      border: 1px solid rgba(15, 23, 42, 0.08);
+      background: var(--card-surface-color);
+      border: 1px solid var(--border-soft);
       box-shadow: 0 14px 40px rgba(15, 23, 42, 0.08);
     }
 
@@ -84,7 +84,7 @@ const publicProfileClientConfig = createPublicProfileClientConfig(username);
       overflow: hidden;
       border: 4px solid #fff;
       box-shadow: 0 8px 28px rgba(15, 23, 42, 0.14);
-      background: #dbeafe;
+      background: var(--card-surface-color);
       position: relative;
       flex: 0 0 auto;
     }
@@ -143,21 +143,21 @@ const publicProfileClientConfig = createPublicProfileClientConfig(username);
       align-items: center;
       padding: 0.4rem 0.7rem;
       border-radius: 999px;
-      background: rgba(255,255,255,0.82);
-      border: 1px solid rgba(15, 23, 42, 0.08);
+      background: var(--dropdown-card-surface-color);
+      border: 1px solid var(--border-soft);
       font-size: 0.92rem;
-      color: #475569;
+      color: var(--text-muted);
     }
 
     .profile-headline {
       margin-top: 0.35rem;
       font-size: 1.05rem;
-      color: #243447;
+      color: var(--text-main);
     }
 
     .profile-bio {
       margin-top: 0.75rem;
-      color: #4f6275;
+      color: var(--text-muted);
       max-width: 70ch;
       line-height: 1.6;
     }
@@ -167,8 +167,8 @@ const publicProfileClientConfig = createPublicProfileClientConfig(username);
     .summary-card {
       border-radius: 20px;
       padding: 1rem 1.1rem;
-      background: rgba(255,255,255,0.76);
-      border: 1px solid rgba(15, 23, 42, 0.08);
+      background: var(--card-surface-color);
+      border: 1px solid var(--border-soft);
     }
 
     .chart-card {
@@ -201,7 +201,7 @@ const publicProfileClientConfig = createPublicProfileClientConfig(username);
       width: 100%;
       border-radius: 14px;
       border: 1px solid rgba(15, 23, 42, 0.1);
-      background: rgba(255, 255, 255, 0.9);
+      background: var(--input-surface-color);
       padding: 0.85rem 1rem;
       font: inherit;
       color: #0f172a;
@@ -230,8 +230,8 @@ const publicProfileClientConfig = createPublicProfileClientConfig(username);
     }
 
     .profile-badge {
-      border: 1px solid rgba(15, 23, 42, 0.08);
-      background: rgba(255,255,255,0.82);
+      border: 1px solid var(--border-soft);
+      background: var(--dropdown-card-surface-color);
       border-radius: 999px;
       padding: 0.65rem 0.95rem;
       white-space: nowrap;

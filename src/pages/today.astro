@@ -57,7 +57,7 @@ import { todayClientConfig, todayPageConfig } from "../config/pages/today";
     .today-empty-state {
       padding: 1rem 1.1rem;
       border-radius: 16px;
-      background: rgba(255, 255, 255, 0.28);
+      background: color-mix(in srgb, var(--card-surface-color) 72%, transparent);
       border: 1px dashed rgba(20, 30, 50, 0.18);
     }
 
@@ -65,7 +65,7 @@ import { todayClientConfig, todayPageConfig } from "../config/pages/today";
       list-style: none;
       margin: 0;
       padding: 0;
-      background: color-mix(in srgb, var(--card-surface-color, var(--resolved-section-color)) 96%, transparent);
+      background: var(--card-surface-color);
       border: 1px solid var(--border-soft);
       border-radius: 16px;
       overflow: hidden;
@@ -95,9 +95,7 @@ import { todayClientConfig, todayPageConfig } from "../config/pages/today";
     }
 
     .today-checkbox {
-      appearance: none;
-      -webkit-appearance: none;
-      display: inline-block !important;
+      display: inline-grid !important;
       vertical-align: middle;
       width: 1.45rem !important;
       height: 1.45rem !important;
@@ -105,32 +103,8 @@ import { todayClientConfig, todayPageConfig } from "../config/pages/today";
       min-height: 1.45rem !important;
       margin: 0 !important;
       flex: 0 0 1.45rem !important;
-      border: 2px solid rgba(20, 30, 50, 0.35);
-      border-radius: 0.38rem;
-      background: #fff;
+      background: var(--input-surface-color);
       position: relative;
-      cursor: pointer;
-    }
-
-    .today-checkbox:hover {
-      border-color: rgba(20, 30, 50, 0.55);
-    }
-
-    .today-checkbox:checked {
-      background: #111c44;
-      border-color: #111c44;
-    }
-
-    .today-checkbox:checked::after {
-      content: "";
-      position: absolute;
-      left: 0.42rem;
-      top: 0.14rem;
-      width: 0.33rem;
-      height: 0.72rem;
-      border: solid #fff;
-      border-width: 0 2px 2px 0;
-      transform: rotate(45deg);
     }
 
     .today-item-text {
@@ -164,7 +138,7 @@ import { todayClientConfig, todayPageConfig } from "../config/pages/today";
 
     .today-calendar-frame {
       border-radius: 18px;
-      background: white;
+      background: var(--embed-surface-color);
     }
 
 

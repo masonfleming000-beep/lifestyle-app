@@ -856,7 +856,7 @@ import { profileSettingsClientConfig } from "../../config/pages/profileSettings"
       min-width: 0;
       border-radius: 14px;
       border: 1px solid var(--border-medium);
-      background: var(--input-bg);
+      background: var(--input-surface-color);
       padding: 0.9rem 1rem;
       font: inherit;
       color: var(--text-main);
@@ -1196,7 +1196,7 @@ import { profileSettingsClientConfig } from "../../config/pages/profileSettings"
       width: 100%;
       border-radius: 28px;
       overflow: hidden;
-      background: rgba(255, 255, 255, 0.84);
+      background: var(--card-surface-color);
       border: 1px solid rgba(15, 23, 42, 0.08);
       box-shadow: 0 14px 40px rgba(15, 23, 42, 0.08);
     }
@@ -1335,7 +1335,7 @@ import { profileSettingsClientConfig } from "../../config/pages/profileSettings"
       padding: 0.45rem 0.75rem;
       border-radius: 999px;
       border: 1px solid var(--border-soft);
-      background: var(--input-bg);
+      background: var(--input-surface-color);
       font-size: 0.9rem;
       font-weight: 700;
       color: var(--text-main);
@@ -1438,11 +1438,11 @@ import { profileSettingsClientConfig } from "../../config/pages/profileSettings"
 
   <style>
     .profile-fixed-section-card {
-      background: var(--resolved-section-color);
+      background: var(--card-surface-color);
     }
 
     .profile-fixed-section-card.soft {
-      background: color-mix(in srgb, var(--resolved-section-color) 94%, var(--resolved-background-color));
+      background: color-mix(in srgb, var(--card-surface-color) 94%, var(--resolved-background-color));
     }
 
     .profile-top-grid > * {

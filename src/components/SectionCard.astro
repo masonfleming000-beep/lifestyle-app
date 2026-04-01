@@ -31,7 +31,7 @@ const { title, subtitle = "", open = false } = Astro.props;
   .section-card {
     width: 100%;
     border-radius: 20px;
-    background: var(--section-color);
+    background: var(--section-card-surface-color);
     border: 1px solid var(--border-soft);
     box-shadow: var(--card-shadow);
     overflow: visible;
@@ -54,7 +54,7 @@ const { title, subtitle = "", open = false } = Astro.props;
   }
 
   .section-card-summary:hover {
-    background: color-mix(in srgb, var(--section-color) 90%, var(--header-color));
+    background: color-mix(in srgb, var(--section-card-surface-color) 90%, var(--resolved-header-color));
   }
 
   .section-card-header {
