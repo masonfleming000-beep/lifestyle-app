@@ -250,6 +250,11 @@ export function initProfileSettingsPage(config: ProfileSettingsClientConfig) {
     if (el) el.textContent = text;
   }
 
+  function getAvatarFrameSize(nextState) {
+    const size = Number(nextState?.avatarSize || 148);
+    return Number.isFinite(size) ? Math.max(96, Math.min(260, size)) : 148;
+  }
+
 
   function clamp(value, min, max) {
     return Math.min(max, Math.max(min, value));
@@ -282,42 +287,31 @@ export function initProfileSettingsPage(config: ProfileSettingsClientConfig) {
   }
 
   function updateAvatarEditorPreview(nextState) {
-    const shell = byId("avatar-stage-shell");
-    const preview = byId("avatar-editor-preview");
-    const image = byId("avatar-editor-preview-image");
-    const fallback = byId("avatar-editor-preview-fallback");
-    const nameEl = byId("avatar-stage-display-name");
-    const handleEl = byId("avatar-stage-handle");
+    const preview = byId("profile-photo-preview-frame");
+    const image = byId("profile-photo-preview-image");
+    const fallback = byId("profile-photo-preview-fallback");
+    const nameEl = byId("profile-photo-display-name");
+    const handleEl = byId("profile-photo-handle");
 
-    if (!shell || !preview || !image || !fallback) return;
+    if (!preview || !image || !fallback) return;
 
-    shell.classList.remove("avatar-align-left", "avatar-align-center", "avatar-align-right");
-    shell.classList.add(`avatar-align-${nextState.avatarAlignment || "left"}`);
-
-    preview.classList.remove("circle", "square");
-    const useCircle = nextState.avatarUseCircularCrop !== false || nextState.avatarShape === "circle";
-    preview.classList.add(useCircle ? "circle" : "square");
-
-    preview.style.width = `${Number(nextState.avatarSize || 116)}px`;
-    preview.style.height = `${Number(nextState.avatarSize || 116)}px`;
-    preview.style.display = nextState.avatarVisible === false || nextState.visibility?.avatar === false ? "none" : "grid";
+    const frameSize = getAvatarFrameSize(nextState);
+    preview.style.setProperty("--picture-frame-size", `${frameSize}px`);
+    preview.classList.toggle("ui-picture-frame--circle", (nextState?.avatarShape || "circle") !== "square");
+    preview.classList.toggle("ui-picture-frame--square", (nextState?.avatarShape || "circle") === "square");
 
     const source = getAvatarSource(nextState);
-    const zoom = Number(nextState.avatarZoom || 1);
-    const x = Number(nextState.avatarPositionX ?? 50);
-    const y = Number(nextState.avatarPositionY ?? 50);
 
-    setAvatarCropValue("avatar-position-x", x);
-    setAvatarCropValue("avatar-position-y", y);
+    updateRangeLabel("avatar-size-value", `${frameSize} px`);
 
     if (source) {
       if (image.getAttribute("src") !== source) {
         image.setAttribute("src", source);
       }
-      image.alt = `${nextState.displayName || nextState.username || "Profile"} avatar`;
-      image.style.objectPosition = `${x}% ${y}%`;
-      image.style.transform = `scale(${zoom})`;
-      image.style.transformOrigin = `${x}% ${y}%`;
+      image.alt = `${nextState.displayName || nextState.username || "Profile"} photo`;
+      image.style.objectPosition = "center";
+      image.style.transform = "none";
+      image.style.transformOrigin = "center";
       image.hidden = false;
       fallback.style.display = "none";
     } else {
@@ -335,11 +329,6 @@ export function initProfileSettingsPage(config: ProfileSettingsClientConfig) {
     if (handleEl) {
       handleEl.textContent = nextState.handle || `@${nextState.username || "username"}`;
     }
-
-    updateRangeLabel("avatar-size-value", `${Number(nextState.avatarSize || 116)}px`);
-    updateRangeLabel("avatar-zoom-value", `${Number(zoom).toFixed(2)}x`);
-    updateRangeLabel("avatar-position-x-value", `X ${Math.round(x)}%`);
-    updateRangeLabel("avatar-position-y-value", `Y ${Math.round(y)}%`);
   }
 
   function refreshSnapshot(nextState) {
@@ -353,7 +342,7 @@ export function initProfileSettingsPage(config: ProfileSettingsClientConfig) {
     set("snapshot-location", nextState.location);
     set("snapshot-theme", `${nextState.theme.mode} / ${nextState.theme.textSize}`);
     set("snapshot-avatar-visible", nextState.avatarVisible === false ? "Hidden" : "Visible");
-    set("snapshot-avatar-align", nextState.avatarAlignment || "left");
+    set("snapshot-avatar-source", getAvatarSource(nextState) ? "Uploaded photo" : "Initial fallback");
 
     updateAvatarEditorPreview(nextState);
   }
@@ -482,7 +471,7 @@ export function initProfileSettingsPage(config: ProfileSettingsClientConfig) {
     setChecked("visibility-achievements", nextState.visibility.achievements);
     setChecked("visibility-contact", nextState.visibility.contact);
 
-    setChecked("avatar-visible", nextState.avatarVisible);
+    setChecked("avatar-visible", nextState.visibility.avatar !== false && nextState.avatarVisible !== false);
     setValue("avatar-alignment", nextState.avatarAlignment || "left");
     setValue("avatar-shape", nextState.avatarShape || "circle");
     setChecked("avatar-circular-crop", nextState.avatarUseCircularCrop !== false);
@@ -555,16 +544,16 @@ export function initProfileSettingsPage(config: ProfileSettingsClientConfig) {
       handle: derivedHandle,
       bio: getValue("bio"),
       bannerUrl: getValue("bannerUrl"),
-      avatarUrl: getValue("avatarUrl"),
+      avatarUrl: getValue("avatarUrl") || state?.avatarUrl || defaults.avatarUrl || "",
       avatarFileDataUrl: state?.avatarFileDataUrl || "",
-      avatarSize: Number(getValue("avatar-size") || defaults.avatarSize || 116),
-      avatarZoom: Number(getValue("avatar-zoom") || defaults.avatarZoom || 1),
-      avatarPositionX: Number(getValue("avatar-position-x") || defaults.avatarPositionX || 50),
-      avatarPositionY: Number(getValue("avatar-position-y") || defaults.avatarPositionY || 50),
-      avatarVisible: getChecked("avatar-visible"),
-      avatarAlignment: getValue("avatar-alignment") || "left",
-      avatarShape: getValue("avatar-shape") || "circle",
-      avatarUseCircularCrop: getChecked("avatar-circular-crop"),
+      avatarSize: Number(getValue("avatar-size") || state?.avatarSize || defaults.avatarSize || 116),
+      avatarZoom: Number(getValue("avatar-zoom") || state?.avatarZoom || defaults.avatarZoom || 1),
+      avatarPositionX: Number(getValue("avatar-position-x") || state?.avatarPositionX || defaults.avatarPositionX || 50),
+      avatarPositionY: Number(getValue("avatar-position-y") || state?.avatarPositionY || defaults.avatarPositionY || 50),
+      avatarVisible: byId("visibility-avatar") ? getChecked("visibility-avatar") : (state?.avatarVisible ?? defaults.avatarVisible),
+      avatarAlignment: getValue("avatar-alignment") || state?.avatarAlignment || defaults.avatarAlignment || "left",
+      avatarShape: getValue("avatar-shape") || state?.avatarShape || defaults.avatarShape || "circle",
+      avatarUseCircularCrop: byId("avatar-circular-crop") ? getChecked("avatar-circular-crop") : (state?.avatarUseCircularCrop ?? defaults.avatarUseCircularCrop ?? true),
       location: getValue("location"),
       headline: getValue("headline"),
       visibility: {
@@ -845,6 +834,7 @@ export function initProfileSettingsPage(config: ProfileSettingsClientConfig) {
   }
 
   function renderPreview(payload, draftState = state) {
+    if (!previewRoot) return;
     const apiProfile = payload?.profile;
 
     if (!apiProfile && !draftState) {
@@ -924,6 +914,7 @@ export function initProfileSettingsPage(config: ProfileSettingsClientConfig) {
   }
 
   async function refreshPreview() {
+    if (!previewRoot) return;
     previewRoot.innerHTML = `<p>Refreshing preview...</p>`;
 
     try {
@@ -957,7 +948,6 @@ export function initProfileSettingsPage(config: ProfileSettingsClientConfig) {
     refreshSnapshot(state);
     applyTheme(state);
     await saveState(state, { silent });
-    renderPreview({ profile: {} }, state);
     schedulePreviewRefresh();
 
     if (successMessage) {
@@ -1087,14 +1077,13 @@ export function initProfileSettingsPage(config: ProfileSettingsClientConfig) {
     }
 
     await saveState(state, options);
-    renderPreview({ profile: {} }, state);
     schedulePreviewRefresh();
   }
 
   async function handleAvatarFileChange(file) {
     if (!file) return;
 
-    setStatus("Uploading avatar...", "neutral");
+    setStatus("Uploading profile photo...", "neutral");
 
     try {
       const uploaded = await uploadAvatarFile(file);
@@ -1112,11 +1101,11 @@ export function initProfileSettingsPage(config: ProfileSettingsClientConfig) {
       await saveState(state, { silent: true });
       renderPreview({ profile: {} }, state);
       schedulePreviewRefresh();
-      setStatus("Avatar uploaded", "success");
+      setStatus("Profile photo uploaded", "success");
     } catch (error) {
       console.error(error);
       setStatus(
-        error instanceof Error ? error.message : "Unable to upload avatar",
+        error instanceof Error ? error.message : "Unable to upload profile photo",
         "error"
       );
     }
@@ -1219,13 +1208,6 @@ export function initProfileSettingsPage(config: ProfileSettingsClientConfig) {
     setStatus("Saving...", "neutral");
     applyTheme(state);
     await saveState(state);
-    refreshPreview();
-  });
-
-  document.getElementById("refresh-preview-btn")?.addEventListener("click", async () => {
-    state = normalizeState(collectState());
-    refreshSnapshot(state);
-    await refreshPreview();
   });
 
   document.getElementById("change-password-btn")?.addEventListener("click", () => {
@@ -1262,8 +1244,8 @@ export function initProfileSettingsPage(config: ProfileSettingsClientConfig) {
     setValue("avatarUrl", "");
     refreshSnapshot(state);
     await saveState(state, { silent: true });
-    renderPreview({ profile: {} }, state);
     schedulePreviewRefresh();
+    setStatus("Profile photo removed", "success");
   });
 
   async function init() {
@@ -1279,7 +1261,6 @@ export function initProfileSettingsPage(config: ProfileSettingsClientConfig) {
 
     hasLoadedInitialState = true;
 
-    await refreshPreview();
     setStatus("Ready", "success");
   }
 

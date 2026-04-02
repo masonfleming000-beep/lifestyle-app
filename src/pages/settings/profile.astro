@@ -5,6 +5,7 @@ import SurfaceCard from "../../components/SurfaceCard.astro";
 import SectionCard from "../../components/SectionCard.astro";
 import SectionHeader from "../../components/SectionHeader.astro";
 import Button from "../../components/Button.astro";
+import PictureFrame from "../../components/primitives/PictureFrame.astro";
 import { profileSettingsClientConfig } from "../../config/pages/profileSettings";
 
 ---
@@ -78,8 +79,8 @@ import { profileSettingsClientConfig } from "../../config/pages/profileSettings"
             <p class="summary-value" id="snapshot-avatar-visible">—</p>
           </div>
           <div class="summary-metric">
-            <p class="metric-label">Avatar Align</p>
-            <p class="summary-value" id="snapshot-avatar-align">—</p>
+            <p class="metric-label">Photo Source</p>
+            <p class="summary-value" id="snapshot-avatar-source">—</p>
           </div>
         </div>
 
@@ -108,10 +109,6 @@ import { profileSettingsClientConfig } from "../../config/pages/profileSettings"
               <input id="location" class="ui-input" type="text" autocomplete="address-level2" />
             </label>
 
-            <label class="field-group">
-              <span class="field-label">Avatar URL</span>
-              <input id="avatarUrl" class="ui-input" type="url" autocomplete="url" />
-            </label>
           </div>
 
           <label class="field-group">
@@ -126,159 +123,84 @@ import { profileSettingsClientConfig } from "../../config/pages/profileSettings"
         </div>
       </SectionCard>
 
-      <SectionCard title="Avatar Editor" subtitle="Full-width avatar editor for public profile placement and cropping" open={true}>
-        <div class="avatar-editor-card">
-          <details class="avatar-editor-dropdown" open>
-            <summary class="avatar-editor-summary">
-              <div>
-                <h3 class="avatar-editor-title">Open avatar editor</h3>
-                <p class="avatar-editor-subtitle">
-                  Upload an avatar, preview front-facing profile placement, and adjust crop, zoom, visibility, and size.
-                </p>
-              </div>
-              <span class="avatar-editor-chevron" aria-hidden="true">⌄</span>
-            </summary>
-
-            <div class="avatar-editor-body">
-              <div class="avatar-editor-preview-wrap">
-                <div class="avatar-stage-label-row">
-                  <h4 class="avatar-stage-title">Public profile avatar preview</h4>
-                  <p class="avatar-stage-copy">
-                    This card spans the page width so placement matches the front-facing profile proportions.
-                  </p>
-                </div>
-
-                <div class="avatar-profile-stage">
-                  <div class="avatar-banner-preview"></div>
-
-                  <div class="avatar-profile-stage-body">
-                    <div
-                      id="avatar-stage-shell"
-                      class="avatar-stage-shell avatar-align-left"
-                    >
-                      <div
-                        id="avatar-editor-preview"
-                        class="avatar-editor-preview circle"
-                        role="img"
-                        aria-label="Avatar preview"
-                      >
-                        <img id="avatar-editor-preview-image" class="avatar-editor-preview-image" alt="" draggable="false" hidden />
-                        <div id="avatar-editor-preview-fallback" class="avatar-editor-preview-fallback">U</div>
-                      </div>
-                    </div>
-
-                    <div class="avatar-stage-settings-anchor">
-                      <div class="avatar-stage-meta">
-                        <p class="avatar-stage-identity" id="avatar-stage-display-name">Your profile</p>
-                        <p class="avatar-stage-handle" id="avatar-stage-handle">@username</p>
-                      </div>
-                    </div>
-                  </div>
-                </div>
+      <SectionCard title="Profile Photo" subtitle="A cleaner upload flow for the photo shown on your public profile" open={true}>
+        <div class="profile-photo-card">
+          <div class="profile-photo-shell">
+            <div class="profile-photo-preview-stack">
+              <div class="portfolio-inline-preview profile-photo-preview-card">
+                <span class="field-hint">Current public profile photo</span>
+                <PictureFrame
+                  frameId="profile-photo-preview-frame"
+                  imageId="profile-photo-preview-image"
+                  fallbackId="profile-photo-preview-fallback"
+                  frameClassName="ui-picture-frame ui-picture-frame--circle ui-picture-frame--editor profile-photo-frame"
+                  imageClassName="ui-picture-frame-image profile-photo-image"
+                  fallbackClassName="ui-picture-frame-fallback profile-photo-fallback"
+                  fallbackText="U"
+                  alt="Profile photo preview"
+                />
               </div>
 
-              <div class="avatar-settings-grid">
-                <div class="avatar-upload-card">
-                  <h4 class="mini-section-title">Avatar Source</h4>
-
-                  <div class="form-stack">
-                    <label class="field-group">
-                      <span class="field-label">Upload avatar file</span>
-                      <input id="avatarFile" class="ui-input file-input" type="file" accept="image/*" />
-                    </label>
-
-                    <div class="avatar-upload-actions">
-                      <Button id="avatar-upload-trigger" type="button" variant="secondary">
-                        Upload file
-                      </Button>
-                      <Button id="avatar-clear-btn" type="button" variant="secondary">
-                        Clear avatar
-                      </Button>
-                    </div>
-
-                    <p class="field-help">
-                      You can use either an uploaded file or the Avatar URL field above. Uploaded image is also used on the public profile.
-                    </p>
-                  </div>
-                </div>
-
-                <div class="avatar-controls-card">
-                  <h4 class="mini-section-title">Avatar Placement & Crop</h4>
-
-                  <div class="form-stack">
-                    <label class="settings-toggle-card" for="avatar-visible">
-                      <div class="settings-toggle-copy">
-                        <span class="settings-toggle-title">Display avatar on public profile</span>
-                        <span class="settings-toggle-description">Turn avatar display on or off.</span>
-                      </div>
-                      <input id="avatar-visible" class="settings-checkbox" type="checkbox" />
-                    </label>
-
-                    <label class="field-group">
-                      <span class="field-label">Avatar alignment on public profile</span>
-                      <select id="avatar-alignment" class="ui-select">
-                        <option value="left">Left aligned</option>
-                        <option value="center">Middle</option>
-                        <option value="right">Right aligned</option>
-                      </select>
-                    </label>
-
-                    <label class="field-group">
-                      <span class="field-label">Avatar shape</span>
-                      <select id="avatar-shape" class="ui-select">
-                        <option value="circle">Circle</option>
-                        <option value="square">Square</option>
-                      </select>
-                    </label>
-
-                    <label class="settings-toggle-card" for="avatar-circular-crop">
-                      <div class="settings-toggle-copy">
-                        <span class="settings-toggle-title">Use circular crop editor</span>
-                        <span class="settings-toggle-description">Let users position and zoom their image inside the crop frame.</span>
-                      </div>
-                      <input id="avatar-circular-crop" class="settings-checkbox" type="checkbox" />
-                    </label>
-
-                    <label class="field-group">
-                      <span class="field-label">Avatar size</span>
-                      <div class="range-row">
-                        <input id="avatar-size" class="ui-range" type="range" min="72" max="220" step="1" />
-                        <span id="avatar-size-value" class="range-value">116px</span>
-                      </div>
-                    </label>
-
-                    <label class="field-group">
-                      <span class="field-label">Image zoom</span>
-                      <div class="range-row">
-                        <input id="avatar-zoom" class="ui-range" type="range" min="1" max="3" step="0.01" />
-                        <span id="avatar-zoom-value" class="range-value">1x</span>
-                      </div>
-                    </label>
-
-                    <div class="avatar-crop-card">
-                      <div class="avatar-crop-copy">
-                        <span class="field-label">Crop position</span>
-                        <p class="field-help">
-                          Click and drag the avatar preview above to reposition the photo. Changes save when you finish dragging.
-                        </p>
-                      </div>
-
-                      <input id="avatar-position-x" type="hidden" value="50" />
-                      <input id="avatar-position-y" type="hidden" value="50" />
-
-                      <div class="avatar-crop-readout" aria-live="polite">
-                        <span id="avatar-position-x-value" class="crop-value-pill">X 50%</span>
-                        <span id="avatar-position-y-value" class="crop-value-pill">Y 50%</span>
-                        <Button id="avatar-save-crop-btn" type="button" variant="secondary">
-                          Save crop
-                        </Button>
-                      </div>
-                    </div>
-                  </div>
-                </div>
+              <div class="profile-photo-meta">
+                <p class="mini-section-title" id="profile-photo-display-name">Your profile</p>
+                <p class="field-hint" id="profile-photo-handle">@username</p>
+                <p class="field-help">Upload one clean profile photo here. This replaces the old avatar editor flow and is what the public profile uses.</p>
               </div>
             </div>
-          </details>
+
+            <div class="profile-photo-controls">
+              <label class="field-group">
+                <span class="field-label">Upload profile photo</span>
+                <input id="avatarFile" class="ui-input file-input" type="file" accept="image/*" />
+              </label>
+
+              <div class="avatar-upload-actions profile-photo-actions">
+                <Button id="avatar-upload-trigger" type="button" variant="secondary">
+                  Choose photo
+                </Button>
+                <Button id="avatar-clear-btn" type="button" variant="secondary">
+                  Remove photo
+                </Button>
+              </div>
+
+              <p class="field-help">If you leave this blank, your public profile falls back to your initials.</p>
+
+
+              <div class="profile-photo-layout-grid">
+                <label class="field-group">
+                  <span class="field-label">Frame alignment</span>
+                  <select id="avatar-alignment" class="ui-select">
+                    <option value="left">Left</option>
+                    <option value="center">Center</option>
+                    <option value="right">Right</option>
+                  </select>
+                </label>
+
+                <label class="field-group">
+                  <span class="field-label">Frame shape</span>
+                  <select id="avatar-shape" class="ui-select">
+                    <option value="circle">Circle</option>
+                    <option value="square">Rounded square</option>
+                  </select>
+                </label>
+
+                <label class="field-group">
+                  <span class="field-label">Frame size</span>
+                  <input id="avatar-size" class="ui-range" type="range" min="96" max="260" step="4" value="148" />
+                  <span id="avatar-size-value" class="field-hint">148 px</span>
+                </label>
+              </div>
+            </div>
+          </div>
+
+          <div class="legacy-avatar-fields" aria-hidden="true">
+            <input id="avatarUrl" type="hidden" />
+            <input id="avatar-zoom" type="hidden" value="1" />
+            <input id="avatar-position-x" type="hidden" value="50" />
+            <input id="avatar-position-y" type="hidden" value="50" />
+            <input id="avatar-visible" type="checkbox" checked hidden />
+            <input id="avatar-circular-crop" type="checkbox" checked hidden />
+          </div>
         </div>
       </SectionCard>
 
@@ -763,24 +685,11 @@ import { profileSettingsClientConfig } from "../../config/pages/profileSettings"
     </div>
   </section>
 
-  <section class="section">
-    <SurfaceCard>
-      <SectionHeader
-        title="Public profile preview"
-        subtitle="See the interactive profile layout before saving"
-        align="start"
-      />
-      <div id="profile-preview-root">
-        <p>Loading preview...</p>
-      </div>
-    </SurfaceCard>
-  </section>
 
   <section class="section">
     <SurfaceCard as="div" className="profile-settings-actions">
       <div id="profile-settings-status" class="save-status neutral">Loading...</div>
       <div class="button-row">
-        <Button id="refresh-preview-btn" type="button" variant="secondary">Refresh Preview</Button>
         <Button id="save-profile-settings-btn" type="button" variant="primary">Save Profile Settings</Button>
       </div>
     </SurfaceCard>
@@ -1002,6 +911,68 @@ import { profileSettingsClientConfig } from "../../config/pages/profileSettings"
       word-break: break-word;
     }
 
+    .portfolio-inline-preview {
+      display: grid;
+      gap: 0.55rem;
+      padding: 0.85rem;
+      border-radius: 1rem;
+      border: 1px solid var(--border-soft);
+      background: var(--dropdown-card-surface-color);
+    }
+
+    
+    
+    .profile-photo-card {
+      display: grid;
+      gap: 1rem;
+    }
+
+    .profile-photo-shell {
+      display: grid;
+      grid-template-columns: minmax(220px, 280px) 1fr;
+      gap: 1.25rem;
+      align-items: start;
+    }
+
+    .profile-photo-preview-stack {
+      display: grid;
+      gap: 0.85rem;
+    }
+
+    .profile-photo-preview-card {
+      justify-items: start;
+    }
+
+    .profile-photo-frame {
+      justify-self: start;
+    }
+
+    
+    
+    .profile-photo-meta {
+      display: grid;
+      gap: 0.35rem;
+    }
+
+    .profile-photo-meta p,
+    .profile-photo-controls p {
+      margin: 0;
+    }
+
+    .profile-photo-controls {
+      display: grid;
+      gap: 0.9rem;
+      align-content: start;
+    }
+
+    .profile-photo-actions {
+      margin-top: 0.15rem;
+    }
+
+    .legacy-avatar-fields {
+      display: none;
+    }
+
     .profile-settings-actions {
       display: flex;
       justify-content: space-between;
@@ -1038,11 +1009,13 @@ import { profileSettingsClientConfig } from "../../config/pages/profileSettings"
     .preview-profile-body {
       padding: 1rem 1rem 1.1rem;
       margin-top: -38px;
+      display: grid;
+      gap: 0.9rem;
     }
 
     .preview-profile-avatar-row {
       display: flex;
-      margin-bottom: 0.85rem;
+      margin-bottom: 0.15rem;
     }
 
     .preview-avatar-align-left {
@@ -1058,42 +1031,34 @@ import { profileSettingsClientConfig } from "../../config/pages/profileSettings"
     }
 
     .preview-profile-avatar {
+      width: min(148px, 100%);
+      aspect-ratio: 1;
+      border-radius: 1.5rem;
       overflow: hidden;
-      background: #dbeafe;
-      border: 4px solid #fff;
-      box-shadow: 0 8px 28px rgba(15, 23, 42, 0.14);
-      position: relative;
-    }
-
-    .preview-profile-avatar.circle {
-      border-radius: 50%;
-    }
-
-    .preview-profile-avatar.square {
-      border-radius: 20px;
-    }
-
-    .preview-profile-avatar-image,
-    .preview-profile-avatar-fallback {
-      position: absolute;
-      inset: 0;
+      background: color-mix(in srgb, var(--resolved-header-color) 18%, white);
+      border: 1px solid var(--border-soft);
+      display: grid;
+      place-items: center;
+      box-shadow: var(--card-shadow);
     }
 
     .preview-profile-avatar-image {
       width: 100%;
       height: 100%;
-      display: block;
       object-fit: cover;
+      display: block;
       user-select: none;
       -webkit-user-drag: none;
     }
 
     .preview-profile-avatar-fallback {
+      width: 100%;
+      height: 100%;
       display: grid;
       place-items: center;
-      font-size: 2rem;
+      font-size: 2.25rem;
       font-weight: 800;
-      color: #0f172a;
+      color: var(--text-main);
     }
 
     .preview-profile-copy h3,
@@ -1360,7 +1325,31 @@ import { profileSettingsClientConfig } from "../../config/pages/profileSettings"
       padding-block: 0.72rem;
     }
 
+
+
+    .profile-photo-layout-grid {
+      display: grid;
+      grid-template-columns: repeat(3, minmax(0, 1fr));
+      gap: 0.9rem;
+    }
+
+    .ui-range {
+      width: 100%;
+      accent-color: var(--text-main);
+    }
+
+    .legacy-avatar-fields {
+      display: none;
+    }
+
     @media (max-width: 900px) {
+      .profile-photo-layout-grid {
+        grid-template-columns: 1fr;
+      }
+      .profile-photo-shell {
+        grid-template-columns: 1fr;
+      }
+
       .compact-toggle-list,
       .compact-summary,
       .avatar-settings-grid {
@@ -1390,15 +1379,6 @@ import { profileSettingsClientConfig } from "../../config/pages/profileSettings"
 
       .profile-settings-actions .ui-button {
         flex: 1 1 100%;
-      }
-
-      .avatar-profile-stage-body {
-        margin-top: -40px;
-        padding: 1rem;
-      }
-
-      .avatar-banner-preview {
-        min-height: 150px;
       }
     }
 

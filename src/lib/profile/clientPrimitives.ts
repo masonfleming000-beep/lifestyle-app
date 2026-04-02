@@ -37,22 +37,17 @@ export function renderProfileAvatarMarkup(profile: any, options: {
   const source = resolveProfileAvatarSource(profile);
   const initial = getProfileAvatarInitial(profile);
   const displayName = profile?.displayName || profile?.username || "Profile";
-  const size = Number(profile?.avatarSize || 116);
-  const zoom = Number(profile?.avatarZoom || 1);
-  const positionX = Number(profile?.avatarPositionX ?? 50);
-  const positionY = Number(profile?.avatarPositionY ?? 50);
   const alignment = profile?.avatarAlignment || "left";
+  const shape = profile?.avatarShape === "square" ? "square" : "circle";
+  const size = Number(profile?.avatarSize || 148);
+  const normalizedSize = Number.isFinite(size) ? Math.max(96, Math.min(260, size)) : 148;
   const wrapAlignmentClass = options.alignmentClassPrefix
     ? `${options.alignmentClassPrefix}${alignment}`
     : alignment;
-  const useCircle = profile?.avatarUseCircularCrop !== false || profile?.avatarShape === "circle";
 
   return `
     <div class="${escapeProfileHtml(options.wrapClassName)} ${escapeProfileHtml(wrapAlignmentClass)}">
-      <div
-        class="${escapeProfileHtml(options.frameClassName)} ${useCircle ? "circle" : "square"}"
-        style="width:${size}px;height:${size}px;"
-      >
+      <div class="${escapeProfileHtml(options.frameClassName)} ui-picture-frame ui-picture-frame--${escapeProfileHtml(shape)}" style="--picture-frame-size:${normalizedSize}px;">
         ${source
           ? `
             <img
@@ -62,11 +57,6 @@ export function renderProfileAvatarMarkup(profile: any, options: {
               loading="lazy"
               decoding="async"
               draggable="false"
-              style="
-                object-position:${positionX}% ${positionY}%;
-                transform:scale(${zoom});
-                transform-origin:${positionX}% ${positionY}%;
-              "
               ${options.includeAriaLabel ? `aria-label="${escapeProfileHtml(displayName)}" role="img"` : ""}
               onerror="this.hidden=true; this.nextElementSibling && (this.nextElementSibling.style.display='grid');"
             />

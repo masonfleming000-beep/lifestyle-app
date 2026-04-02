@@ -530,6 +530,7 @@ export function initPublicProfilePage(config: PublicProfileClientConfig) {
           imageClassName: "profile-avatar-image",
           fallbackClassName: "profile-avatar-fallback",
           includeAriaLabel: true,
+          alignmentClassPrefix: "",
         });
       }
 
