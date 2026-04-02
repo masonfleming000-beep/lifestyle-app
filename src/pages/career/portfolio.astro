@@ -11,6 +11,8 @@ import {
   careerPortfolioSectionOrder,
   careerPortfolioSectionTitles,
 } from "../../config/pages/careerShared";
+
+const publicAppUrl = import.meta.env.PUBLIC_APP_URL || import.meta.env.APP_URL || "";
 ---
 
 <BaseLayout title="Portfolio Layout | Lifestyle App" description="Arrange your public portfolio layout">
@@ -61,6 +63,7 @@ import {
       sectionTitles: careerPortfolioSectionTitles,
       previewPath: "/career/portfolio-preview",
       shareBasePath: "/portfolio",
+      publicAppUrl,
     })}
   />
 

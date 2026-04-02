@@ -5,12 +5,14 @@ interface CareerPortfolioClientConfig {
   sectionTitles?: Record<string, string>;
   previewPath?: string;
   shareBasePath?: string;
+  publicAppUrl?: string;
 }
 
 export function initCareerPortfolioPage(config: CareerPortfolioClientConfig) {
   const sourcePageKey = config.sourcePageKey || "career-information";
   const previewPath = config.previewPath || "/career/portfolio-preview";
   const shareBasePath = config.shareBasePath || "/portfolio";
+  const publicAppUrl = String(config.publicAppUrl || "").trim();
 
   function makeId(prefix = "id") {
     if (window.crypto && typeof window.crypto.randomUUID === "function") {
@@ -41,6 +43,16 @@ export function initCareerPortfolioPage(config: CareerPortfolioClientConfig) {
       .toLowerCase()
       .replace(/[^a-z0-9]+/g, "-")
       .replace(/(^-|-$)/g, "") || "page";
+  }
+
+
+  function publicOrigin() {
+    if (!publicAppUrl) return window.location.origin;
+    try {
+      return new URL(publicAppUrl).origin;
+    } catch {
+      return window.location.origin;
+    }
   }
 
   function titleFor(key) {
@@ -146,7 +158,7 @@ export function initCareerPortfolioPage(config: CareerPortfolioClientConfig) {
 
   function absoluteShareHref(username, slug) {
     if (!username) return "";
-    return `${window.location.origin}${shareBasePath}/${encodeURIComponent(username)}?page=${encodeURIComponent(slug || data.portfolioMenuItems[0]?.slug || "home")}`;
+    return `${publicOrigin()}${shareBasePath}/${encodeURIComponent(username)}?page=${encodeURIComponent(slug || data.portfolioMenuItems[0]?.slug || "home")}`;
   }
 
   async function copyShareLink(slug) {

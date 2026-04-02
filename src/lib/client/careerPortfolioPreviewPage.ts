@@ -4,12 +4,14 @@ interface CareerPortfolioPreviewConfig {
   sectionTitles?: Record<string, string>;
   publicUsername?: string;
   shareBasePath?: string;
+  publicAppUrl?: string;
 }
 
 export function initCareerPortfolioPreviewPage(config: CareerPortfolioPreviewConfig) {
   const pageKey = config.pageKey || "career-information";
   const publicUsername = String(config.publicUsername || "").trim();
   const shareBasePath = config.shareBasePath || "/portfolio";
+  const publicAppUrl = String(config.publicAppUrl || "").trim();
 
   function escapeHtml(value) {
     return String(value || "")
@@ -33,6 +35,16 @@ export function initCareerPortfolioPreviewPage(config: CareerPortfolioPreviewCon
       .toLowerCase()
       .replace(/[^a-z0-9]+/g, "-")
       .replace(/(^-|-$)/g, "") || "page";
+  }
+
+
+  function publicOrigin() {
+    if (!publicAppUrl) return window.location.origin;
+    try {
+      return new URL(publicAppUrl).origin;
+    } catch {
+      return window.location.origin;
+    }
   }
 
   function defaultMenuItems() {
@@ -386,7 +398,7 @@ export function initCareerPortfolioPreviewPage(config: CareerPortfolioPreviewCon
   }
 
   function absolutePublicPageHref(username, pageSlug) {
-    const base = `${window.location.origin}${shareBasePath}/${encodeURIComponent(username)}`;
+    const base = `${publicOrigin()}${shareBasePath}/${encodeURIComponent(username)}`;
     return pageSlug ? `${base}?page=${encodeURIComponent(pageSlug)}` : base;
   }
 
