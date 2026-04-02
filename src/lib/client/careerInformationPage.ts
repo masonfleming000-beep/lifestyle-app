@@ -337,6 +337,19 @@ export function initCareerInformationPage(config: CareerInformationClientConfig)
     return payload;
   }
 
+  async function uploadProfilePhoto(file) {
+    const formData = new FormData();
+    formData.append("file", file);
+    const res = await fetch("/api/upload-avatar", {
+      method: "POST",
+      credentials: "include",
+      body: formData,
+    });
+    const payload = await res.json().catch(() => null);
+    if (!res.ok) throw new Error(payload?.error || `Upload failed (${res.status})`);
+    return payload;
+  }
+
   let data = normalizeData(cloneDefaults());
   let hasLoadedInitialState = false;
   let isSaving = false;
@@ -395,12 +408,14 @@ export function initCareerInformationPage(config: CareerInformationClientConfig)
   function buildProfileForm() {
     const item = data.profile?.[0] || {};
     return formShell(
-      "Shown at the top of the portfolio preview. If photo URL is blank, the app avatar can be used later.",
+      "Shown at the top of the portfolio preview. Upload a dedicated professional photo here to override the account avatar in portfolio preview.",
       `
         <div class="dynamic-form-grid one">
           <label class="edu-label"><span>Full name</span><input id="dynamic-profile-fullName" class="form-input" value="${escapeHtml(item.fullName || "")}" placeholder="Your public name" /></label>
           <label class="edu-label"><span>Headline</span><input id="dynamic-profile-headline" class="form-input" value="${escapeHtml(item.headline || "")}" placeholder="Product Designer · CS Student · Software Engineer" /></label>
-          <label class="edu-label"><span>Photo URL (optional)</span><input id="dynamic-profile-photoUrl" class="form-input" value="${escapeHtml(item.photoUrl || "")}" placeholder="https://..." /></label>
+          <label class="edu-label"><span>Professional photo upload (optional)</span><input id="dynamic-profile-photoFile" class="form-input" type="file" accept="image/png,image/jpeg,image/webp,image/gif" /></label>
+          <label class="edu-label"><span>Professional photo URL (optional)</span><input id="dynamic-profile-photoUrl" class="form-input" value="${escapeHtml(item.photoUrl || "")}" placeholder="https://... or leave blank if uploading" /></label>
+          ${item.photoUrl ? `<div class="portfolio-inline-preview"><span class="field-hint">Current professional photo</span><div class="portfolio-inline-photo-frame"><img src="${escapeHtml(item.photoUrl)}" alt="Professional portfolio photo" class="portfolio-inline-photo" /></div></div>` : `<p class="field-hint">No professional portfolio photo uploaded yet. If left blank, preview falls back to your account avatar.</p>`}
           <label class="edu-label"><span>Description</span><textarea id="dynamic-profile-description" class="form-textarea" placeholder="Short intro for your portfolio">${escapeHtml(item.description || "")}</textarea></label>
           <label class="check-row"><input id="dynamic-profile-visible" type="checkbox" ${item.visible !== false ? "checked" : ""} /><span>Show in portfolio</span></label>
         </div>
@@ -700,15 +715,30 @@ export function initCareerInformationPage(config: CareerInformationClientConfig)
 
   function bindDynamicFormActions() {
     document.getElementById("dynamic-save-profile-btn")?.addEventListener("click", async () => {
-      data.profile = [{
-        id: data.profile?.[0]?.id || makeId("profile"),
-        fullName: getValue("dynamic-profile-fullName"),
-        headline: getValue("dynamic-profile-headline"),
-        description: getValue("dynamic-profile-description"),
-        photoUrl: getValue("dynamic-profile-photoUrl"),
-        visible: getChecked("dynamic-profile-visible"),
-      }];
-      await persistAndRefresh();
+      try {
+        const fileInput = document.getElementById("dynamic-profile-photoFile");
+        const file = fileInput?.files?.[0];
+        const existingPhotoUrl = data.profile?.[0]?.photoUrl || "";
+        let photoUrl = getValue("dynamic-profile-photoUrl") || existingPhotoUrl;
+        if (file) {
+          setSaveStatus("Uploading professional photo...", "neutral");
+          const uploaded = await uploadProfilePhoto(file);
+          photoUrl = uploaded.fileUrl || photoUrl;
+        }
+        data.profile = [{
+          id: data.profile?.[0]?.id || makeId("profile"),
+          fullName: getValue("dynamic-profile-fullName"),
+          headline: getValue("dynamic-profile-headline"),
+          description: getValue("dynamic-profile-description"),
+          photoUrl,
+          visible: getChecked("dynamic-profile-visible"),
+        }];
+        await persistAndRefresh();
+        renderDynamicForm();
+      } catch (error) {
+        console.error("Profile photo upload failed:", error);
+        setSaveStatus(error?.message || "Professional photo upload failed", "error");
+      }
     });
 
     document.getElementById("dynamic-save-link-btn")?.addEventListener("click", async () => {
@@ -979,7 +1009,7 @@ export function initCareerInformationPage(config: CareerInformationClientConfig)
   function buildSavedCard(group, item) {
     const top = buildVisibilityBadge(item);
     if (group === "profile") {
-      return `${top}<h3 class="card-title">${escapeHtml(item.fullName || "Profile basics")}</h3><p><strong>Headline:</strong> ${escapeHtml(item.headline || "—")}</p><p>${escapeHtml(item.description || "—")}</p><p><strong>Photo URL:</strong> ${escapeHtml(item.photoUrl || "Using profile/avatar later")}</p>`;
+      return `${top}<h3 class="card-title">${escapeHtml(item.fullName || "Profile basics")}</h3><p><strong>Headline:</strong> ${escapeHtml(item.headline || "—")}</p><p>${escapeHtml(item.description || "—")}</p><p><strong>Professional photo:</strong> ${escapeHtml(item.photoUrl || "Using account avatar fallback")}</p>`;
     }
     if (group === "externalLinks") {
       return `${top}<h3 class="card-title">${escapeHtml(item.label || item.type || "Link")}</h3><p><strong>Type:</strong> ${escapeHtml(item.type || "—")}</p><p><strong>URL / value:</strong> ${escapeHtml(item.url || "—")}</p>`;
