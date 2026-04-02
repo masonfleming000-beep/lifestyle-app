@@ -2,29 +2,76 @@ import type { ActionItemConfig } from '../../types/ui';
 
 export const careerInformationPageKey = 'career-information';
 
+export const careerDefaultMenuItems = [
+  {
+    id: 'main',
+    label: 'Home',
+    slug: 'home',
+  },
+] as const;
+
+export const careerDefaultPortfolioSections = [
+  { key: 'profile', title: 'Profile', enabled: true },
+  { key: 'resume', title: 'Resume', enabled: true },
+  { key: 'experience', title: 'Work Experience', enabled: true },
+  { key: 'leadership', title: 'Leadership Experience', enabled: true },
+  { key: 'projects', title: 'Projects', enabled: true },
+  { key: 'organizations', title: 'Organizations', enabled: true },
+  { key: 'honors', title: 'Honors and Awards', enabled: true },
+  { key: 'licenses', title: 'Licenses and Certificates', enabled: true },
+  { key: 'contact', title: 'Get in touch', enabled: true },
+  { key: 'school', title: 'School Development', enabled: false },
+  { key: 'about', title: 'About / Story', enabled: false },
+  { key: 'looking', title: "What I'm Looking For", enabled: false },
+  { key: 'pitch', title: 'Pitch', enabled: false },
+  { key: 'timelineItems', title: 'Timeline', enabled: false },
+  { key: 'recommendations', title: 'Recommendations', enabled: false },
+  { key: 'star', title: 'STAR Moments', enabled: false },
+] as const;
+
 export const careerInformationDefaults = {
+  profile: [],
+  externalLinks: [],
   projects: [],
   school: [],
   experience: [],
+  leadership: [],
   about: [],
   looking: [],
   pitch: [],
-  stats: [],
+  honors: [],
+  organizations: [],
+  licenses: [],
   contact: [],
   timelineItems: [],
   recommendations: [],
   star: [],
   resume: [],
+  portfolioMenuItems: careerDefaultMenuItems.map((item) => ({ ...item })),
+  portfolioSectionLayout: careerDefaultPortfolioSections.map((section, index) => ({
+    id: `layout-${section.key}`,
+    key: section.key,
+    title: section.title,
+    pageId: 'main',
+    enabled: section.enabled,
+    collapsed: false,
+    order: index,
+  })),
 } as const;
 
 export type CareerInformationSectionKey =
+  | 'profile'
+  | 'externalLinks'
   | 'projects'
   | 'school'
   | 'experience'
+  | 'leadership'
   | 'about'
   | 'looking'
   | 'pitch'
-  | 'stats'
+  | 'honors'
+  | 'organizations'
+  | 'licenses'
   | 'contact'
   | 'resume'
   | 'timelineItems'
@@ -44,6 +91,45 @@ export interface CareerSectionMeta {
 
 export const careerInformationSections: CareerSectionMeta[] = [
   {
+    key: 'profile',
+    builderValue: 'profile',
+    title: 'Profile Basics',
+    countId: 'count-profile',
+    containerId: 'info-profile',
+    emptyTitle: 'No profile basics yet',
+    emptyText: 'Add your public name, headline, bio, and optional photo override.',
+    open: true,
+  },
+  {
+    key: 'externalLinks',
+    builderValue: 'externalLinks',
+    title: 'External Links',
+    countId: 'count-externalLinks',
+    containerId: 'info-externalLinks',
+    emptyTitle: 'No links yet',
+    emptyText: 'GitHub, LinkedIn, email, and other public links appear here.',
+    open: true,
+  },
+  {
+    key: 'experience',
+    builderValue: 'experience',
+    title: 'Work Experience',
+    countId: 'count-experience',
+    containerId: 'info-experience',
+    emptyTitle: 'No work experience yet',
+    emptyText: 'Saved work experience will appear here.',
+    open: true,
+  },
+  {
+    key: 'leadership',
+    builderValue: 'leadership',
+    title: 'Leadership Experience',
+    countId: 'count-leadership',
+    containerId: 'info-leadership',
+    emptyTitle: 'No leadership experience yet',
+    emptyText: 'Saved leadership roles will appear here.',
+  },
+  {
     key: 'projects',
     builderValue: 'projects',
     title: 'Projects',
@@ -54,6 +140,51 @@ export const careerInformationSections: CareerSectionMeta[] = [
     open: true,
   },
   {
+    key: 'organizations',
+    builderValue: 'organizations',
+    title: 'Organizations',
+    countId: 'count-organizations',
+    containerId: 'info-organizations',
+    emptyTitle: 'No organizations yet',
+    emptyText: 'Saved organizations will appear here.',
+  },
+  {
+    key: 'honors',
+    builderValue: 'honors',
+    title: 'Honors and Awards',
+    countId: 'count-honors',
+    containerId: 'info-honors',
+    emptyTitle: 'No honors or awards yet',
+    emptyText: 'Saved honors, awards, and stat-style highlights will appear here.',
+  },
+  {
+    key: 'licenses',
+    builderValue: 'licenses',
+    title: 'Licenses and Certificates',
+    countId: 'count-licenses',
+    containerId: 'info-licenses',
+    emptyTitle: 'No licenses yet',
+    emptyText: 'Saved licenses and certificates will appear here.',
+  },
+  {
+    key: 'contact',
+    builderValue: 'contact',
+    title: 'Preferred Contact',
+    countId: 'count-contact',
+    containerId: 'info-contact',
+    emptyTitle: 'No preferred contact yet',
+    emptyText: 'Choose the best way for people to reach out.',
+  },
+  {
+    key: 'resume',
+    builderValue: 'resume',
+    title: 'Resume Upload',
+    countId: 'count-resume',
+    containerId: 'info-resume',
+    emptyTitle: 'No resume uploaded yet',
+    emptyText: 'Saved resume entries will appear here.',
+  },
+  {
     key: 'school',
     builderValue: 'school',
     title: 'School Development',
@@ -61,15 +192,6 @@ export const careerInformationSections: CareerSectionMeta[] = [
     containerId: 'info-school',
     emptyTitle: 'No school development yet',
     emptyText: 'Saved school items will appear here.',
-  },
-  {
-    key: 'experience',
-    builderValue: 'experience',
-    title: 'Work Experience',
-    countId: 'count-experience',
-    containerId: 'info-experience',
-    emptyTitle: 'No experience yet',
-    emptyText: 'Saved experience entries will appear here.',
   },
   {
     key: 'about',
@@ -99,38 +221,11 @@ export const careerInformationSections: CareerSectionMeta[] = [
     emptyText: 'Saved pitch entries will appear here.',
   },
   {
-    key: 'stats',
-    builderValue: 'stats',
-    title: 'Stats',
-    countId: 'count-stats',
-    containerId: 'info-stats',
-    emptyTitle: 'No stats yet',
-    emptyText: 'Saved stat entries will appear here.',
-  },
-  {
-    key: 'contact',
-    builderValue: 'contact',
-    title: 'Contact Info',
-    countId: 'count-contact',
-    containerId: 'info-contact',
-    emptyTitle: 'No contact info yet',
-    emptyText: 'Saved contact entries will appear here.',
-  },
-  {
-    key: 'resume',
-    builderValue: 'resume',
-    title: 'Resume Upload',
-    countId: 'count-resume',
-    containerId: 'info-resume',
-    emptyTitle: 'No resume uploaded yet',
-    emptyText: 'Saved resume entries will appear here.',
-  },
-  {
     key: 'timelineItems',
-    builderValue: 'timeline',
+    builderValue: 'timelineItems',
     title: 'Timeline',
-    countId: 'count-timeline',
-    containerId: 'info-timeline',
+    countId: 'count-timelineItems',
+    containerId: 'info-timelineItems',
     emptyTitle: 'No timeline items yet',
     emptyText: 'Saved timeline entries will appear here.',
   },
@@ -161,18 +256,16 @@ export const careerBuilderOptions = careerInformationSections.map((section) => (
 
 export const careerInformationHeroActions: ActionItemConfig[] = [
   { href: '/career', label: '← Back to Career', variant: 'secondary' },
-  { href: '/career/portfolio', label: 'Go to Portfolio', variant: 'primary' },
+  { href: '/career/portfolio', label: 'Portfolio Layout', variant: 'primary' },
 ];
 
 export const careerPortfolioHeroActions: ActionItemConfig[] = [
   { href: '/career', label: 'Back to Career', variant: 'secondary' },
-  { href: '/career/information', label: 'Edit Information', variant: 'primary' },
+  { href: '/career/portfolio-preview', label: 'Open Preview', variant: 'primary' },
 ];
 
 export const careerPortfolioSectionTitles = Object.fromEntries(
-  careerInformationSections.map((section) => [section.key, section.title])
-) as Record<CareerInformationSectionKey, string>;
+  careerDefaultPortfolioSections.map((section) => [section.key, section.title])
+) as Record<string, string>;
 
-export const careerPortfolioSectionOrder: CareerInformationSectionKey[] = careerInformationSections.map(
-  (section) => section.key
-);
+export const careerPortfolioSectionOrder = careerDefaultPortfolioSections.map((section) => section.key);

@@ -14,6 +14,8 @@ const PUBLIC_PATHS = new Set([
 
 const PUBLIC_PREFIXES = [
   "/api/auth/",
+  "/api/career/portfolio-public",
+  "/portfolio/",
   "/images/",
   "/_astro/",
 ];

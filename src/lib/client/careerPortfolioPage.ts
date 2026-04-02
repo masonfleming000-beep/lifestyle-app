@@ -3,85 +3,20 @@ interface CareerPortfolioClientConfig {
   sourcePageKey: string;
   sectionOrder?: string[];
   sectionTitles?: Record<string, string>;
+  previewPath?: string;
+  shareBasePath?: string;
 }
 
 export function initCareerPortfolioPage(config: CareerPortfolioClientConfig) {
   const sourcePageKey = config.sourcePageKey || "career-information";
+  const previewPath = config.previewPath || "/career/portfolio-preview";
+  const shareBasePath = config.shareBasePath || "/portfolio";
 
-  const defaultData = {
-    projects: [],
-    school: [],
-    experience: [],
-    about: [],
-    looking: [],
-    pitch: [],
-    stats: [],
-    contact: [],
-    resume: [],
-    timelineItems: [],
-    recommendations: [],
-    star: [],
-  };
-
-  function cloneDefaults() {
-    return JSON.parse(JSON.stringify(defaultData));
-  }
-
-  function normalizeBoolean(value, fallback = true) {
-    return typeof value === "boolean" ? value : fallback;
-  }
-
-  function normalizeData(raw) {
-    const parsed = raw && typeof raw === "object" ? raw : {};
-    const timelineSource = Array.isArray(parsed.timelineItems)
-      ? parsed.timelineItems
-      : Array.isArray(parsed.timeline)
-      ? parsed.timeline
-      : [];
-
-    return {
-      ...cloneDefaults(),
-      projects: Array.isArray(parsed.projects) ? parsed.projects : [],
-      school: Array.isArray(parsed.school) ? parsed.school : [],
-      experience: Array.isArray(parsed.experience) ? parsed.experience : [],
-      about: Array.isArray(parsed.about) ? parsed.about : [],
-      looking: Array.isArray(parsed.looking) ? parsed.looking : [],
-      pitch: Array.isArray(parsed.pitch) ? parsed.pitch : [],
-      stats: Array.isArray(parsed.stats) ? parsed.stats : [],
-      contact: Array.isArray(parsed.contact) ? parsed.contact : [],
-      resume: Array.isArray(parsed.resume)
-        ? parsed.resume.map((item) => ({
-            id: item?.id || "",
-            title: item?.title || "Resume",
-            fileName: item?.fileName || "",
-            fileType: item?.fileType || "",
-            fileSize: Number(item?.fileSize || 0),
-            fileUrl: item?.fileUrl || "",
-            note: item?.note || "",
-            visible: normalizeBoolean(item?.visible, true),
-          }))
-        : [],
-      timelineItems: Array.isArray(timelineSource) ? timelineSource : [],
-      recommendations: Array.isArray(parsed.recommendations) ? parsed.recommendations : [],
-      star: Array.isArray(parsed.star) ? parsed.star : [],
-    };
-  }
-
-  async function loadState() {
-    try {
-      const res = await fetch(`/api/state?pageKey=${encodeURIComponent(sourcePageKey)}`, {
-        credentials: "include",
-        cache: "no-store",
-      });
-
-      if (!res.ok) return null;
-
-      const payload = await res.json();
-      return payload?.state ?? null;
-    } catch (error) {
-      console.error("Failed to load portfolio source state:", error);
-      return null;
+  function makeId(prefix = "id") {
+    if (window.crypto && typeof window.crypto.randomUUID === "function") {
+      return window.crypto.randomUUID();
     }
+    return `${prefix}-${Date.now()}-${Math.random().toString(16).slice(2)}`;
   }
 
   function escapeHtml(value) {
@@ -93,411 +28,444 @@ export function initCareerPortfolioPage(config: CareerPortfolioClientConfig) {
       .replaceAll("'", "&#039;");
   }
 
-  function titleMap(section) {
-    return config.sectionTitles?.[section] || section;
+  function normalizeArray(value) {
+    return Array.isArray(value) ? value : [];
   }
 
-  function visibleItems(data, section) {
-    return (data[section] || []).filter((item) => item.visible);
+  function normalizeBoolean(value, fallback = true) {
+    return typeof value === "boolean" ? value : fallback;
   }
 
-  function formatDate(dateStr) {
-    if (!dateStr) return "";
-    const date = new Date(dateStr + "T00:00:00");
-    if (Number.isNaN(date.getTime())) return dateStr;
-    return date.toLocaleDateString("en-US", {
-      month: "short",
-      day: "numeric",
-      year: "numeric",
+  function slugify(value) {
+    return String(value || "")
+      .toLowerCase()
+      .replace(/[^a-z0-9]+/g, "-")
+      .replace(/(^-|-$)/g, "") || "page";
+  }
+
+  function titleFor(key) {
+    return config.sectionTitles?.[key] || key;
+  }
+
+  function defaultMenuItems() {
+    return [{ id: "main", label: "Home", slug: "home" }];
+  }
+
+  function defaultSectionLayout() {
+    const order = Array.isArray(config.sectionOrder) && config.sectionOrder.length
+      ? config.sectionOrder
+      : ["profile", "resume", "experience", "leadership", "projects", "organizations", "honors", "licenses", "contact"];
+    return order.map((key, index) => ({
+      id: `layout-${key}`,
+      key,
+      title: titleFor(key),
+      pageId: "main",
+      enabled: ["profile", "resume", "experience", "leadership", "projects", "organizations", "honors", "licenses", "contact"].includes(key),
+      collapsed: false,
+      order: index,
+    }));
+  }
+
+  function normalizeState(raw) {
+    const parsed = raw && typeof raw === "object" ? raw : {};
+    const menuItems = normalizeArray(parsed.portfolioMenuItems).length
+      ? normalizeArray(parsed.portfolioMenuItems).map((item, index) => ({
+          id: item?.id || makeId(`menu-${index}`),
+          label: item?.label || `Page ${index + 1}`,
+          slug: slugify(item?.slug || item?.label || `page-${index + 1}`),
+        }))
+      : defaultMenuItems();
+
+    const menuIds = new Set(menuItems.map((item) => item.id));
+    const providedLayout = normalizeArray(parsed.portfolioSectionLayout).length
+      ? normalizeArray(parsed.portfolioSectionLayout)
+      : defaultSectionLayout();
+
+    const knownKeys = new Set((config.sectionOrder || []).concat(providedLayout.map((item) => item?.key).filter(Boolean)));
+    const layout = providedLayout.map((item, index) => ({
+      id: item?.id || makeId(`layout-${item?.key || index}`),
+      key: item?.key || "",
+      title: item?.title || titleFor(item?.key || "") || `Section ${index + 1}`,
+      pageId: menuIds.has(item?.pageId) ? item.pageId : menuItems[0]?.id || "main",
+      enabled: normalizeBoolean(item?.enabled, true),
+      collapsed: normalizeBoolean(item?.collapsed, false),
+      order: Number.isFinite(Number(item?.order)) ? Number(item.order) : index,
+    }));
+
+    (config.sectionOrder || []).forEach((key) => {
+      if (layout.some((item) => item.key === key)) return;
+      layout.push({
+        id: `layout-${key}`,
+        key,
+        title: titleFor(key),
+        pageId: menuItems[0]?.id || "main",
+        enabled: ["profile", "resume", "experience", "leadership", "projects", "organizations", "honors", "licenses", "contact"].includes(key),
+        collapsed: false,
+        order: layout.length,
+      });
+    });
+
+    return {
+      ...parsed,
+      profile: normalizeArray(parsed.profile),
+      externalLinks: normalizeArray(parsed.externalLinks),
+      experience: normalizeArray(parsed.experience),
+      leadership: normalizeArray(parsed.leadership),
+      projects: normalizeArray(parsed.projects),
+      organizations: normalizeArray(parsed.organizations),
+      honors: normalizeArray(parsed.honors || parsed.stats),
+      licenses: normalizeArray(parsed.licenses),
+      contact: normalizeArray(parsed.contact),
+      resume: normalizeArray(parsed.resume),
+      school: normalizeArray(parsed.school),
+      about: normalizeArray(parsed.about),
+      looking: normalizeArray(parsed.looking),
+      pitch: normalizeArray(parsed.pitch),
+      timelineItems: normalizeArray(parsed.timelineItems || parsed.timeline),
+      recommendations: normalizeArray(parsed.recommendations),
+      star: normalizeArray(parsed.star),
+      portfolioMenuItems: menuItems,
+      portfolioSectionLayout: layout,
+    };
+  }
+
+  async function loadState() {
+    try {
+      const res = await fetch(`/api/state?pageKey=${encodeURIComponent(sourcePageKey)}`, {
+        credentials: "include",
+        cache: "no-store",
+      });
+      if (!res.ok) return null;
+      const payload = await res.json();
+      return payload?.state ?? null;
+    } catch (error) {
+      console.error("Failed to load portfolio layout state:", error);
+      return null;
+    }
+  }
+
+  function absoluteShareHref(username, slug) {
+    if (!username) return "";
+    return `${window.location.origin}${shareBasePath}/${encodeURIComponent(username)}?page=${encodeURIComponent(slug || data.portfolioMenuItems[0]?.slug || "home")}`;
+  }
+
+  async function copyShareLink(slug) {
+    const user = await loadMe();
+    const href = absoluteShareHref(user?.username, slug);
+    if (!href) {
+      window.alert("Set a username in your profile settings to create a public share link.");
+      return;
+    }
+    try {
+      await navigator.clipboard.writeText(href);
+      saveStatus("Share link copied", "success");
+    } catch {
+      window.prompt("Copy this public portfolio link:", href);
+    }
+  }
+
+  async function postState(snapshot) {
+    const res = await fetch("/api/state", {
+      method: "POST",
+      credentials: "include",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ pageKey: sourcePageKey, state: snapshot }),
+    });
+    if (!res.ok) throw new Error(`Save failed (${res.status})`);
+  }
+
+  let data = normalizeState({});
+  let ready = false;
+  let isSaving = false;
+  let pendingSave = false;
+
+  function sectionCount(key) {
+    return normalizeArray(data[key]).length;
+  }
+
+  function visibleCount(key) {
+    return normalizeArray(data[key]).filter((item) => item?.visible !== false).length;
+  }
+
+  function saveStatus(text, kind = "neutral") {
+    const el = document.getElementById("portfolio-layout-status");
+    if (!el) return;
+    el.textContent = text;
+    el.className = `save-status ${kind}`;
+  }
+
+  async function saveState() {
+    if (!ready) return;
+    if (isSaving) {
+      pendingSave = true;
+      saveStatus("Queued save...", "neutral");
+      return;
+    }
+    isSaving = true;
+    saveStatus("Saving...", "neutral");
+    try {
+      data.portfolioSectionLayout = [...data.portfolioSectionLayout]
+        .sort((a, b) => Number(a.order || 0) - Number(b.order || 0))
+        .map((item, index) => ({ ...item, order: index }));
+      await postState(data);
+      saveStatus("Saved", "success");
+    } catch (error) {
+      console.error("Failed to save portfolio layout:", error);
+      saveStatus(error?.message || "Save failed", "error");
+    } finally {
+      isSaving = false;
+      if (pendingSave) {
+        pendingSave = false;
+        await saveState();
+      }
+    }
+  }
+
+  function previewHref(slug) {
+    return `${previewPath}?page=${encodeURIComponent(slug || data.portfolioMenuItems[0]?.slug || "home")}`;
+  }
+
+  function renderMenuManager() {
+    const root = document.getElementById("portfolio-menu-manager");
+    if (!root) return;
+
+    root.innerHTML = `
+      <div class="portfolio-menu-header">
+        <div>
+          <p class="kicker">Portfolio menu</p>
+          <h2 class="section-title">Top navigation items</h2>
+          <p class="section-subtitle">These items power the preview's public-style navigation. Each section below can be assigned to one of these pages.</p>
+        </div>
+        <div class="portfolio-menu-header-actions">
+          <button id="portfolio-add-menu-item" class="button-secondary" type="button">+ New menu item</button>
+          <a id="portfolio-preview-link" class="button-primary" href="${escapeHtml(previewHref(data.portfolioMenuItems[0]?.slug))}" target="_blank" rel="noreferrer">Open portfolio preview</a>
+          <button id="portfolio-share-link" class="button-secondary" type="button">Copy public share link</button>
+        </div>
+      </div>
+      <div class="portfolio-menu-list">
+        ${data.portfolioMenuItems
+          .map((item, index) => `
+            <article class="portfolio-menu-card card">
+              <div class="portfolio-menu-card-copy">
+                <label class="edu-label">
+                  <span>Menu label</span>
+                  <input data-menu-input="${escapeHtml(item.id)}" class="form-input" value="${escapeHtml(item.label)}" />
+                </label>
+                <p class="portfolio-menu-slug">Page URL: <code>${escapeHtml(previewHref(item.slug))}</code></p>
+              </div>
+              <div class="portfolio-menu-card-actions">
+                <a class="button-secondary" href="${escapeHtml(previewHref(item.slug))}" target="_blank" rel="noreferrer">Open page</a>
+                <button class="button-secondary" type="button" data-menu-share="${escapeHtml(item.slug)}">Share page</button>
+                <button class="button-secondary" type="button" data-menu-duplicate="${escapeHtml(item.id)}">Duplicate</button>
+                <button class="danger-btn" type="button" data-menu-delete="${escapeHtml(item.id)}" ${data.portfolioMenuItems.length <= 1 ? "disabled" : ""}>Delete</button>
+              </div>
+            </article>
+          `)
+          .join("")}
+      </div>
+    `;
+
+    root.querySelector("#portfolio-share-link")?.addEventListener("click", async () => {
+      await copyShareLink(data.portfolioMenuItems[0]?.slug);
+    });
+
+    root.querySelector("#portfolio-add-menu-item")?.addEventListener("click", async () => {
+      const nextIndex = data.portfolioMenuItems.length + 1;
+      const label = `Page ${nextIndex}`;
+      data.portfolioMenuItems.push({ id: makeId("menu"), label, slug: slugify(label) });
+      renderAll();
+      await saveState();
+    });
+
+    root.querySelectorAll("[data-menu-input]").forEach((input) => {
+      input.addEventListener("change", async (event) => {
+        const id = event.currentTarget.getAttribute("data-menu-input");
+        const value = String(event.currentTarget.value || "").trim() || "Untitled";
+        const otherSlugs = data.portfolioMenuItems.filter((item) => item.id !== id).map((item) => item.slug);
+        let slug = slugify(value);
+        let counter = 2;
+        while (otherSlugs.includes(slug)) {
+          slug = `${slugify(value)}-${counter}`;
+          counter += 1;
+        }
+        data.portfolioMenuItems = data.portfolioMenuItems.map((item) => item.id === id ? { ...item, label: value, slug } : item);
+        renderAll();
+        await saveState();
+      });
+    });
+
+    root.querySelectorAll("[data-menu-share]").forEach((button) => {
+      button.addEventListener("click", async (event) => {
+        const slug = event.currentTarget.getAttribute("data-menu-share") || data.portfolioMenuItems[0]?.slug || "home";
+        await copyShareLink(slug);
+      });
+    });
+
+    root.querySelectorAll("[data-menu-duplicate]").forEach((button) => {
+      button.addEventListener("click", async (event) => {
+        const id = event.currentTarget.getAttribute("data-menu-duplicate");
+        const original = data.portfolioMenuItems.find((item) => item.id === id);
+        if (!original) return;
+        const label = `${original.label} Copy`;
+        let slug = slugify(label);
+        let counter = 2;
+        const existing = data.portfolioMenuItems.map((item) => item.slug);
+        while (existing.includes(slug)) {
+          slug = `${slugify(label)}-${counter}`;
+          counter += 1;
+        }
+        data.portfolioMenuItems.push({ id: makeId("menu"), label, slug });
+        renderAll();
+        await saveState();
+      });
+    });
+
+    root.querySelectorAll("[data-menu-delete]").forEach((button) => {
+      button.addEventListener("click", async (event) => {
+        const id = event.currentTarget.getAttribute("data-menu-delete");
+        if (data.portfolioMenuItems.length <= 1) return;
+        data.portfolioMenuItems = data.portfolioMenuItems.filter((item) => item.id !== id);
+        const fallbackId = data.portfolioMenuItems[0]?.id || "main";
+        data.portfolioSectionLayout = data.portfolioSectionLayout.map((item) => item.pageId === id ? { ...item, pageId: fallbackId } : item);
+        renderAll();
+        await saveState();
+      });
     });
   }
 
-  function isPdfResume(item) {
-    return String(item?.fileType || "").toLowerCase().includes("pdf") ||
-      String(item?.fileName || "").toLowerCase().endsWith(".pdf");
+  function moveSection(id, direction) {
+    const ordered = [...data.portfolioSectionLayout].sort((a, b) => Number(a.order || 0) - Number(b.order || 0));
+    const index = ordered.findIndex((item) => item.id === id);
+    const target = index + direction;
+    if (index < 0 || target < 0 || target >= ordered.length) return;
+    const swap = ordered[target];
+    const current = ordered[index];
+    const currentOrder = current.order;
+    current.order = swap.order;
+    swap.order = currentOrder;
+    data.portfolioSectionLayout = ordered;
   }
 
-  function renderSectionShell(title, subtitle, innerHtml, options = {}) {
-    const kicker = options.kicker ? `<p class="kicker">${escapeHtml(options.kicker)}</p>` : "";
-    const count = subtitle ? `<p class="section-subtitle">${escapeHtml(subtitle)}</p>` : "";
+  function sectionHint(key) {
+    const count = sectionCount(key);
+    if (count > 0) {
+      return `${visibleCount(key)} visible / ${count} saved in Information Builder`;
+    }
+    return "No saved content yet — this stays as a suggestion until you fill it in or hide it.";
+  }
 
-    return `
-      <section class="section">
-        <details class="dropdown-card expandable-section surface-dropdown portfolio-dropdown" open>
-          <summary class="portfolio-summary">
+  function renderSectionManager() {
+    const root = document.getElementById("portfolio-section-manager");
+    if (!root) return;
+    const ordered = [...data.portfolioSectionLayout].sort((a, b) => Number(a.order || 0) - Number(b.order || 0));
+    root.innerHTML = ordered
+      .map((section, index) => `
+        <details class="dropdown-card expandable-section surface-dropdown portfolio-layout-card" ${section.collapsed ? "" : "open"}>
+          <summary class="portfolio-layout-summary">
             <div>
-              ${kicker}
-              <h2 class="section-title">${escapeHtml(title)}</h2>
-              ${count}
+              <p class="kicker">Section ${index + 1}</p>
+              <h2 class="section-title">${escapeHtml(section.title || titleFor(section.key))}</h2>
+              <p class="section-subtitle">${escapeHtml(sectionHint(section.key))}</p>
             </div>
-            <span class="dropdown-arrow">⌄</span>
+            <div class="portfolio-layout-summary-right">
+              <span class="section-chip ${section.enabled ? "on" : "off"}">${section.enabled ? "Shown" : "Hidden"}</span>
+              <span class="dropdown-arrow">⌄</span>
+            </div>
           </summary>
-          <div class="dropdown-content portfolio-body">
-            ${innerHtml}
+          <div class="dropdown-content portfolio-layout-body">
+            <div class="portfolio-layout-controls">
+              <label class="edu-label">
+                <span>Add section to menu item</span>
+                <select class="form-input" data-section-page="${escapeHtml(section.id)}">
+                  ${data.portfolioMenuItems
+                    .map((item) => `<option value="${escapeHtml(item.id)}" ${item.id === section.pageId ? "selected" : ""}>${escapeHtml(item.label)}</option>`)
+                    .join("")}
+                </select>
+              </label>
+              <div class="portfolio-layout-buttons">
+                <button class="button-secondary" type="button" data-section-move="up:${escapeHtml(section.id)}" ${index === 0 ? "disabled" : ""}>Move up</button>
+                <button class="button-secondary" type="button" data-section-move="down:${escapeHtml(section.id)}" ${index === ordered.length - 1 ? "disabled" : ""}>Move down</button>
+                <button class="button-secondary" type="button" data-section-toggle="${escapeHtml(section.id)}">${section.enabled ? "Hide section" : "Show section"}</button>
+              </div>
+            </div>
+            <div class="portfolio-section-meta card">
+              <p><strong>Section key:</strong> ${escapeHtml(section.key)}</p>
+              <p><strong>Assigned page:</strong> ${escapeHtml(data.portfolioMenuItems.find((item) => item.id === section.pageId)?.label || "Home")}</p>
+              <p><strong>Saved content:</strong> ${sectionCount(section.key)} item(s)</p>
+              <p><strong>Visible content:</strong> ${visibleCount(section.key)} item(s)</p>
+              <p><strong>Note:</strong> Content is edited on the Information page. This page only controls order, visibility, and which menu page each section lives on.</p>
+            </div>
           </div>
         </details>
-      </section>
+      `)
+      .join("");
+
+    root.querySelectorAll("[data-section-page]").forEach((select) => {
+      select.addEventListener("change", async (event) => {
+        const id = event.currentTarget.getAttribute("data-section-page");
+        const pageId = String(event.currentTarget.value || "");
+        data.portfolioSectionLayout = data.portfolioSectionLayout.map((item) => item.id === id ? { ...item, pageId } : item);
+        renderAll();
+        await saveState();
+      });
+    });
+
+    root.querySelectorAll("[data-section-toggle]").forEach((button) => {
+      button.addEventListener("click", async (event) => {
+        const id = event.currentTarget.getAttribute("data-section-toggle");
+        data.portfolioSectionLayout = data.portfolioSectionLayout.map((item) => item.id === id ? { ...item, enabled: !item.enabled } : item);
+        renderAll();
+        await saveState();
+      });
+    });
+
+    root.querySelectorAll("[data-section-move]").forEach((button) => {
+      button.addEventListener("click", async (event) => {
+        const value = event.currentTarget.getAttribute("data-section-move") || "";
+        const [direction, id] = value.split(":");
+        moveSection(id, direction === "up" ? -1 : 1);
+        renderAll();
+        await saveState();
+      });
+    });
+  }
+
+  function renderOverview() {
+    const root = document.getElementById("portfolio-layout-overview");
+    if (!root) return;
+    const shown = data.portfolioSectionLayout.filter((item) => item.enabled).length;
+    const hidden = data.portfolioSectionLayout.length - shown;
+    root.innerHTML = `
+      <div class="metric-grid portfolio-overview-grid">
+        <article class="stat-card surface-section portfolio-stat-card">
+          <div class="stat-card-top"><p class="stat-card-label">Menu items</p><h3 class="stat-card-value">${data.portfolioMenuItems.length}</h3></div>
+          <p class="stat-card-description">Top navigation pages available in preview.</p>
+        </article>
+        <article class="stat-card surface-section portfolio-stat-card">
+          <div class="stat-card-top"><p class="stat-card-label">Shown sections</p><h3 class="stat-card-value">${shown}</h3></div>
+          <p class="stat-card-description">Sections currently enabled in the portfolio layout.</p>
+        </article>
+        <article class="stat-card surface-section portfolio-stat-card">
+          <div class="stat-card-top"><p class="stat-card-label">Hidden sections</p><h3 class="stat-card-value">${hidden}</h3></div>
+          <p class="stat-card-description">Suggestion sections you can re-enable later.</p>
+        </article>
+      </div>
     `;
   }
 
-  function renderTextSection(title, items) {
-    return renderSectionShell(
-      title,
-      `${items.length} selected item(s)`,
-      `
-        <div class="grid one">
-          ${items
-            .map(
-              (item) => `
-              <article class="card portfolio-entry-card">
-                <h3 class="card-title">${escapeHtml(item.title || "")}</h3>
-                ${item.subtitle ? `<p class="meta">${escapeHtml(item.subtitle)}</p>` : ""}
-                ${item.body ? `<p>${escapeHtml(item.body)}</p>` : ""}
-              </article>
-            `
-            )
-            .join("")}
-        </div>
-      `
-    );
-  }
-
-  function renderProjectLikeSection(title, items, type) {
-    return renderSectionShell(
-      title,
-      `${items.length} selected item(s)`,
-      `
-        <div class="grid two portfolio-card-grid">
-          ${items
-            .map((item) => {
-              if (type === "projects") {
-                return `
-                  <article class="card portfolio-entry-card">
-                    <h3 class="card-title">${escapeHtml(item.title || "Untitled")}</h3>
-                    <p class="meta">
-                      ${escapeHtml(item.stage || "")}
-                      ${item.timeline ? ` · ${escapeHtml(item.timeline)}` : ""}
-                      ${item.completed ? ` · ${escapeHtml(item.completed)}` : ""}
-                    </p>
-
-                    ${item.description ? `<p>${escapeHtml(item.description)}</p>` : ""}
-
-                    <div class="entry-meta-grid">
-                      ${item.impact ? `<div><strong>Impact:</strong> ${escapeHtml(item.impact)}</div>` : ""}
-                      ${item.members ? `<div><strong>Members:</strong> ${escapeHtml(item.members)}</div>` : ""}
-                      ${item.parts ? `<div><strong>Parts / Tools:</strong> ${escapeHtml(item.parts)}</div>` : ""}
-                      ${item.specifications ? `<div><strong>Specs:</strong> ${escapeHtml(item.specifications)}</div>` : ""}
-                    </div>
-
-                    ${item.depth ? `<p><strong>Technical depth:</strong> ${escapeHtml(item.depth)}</p>` : ""}
-                    ${item.issues ? `<p><strong>Issues:</strong> ${escapeHtml(item.issues)}</p>` : ""}
-                    ${item.visuals ? `<p><strong>Visuals:</strong> ${escapeHtml(item.visuals)}</p>` : ""}
-                    ${item.diagrams ? `<p><strong>Diagrams:</strong> ${escapeHtml(item.diagrams)}</p>` : ""}
-
-                    ${item.link ? `<p><a href="${escapeHtml(item.link)}" target="_blank" rel="noreferrer">Open link</a></p>` : ""}
-                  </article>
-                `;
-              }
-
-              if (type === "school") {
-                return `
-                  <article class="card portfolio-entry-card">
-                    <h3 class="card-title">${escapeHtml(item.title || "School Item")}</h3>
-                    <p class="meta">
-                      ${escapeHtml(item.prof || "")}
-                      ${item.stage ? ` · ${escapeHtml(item.stage)}` : ""}
-                    </p>
-                    ${item.helped ? `<p><strong>Helped with:</strong> ${escapeHtml(item.helped)}</p>` : ""}
-                    ${item.relevance ? `<p><strong>Relevance:</strong> ${escapeHtml(item.relevance)}</p>` : ""}
-                    ${item.notes ? `<p><strong>Notes:</strong> ${escapeHtml(item.notes)}</p>` : ""}
-                  </article>
-                `;
-              }
-
-              return `
-                <article class="card portfolio-entry-card">
-                  <h3 class="card-title">${escapeHtml(item.title || "Experience")}</h3>
-                  <p class="meta">
-                    ${escapeHtml(item.boss || "")}
-                    ${item.date ? ` · ${escapeHtml(item.date)}` : ""}
-                  </p>
-
-                  ${item.impact ? `<p><strong>Impact:</strong> ${escapeHtml(item.impact)}</p>` : ""}
-                  ${item.pictures ? `<p><strong>Pictures / visuals:</strong> ${escapeHtml(item.pictures)}</p>` : ""}
-
-                  ${
-                    Array.isArray(item.responsibilities) && item.responsibilities.length
-                      ? `<ul class="list-clean">${item.responsibilities
-                          .map((bullet) => `<li>${escapeHtml(bullet)}</li>`)
-                          .join("")}</ul>`
-                      : ""
-                  }
-                </article>
-              `;
-            })
-            .join("")}
-        </div>
-      `,
-      { kicker: type === "projects" ? "Showcase" : type === "experience" ? "Experience" : "Background" }
-    );
-  }
-
-  function renderStatsSection(title, items) {
-    return renderSectionShell(
-      title,
-      `${items.length} selected item(s)`,
-      `
-        <div class="metric-grid">
-          ${items
-            .map(
-              (item) => `
-              <article class="stat-card surface-section portfolio-stat-card">
-                <div class="stat-card-top">
-                  <p class="stat-card-label">${escapeHtml(item.title || "Stat")}</p>
-                  <h3 class="stat-card-value">${escapeHtml(item.impact || "--")}</h3>
-                </div>
-                ${item.description ? `<p class="stat-card-description">${escapeHtml(item.description)}</p>` : ""}
-              </article>
-            `
-            )
-            .join("")}
-        </div>
-      `,
-      { kicker: "Highlights" }
-    );
-  }
-
-  function renderContactSection(title, items) {
-    return renderSectionShell(
-      title,
-      `${items.length} selected item(s)`,
-      `
-        <div class="grid one">
-          ${items
-            .map(
-              (item) => `
-              <article class="card portfolio-entry-card">
-                <h3 class="card-title">${escapeHtml(item.title || "Contact Info")}</h3>
-                ${item.github ? `<p><strong>GitHub:</strong> ${escapeHtml(item.github)}</p>` : ""}
-                ${item.email ? `<p><strong>Email:</strong> ${escapeHtml(item.email)}</p>` : ""}
-                ${item.phone ? `<p><strong>Phone:</strong> ${escapeHtml(item.phone)}</p>` : ""}
-                ${item.link ? `<p><strong>Link:</strong> <a href="${escapeHtml(item.link)}" target="_blank" rel="noreferrer">${escapeHtml(item.link)}</a></p>` : ""}
-              </article>
-            `
-            )
-            .join("")}
-        </div>
-      `,
-      { kicker: "Connect" }
-    );
-  }
-
-  function renderResumeSection(title, items) {
-    return renderSectionShell(
-      title,
-      `${items.length} selected item(s)`,
-      `
-        <div class="grid one">
-          ${items
-            .map((item) => {
-              const isPdf = isPdfResume(item);
-
-              const actionRow = item.fileUrl
-                ? `
-                  <div class="resume-actions">
-                    ${isPdf ? `<a href="${escapeHtml(item.fileUrl)}#toolbar=1" target="_blank" rel="noreferrer" class="button-secondary">View PDF</a>` : ""}
-                    <a href="${escapeHtml(item.fileUrl)}" target="_blank" rel="noreferrer" class="button-primary">Open</a>
-                    <a href="${escapeHtml(item.fileUrl)}" download="${escapeHtml(item.fileName || "resume")}" class="button-secondary">Download</a>
-                  </div>
-                `
-                : "";
-
-              const preview = isPdf && item.fileUrl
-                ? `
-                  <div class="resume-preview-wrap">
-                    <iframe
-                      src="${escapeHtml(item.fileUrl)}"
-                      title="${escapeHtml(item.title || "Resume Preview")}"
-                      class="resume-preview-frame"
-                    ></iframe>
-                  </div>
-                `
-                : item.fileUrl
-                ? `<p class="section-subtitle">Inline preview is available for PDF resumes. Use Open or Download for this file.</p>`
-                : `<p class="section-subtitle">No resume file available.</p>`;
-
-              return `
-                <article class="card portfolio-entry-card">
-                  <h3 class="card-title">${escapeHtml(item.title || "Resume")}</h3>
-                  ${item.fileName ? `<p><strong>File:</strong> ${escapeHtml(item.fileName)}</p>` : ""}
-                  ${item.note ? `<p><strong>Note:</strong> ${escapeHtml(item.note)}</p>` : ""}
-                  ${preview}
-                  ${actionRow}
-                </article>
-              `;
-            })
-            .join("")}
-        </div>
-      `,
-      { kicker: "Documents" }
-    );
-  }
-
-  function renderTimelineSection(title, items) {
-    const sorted = [...items].sort((a, b) => {
-      const aDate = a.date || "9999-12-31";
-      const bDate = b.date || "9999-12-31";
-      return aDate.localeCompare(bDate);
-    });
-
-    return renderSectionShell(
-      title,
-      `${items.length} selected item(s)`,
-      `
-        <div class="timeline-list">
-          ${sorted
-            .map(
-              (item) => `
-              <article class="timeline-item">
-                <div class="timeline-dot"></div>
-                <div class="timeline-content card portfolio-entry-card">
-                  <p class="timeline-date">${escapeHtml(formatDate(item.date))}</p>
-                  <h3 class="card-title">${escapeHtml(item.title || "")}</h3>
-                  ${item.description ? `<p>${escapeHtml(item.description)}</p>` : ""}
-                </div>
-              </article>
-            `
-            )
-            .join("")}
-        </div>
-      `,
-      { kicker: "Timeline" }
-    );
-  }
-
-  function renderRecommendationsSection(title, items) {
-    return renderSectionShell(
-      title,
-      `${items.length} selected item(s)`,
-      `
-        <div class="grid one">
-          ${items
-            .map(
-              (item) => `
-              <article class="quote-card surface-section portfolio-quote-card">
-                <p class="quote-text">“${escapeHtml(item.body || item.title || "")}”</p>
-                <span class="quote-author">${escapeHtml(item.owner || "Recommendation")}</span>
-              </article>
-            `
-            )
-            .join("")}
-        </div>
-      `,
-      { kicker: "Recommendations" }
-    );
-  }
-
-  function renderStarSection(title, items) {
-    return renderSectionShell(
-      title,
-      `${items.length} selected item(s)`,
-      `
-        <div class="grid one">
-          ${items
-            .map(
-              (item) => `
-              <article class="card portfolio-entry-card">
-                <h3 class="card-title">${escapeHtml(item.title || "STAR Entry")}</h3>
-                <div class="star-grid">
-                  <div><strong>Situation</strong><p>${escapeHtml(item.situation || "-")}</p></div>
-                  <div><strong>Task</strong><p>${escapeHtml(item.task || "-")}</p></div>
-                  <div><strong>Action</strong><p>${escapeHtml(item.action || "-")}</p></div>
-                  <div><strong>Result</strong><p>${escapeHtml(item.result || "-")}</p></div>
-                </div>
-              </article>
-            `
-            )
-            .join("")}
-        </div>
-      `,
-      { kicker: "STAR" }
-    );
-  }
-
-  function hasVisibleItems(data) {
-    return Object.values(data).some(
-      (arr) => Array.isArray(arr) && arr.some((item) => item.visible)
-    );
-  }
-
-  function renderPortfolio(data) {
-    const root = document.getElementById("portfolio-root");
-    if (!root) return;
-
-    let html = "";
-
-    const renderers = {
-      about: (items) => renderTextSection(titleMap("about"), items),
-      looking: (items) => renderTextSection(titleMap("looking"), items),
-      pitch: (items) => renderTextSection(titleMap("pitch"), items),
-      projects: (items) => renderProjectLikeSection(titleMap("projects"), items, "projects"),
-      school: (items) => renderProjectLikeSection(titleMap("school"), items, "school"),
-      experience: (items) => renderProjectLikeSection(titleMap("experience"), items, "experience"),
-      stats: (items) => renderStatsSection(titleMap("stats"), items),
-      timelineItems: (items) => renderTimelineSection(titleMap("timelineItems"), items),
-      recommendations: (items) => renderRecommendationsSection(titleMap("recommendations"), items),
-      star: (items) => renderStarSection(titleMap("star"), items),
-      contact: (items) => renderContactSection(titleMap("contact"), items),
-      resume: (items) => renderResumeSection(titleMap("resume"), items),
-    };
-
-    const sections = config.sectionOrder || [
-      "about",
-      "looking",
-      "pitch",
-      "projects",
-      "school",
-      "experience",
-      "stats",
-      "timelineItems",
-      "recommendations",
-      "star",
-      "contact",
-      "resume",
-    ];
-
-    if (!hasVisibleItems(data)) {
-      html = `
-        <section class="section">
-          <article class="empty-state-card portfolio-empty-card">
-            <p class="kicker">Portfolio</p>
-            <h2 class="section-title">Nothing selected yet</h2>
-            <p>
-              Go to <a href="/career/information">Career Information</a> and mark entries
-              as visible in portfolio.
-            </p>
-          </article>
-        </section>
-      `;
-      root.innerHTML = html;
-      return;
-    }
-
-    sections.forEach((sectionKey) => {
-      const items = visibleItems(data, sectionKey);
-      if (!items.length) return;
-      const renderer = renderers[sectionKey];
-      if (!renderer) return;
-      html += renderer(items);
-    });
-
-    root.innerHTML = html;
+  function renderAll() {
+    renderOverview();
+    renderMenuManager();
+    renderSectionManager();
   }
 
   async function init() {
+    saveStatus("Loading...", "neutral");
     const saved = await loadState();
-    const data = normalizeData(saved);
-    renderPortfolio(data);
+    data = normalizeState(saved || {});
+    ready = true;
+    renderAll();
+    saveStatus("Ready", "success");
   }
 
   init();

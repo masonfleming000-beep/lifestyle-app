@@ -20,7 +20,7 @@ import {
   <PageHero
     kicker="Career"
     title="Information Builder"
-    description="Add and organize your private career information here. Each section gets its own form layout, and only items marked visible will appear in the portfolio."
+    description="Add and organize your private career information here. This now includes profile basics, external links, leadership, organizations, honors, licenses, and contact preferences, alongside the existing sections."
   >
     <PageActions>
       {careerInformationHeroActions.map((action) => (
@@ -34,7 +34,7 @@ import {
       <SurfaceCard className="career-panel-card">
         <SectionHeader
           title="Add New Entry"
-          subtitle="Pick a section first. The form changes based on what you're adding."
+          subtitle="Pick a section first. The form changes based on what you're adding, including the new profile and portfolio sections."
         >
           <div id="save-status" class="save-status neutral">Loading...</div>
         </SectionHeader>
@@ -56,7 +56,7 @@ import {
       <SurfaceCard className="career-panel-card">
         <SectionHeader
           title="Saved Entries"
-          subtitle="Everything stays private here until marked visible for portfolio."
+          subtitle="Everything stays private here until marked visible for portfolio preview."
         />
 
         <div class="saved-sections">

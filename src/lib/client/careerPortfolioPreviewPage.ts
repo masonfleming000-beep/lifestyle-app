@@ -1,0 +1,469 @@
+// @ts-nocheck
+interface CareerPortfolioPreviewConfig {
+  pageKey?: string;
+  sectionTitles?: Record<string, string>;
+  publicUsername?: string;
+  shareBasePath?: string;
+}
+
+export function initCareerPortfolioPreviewPage(config: CareerPortfolioPreviewConfig) {
+  const pageKey = config.pageKey || "career-information";
+  const publicUsername = String(config.publicUsername || "").trim();
+  const shareBasePath = config.shareBasePath || "/portfolio";
+
+  function escapeHtml(value) {
+    return String(value || "")
+      .replaceAll("&", "&amp;")
+      .replaceAll("<", "&lt;")
+      .replaceAll(">", "&gt;")
+      .replaceAll('"', "&quot;")
+      .replaceAll("'", "&#039;");
+  }
+
+  function normalizeArray(value) {
+    return Array.isArray(value) ? value : [];
+  }
+
+  function normalizeBoolean(value, fallback = true) {
+    return typeof value === "boolean" ? value : fallback;
+  }
+
+  function slugify(value) {
+    return String(value || "")
+      .toLowerCase()
+      .replace(/[^a-z0-9]+/g, "-")
+      .replace(/(^-|-$)/g, "") || "page";
+  }
+
+  function defaultMenuItems() {
+    return [{ id: "main", label: "Home", slug: "home" }];
+  }
+
+  function titleFor(key) {
+    return config.sectionTitles?.[key] || key;
+  }
+
+  function defaultSectionLayout() {
+    const order = ["profile", "resume", "experience", "leadership", "projects", "organizations", "honors", "licenses", "contact"];
+    return order.map((key, index) => ({
+      id: `layout-${key}`,
+      key,
+      title: titleFor(key),
+      pageId: "main",
+      enabled: true,
+      collapsed: false,
+      order: index,
+    }));
+  }
+
+  function normalizeState(raw) {
+    const parsed = raw && typeof raw === "object" ? raw : {};
+    const menuItems = normalizeArray(parsed.portfolioMenuItems).length
+      ? normalizeArray(parsed.portfolioMenuItems).map((item, index) => ({
+          id: item?.id || `menu-${index}`,
+          label: item?.label || `Page ${index + 1}`,
+          slug: slugify(item?.slug || item?.label || `page-${index + 1}`),
+        }))
+      : defaultMenuItems();
+
+    const menuIds = new Set(menuItems.map((item) => item.id));
+    const layoutSource = normalizeArray(parsed.portfolioSectionLayout).length
+      ? normalizeArray(parsed.portfolioSectionLayout)
+      : defaultSectionLayout();
+
+    const layout = layoutSource.map((item, index) => ({
+      id: item?.id || `layout-${item?.key || index}`,
+      key: item?.key || "",
+      title: item?.title || titleFor(item?.key || "") || `Section ${index + 1}`,
+      pageId: menuIds.has(item?.pageId) ? item.pageId : menuItems[0]?.id || "main",
+      enabled: normalizeBoolean(item?.enabled, true),
+      collapsed: normalizeBoolean(item?.collapsed, false),
+      order: Number.isFinite(Number(item?.order)) ? Number(item.order) : index,
+    }));
+
+    return {
+      ...parsed,
+      profile: normalizeArray(parsed.profile).map((item) => ({ ...item, visible: normalizeBoolean(item?.visible, true) })),
+      externalLinks: normalizeArray(parsed.externalLinks).map((item) => ({ ...item, visible: normalizeBoolean(item?.visible, true) })),
+      experience: normalizeArray(parsed.experience).map((item) => ({ ...item, visible: normalizeBoolean(item?.visible, true) })),
+      leadership: normalizeArray(parsed.leadership).map((item) => ({ ...item, visible: normalizeBoolean(item?.visible, true) })),
+      projects: normalizeArray(parsed.projects).map((item) => ({ ...item, visible: normalizeBoolean(item?.visible, true) })),
+      organizations: normalizeArray(parsed.organizations).map((item) => ({ ...item, visible: normalizeBoolean(item?.visible, true) })),
+      honors: normalizeArray(parsed.honors || parsed.stats).map((item) => ({ ...item, visible: normalizeBoolean(item?.visible, true) })),
+      licenses: normalizeArray(parsed.licenses).map((item) => ({ ...item, visible: normalizeBoolean(item?.visible, true) })),
+      contact: normalizeArray(parsed.contact).map((item) => ({ ...item, visible: normalizeBoolean(item?.visible, true) })),
+      resume: normalizeArray(parsed.resume).map((item) => ({ ...item, visible: normalizeBoolean(item?.visible, true) })),
+      school: normalizeArray(parsed.school).map((item) => ({ ...item, visible: normalizeBoolean(item?.visible, true) })),
+      about: normalizeArray(parsed.about).map((item) => ({ ...item, visible: normalizeBoolean(item?.visible, true) })),
+      looking: normalizeArray(parsed.looking).map((item) => ({ ...item, visible: normalizeBoolean(item?.visible, true) })),
+      pitch: normalizeArray(parsed.pitch).map((item) => ({ ...item, visible: normalizeBoolean(item?.visible, true) })),
+      timelineItems: normalizeArray(parsed.timelineItems || parsed.timeline).map((item) => ({ ...item, visible: normalizeBoolean(item?.visible, true) })),
+      recommendations: normalizeArray(parsed.recommendations).map((item) => ({ ...item, visible: normalizeBoolean(item?.visible, true) })),
+      star: normalizeArray(parsed.star).map((item) => ({ ...item, visible: normalizeBoolean(item?.visible, true) })),
+      portfolioMenuItems: menuItems,
+      portfolioSectionLayout: layout,
+    };
+  }
+
+  async function loadPrivateState() {
+    const res = await fetch(`/api/state?pageKey=${encodeURIComponent(pageKey)}`, {
+      credentials: "include",
+      cache: "no-store",
+    }).catch(() => null);
+    if (!res || !res.ok) return null;
+    const payload = await res.json().catch(() => null);
+    return payload?.state ?? null;
+  }
+
+  async function loadPublicState(username) {
+    const res = await fetch(`/api/career/portfolio-public?username=${encodeURIComponent(username)}`, {
+      cache: "no-store",
+    }).catch(() => null);
+    if (!res || !res.ok) return { state: null, user: null };
+    const payload = await res.json().catch(() => null);
+    return { state: payload?.state ?? null, user: payload?.user ?? null };
+  }
+
+  async function loadMe() {
+    const res = await fetch("/api/me", {
+      credentials: "include",
+      cache: "no-store",
+    }).catch(() => null);
+    if (!res || !res.ok) return null;
+    const payload = await res.json().catch(() => null);
+    return payload?.user || null;
+  }
+
+  function isPdf(item) {
+    return String(item?.fileType || "").toLowerCase().includes("pdf") || String(item?.fileName || "").toLowerCase().endsWith(".pdf");
+  }
+
+  function formatDate(dateStr) {
+    if (!dateStr) return "";
+    const date = new Date(`${dateStr}T00:00:00`);
+    if (Number.isNaN(date.getTime())) return dateStr;
+    return date.toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" });
+  }
+
+  function formatRange(startDate, endDate) {
+    const start = formatDate(startDate);
+    const end = formatDate(endDate);
+    if (!start && !end) return "";
+    if (start && end) return `${start} - ${end}`;
+    return start || end;
+  }
+
+  function visibleItems(items) {
+    return normalizeArray(items).filter((item) => item?.visible !== false);
+  }
+
+  function emptySuggestion(text) {
+    return `<article class="preview-empty-card"><p>${escapeHtml(text)}</p></article>`;
+  }
+
+  function renderProfileSection(state, user) {
+    const profile = visibleItems(state.profile)[0] || {};
+    const links = visibleItems(state.externalLinks);
+    const name = profile.fullName || user?.displayName || user?.username || "Your name";
+    const headline = profile.headline || "Add a short professional headline in Information Builder.";
+    const description = profile.description || "This section is blank for now. Add your name, intro, and links on the Information page or hide this section from Portfolio Layout.";
+    const avatar = profile.photoUrl || user?.avatarUrl || user?.avatarFileDataUrl || "";
+    const initials = String(name || "Y")
+      .split(" ")
+      .map((item) => item[0])
+      .join("")
+      .slice(0, 2)
+      .toUpperCase();
+
+    const linkButtons = links.length
+      ? `<div class="preview-link-row">${links.map((item) => {
+          const value = item.type === "email" && !String(item.url).startsWith("mailto:") ? `mailto:${item.url}` : item.url;
+          const label = item.label || item.type;
+          return `<a class="preview-pill-link" href="${escapeHtml(value)}" target="_blank" rel="noreferrer">${escapeHtml(label)}</a>`;
+        }).join("")}</div>`
+      : `<p class="preview-muted">No public links yet. Add GitHub, LinkedIn, email, or other common career links on the Information page.</p>`;
+
+    return `
+      <section class="preview-section preview-profile-section">
+        <div class="preview-profile-card">
+          <div class="preview-avatar-frame">
+            ${avatar ? `<img src="${escapeHtml(avatar)}" alt="${escapeHtml(name)}" class="preview-avatar-image" />` : `<span class="preview-avatar-fallback">${escapeHtml(initials)}</span>`}
+          </div>
+          <div class="preview-profile-copy">
+            <p class="preview-kicker">Public portfolio</p>
+            <h1>${escapeHtml(name)}</h1>
+            <p class="preview-profile-headline">${escapeHtml(headline)}</p>
+            <p class="preview-profile-description">${escapeHtml(description)}</p>
+            ${linkButtons}
+          </div>
+        </div>
+      </section>
+    `;
+  }
+
+  function renderResumeSection(state) {
+    const resume = visibleItems(state.resume)[0];
+    const body = resume
+      ? `
+        <article class="preview-card preview-resume-card">
+          <div class="preview-card-head">
+            <div>
+              <p class="preview-kicker">Resume</p>
+              <h3>${escapeHtml(resume.title || "Resume")}</h3>
+              <p class="preview-muted">${escapeHtml(resume.fileName || "Uploaded file")}</p>
+            </div>
+            <div class="preview-link-row">
+              ${isPdf(resume) ? `<a class="preview-pill-link" href="${escapeHtml(resume.fileUrl)}#toolbar=1" target="_blank" rel="noreferrer">View</a>` : ""}
+              ${resume.fileUrl ? `<a class="preview-pill-link" href="${escapeHtml(resume.fileUrl)}" target="_blank" rel="noreferrer">Open</a>` : ""}
+              ${resume.fileUrl ? `<a class="preview-pill-link" href="${escapeHtml(resume.fileUrl)}" download>Download</a>` : ""}
+            </div>
+          </div>
+          ${resume.note ? `<p>${escapeHtml(resume.note)}</p>` : ""}
+          ${isPdf(resume) && resume.fileUrl ? `<div class="preview-resume-frame-wrap"><iframe class="preview-resume-frame" src="${escapeHtml(resume.fileUrl)}" title="Resume Preview"></iframe></div>` : ""}
+        </article>
+      `
+      : emptySuggestion("Resume section is empty. Upload a resume on the Information page or hide this section.");
+
+    return renderSectionShell("Resume", body, true);
+  }
+
+  function renderSectionShell(title, body, open = true, countText = "") {
+    return `
+      <section class="preview-section">
+        <details class="preview-details" ${open ? "open" : ""}>
+          <summary>
+            <span>${escapeHtml(title)}</span>
+            <span class="preview-summary-chip">${escapeHtml(countText || "Open")}</span>
+          </summary>
+          <div class="preview-section-body">${body}</div>
+        </details>
+      </section>
+    `;
+  }
+
+  function renderCardsSection(title, items, renderer, emptyText) {
+    const visible = visibleItems(items);
+    const cards = visible.length ? visible.map(renderer).join("") : emptySuggestion(emptyText);
+    return renderSectionShell(title, `<div class="preview-grid">${cards}</div>`, true, `${visible.length} item${visible.length === 1 ? "" : "s"}`);
+  }
+
+  function renderTextSection(title, items, emptyText) {
+    return renderCardsSection(
+      title,
+      items,
+      (item) => `<article class="preview-card"><h3>${escapeHtml(item.title || title)}</h3><p>${escapeHtml(item.body || "")}</p></article>`,
+      emptyText
+    );
+  }
+
+  function renderSectionByKey(key, state, user) {
+    if (key === "profile") return renderProfileSection(state, user);
+    if (key === "resume") return renderResumeSection(state);
+    if (key === "experience") {
+      return renderCardsSection(
+        "Work Experience",
+        state.experience,
+        (item) => `
+          <article class="preview-card">
+            <div class="preview-card-headline-row"><h3>${escapeHtml(item.role || "Role")}</h3></div>
+            <p class="preview-muted">${escapeHtml(item.company || "")}${item.location ? ` · ${escapeHtml(item.location)}` : ""}</p>
+            ${formatRange(item.startDate, item.endDate) ? `<p class="preview-muted">${escapeHtml(formatRange(item.startDate, item.endDate))}</p>` : ""}
+            ${item.summary ? `<p>${escapeHtml(item.summary)}</p>` : ""}
+            ${item.bullets?.length ? `<ul class="preview-bullet-list">${item.bullets.map((bullet) => `<li>${escapeHtml(bullet)}</li>`).join("")}</ul>` : ""}
+          </article>
+        `,
+        "Add work experience on the Information page or hide this section."
+      );
+    }
+    if (key === "leadership") {
+      return renderCardsSection(
+        "Leadership Experience",
+        state.leadership,
+        (item) => `
+          <article class="preview-card">
+            <h3>${escapeHtml(item.title || "Leadership")}</h3>
+            <p class="preview-muted">${escapeHtml(item.organization || "")}${item.date ? ` · ${escapeHtml(item.date)}` : ""}</p>
+            ${item.summary ? `<p>${escapeHtml(item.summary)}</p>` : ""}
+            ${item.bullets?.length ? `<ul class="preview-bullet-list">${item.bullets.map((bullet) => `<li>${escapeHtml(bullet)}</li>`).join("")}</ul>` : ""}
+          </article>
+        `,
+        "Add leadership experience on the Information page or hide this section."
+      );
+    }
+    if (key === "projects") {
+      return renderCardsSection(
+        "Projects",
+        state.projects,
+        (item) => `
+          <article class="preview-card">
+            <h3>${escapeHtml(item.title || "Project")}</h3>
+            ${item.subtitle ? `<p class="preview-muted">${escapeHtml(item.subtitle)}</p>` : ""}
+            ${item.description ? `<p>${escapeHtml(item.description)}</p>` : ""}
+            ${item.skills ? `<p><strong>Skills:</strong> ${escapeHtml(item.skills)}</p>` : ""}
+            ${item.link ? `<a class="preview-inline-link" href="${escapeHtml(item.link)}" target="_blank" rel="noreferrer">Open project</a>` : ""}
+          </article>
+        `,
+        "Add projects on the Information page or hide this section."
+      );
+    }
+    if (key === "organizations") {
+      return renderCardsSection(
+        "Organizations",
+        state.organizations,
+        (item) => `
+          <article class="preview-card">
+            <h3>${escapeHtml(item.name || "Organization")}</h3>
+            <p class="preview-muted">${escapeHtml(item.role || "")}${item.date ? ` · ${escapeHtml(item.date)}` : ""}</p>
+            ${item.description ? `<p>${escapeHtml(item.description)}</p>` : ""}
+          </article>
+        `,
+        "Add organizations on the Information page or hide this section."
+      );
+    }
+    if (key === "honors") {
+      return renderCardsSection(
+        "Honors and Awards",
+        state.honors,
+        (item) => `
+          <article class="preview-card preview-stat-card">
+            <p class="preview-stat-label">${escapeHtml(item.title || "Highlight")}</p>
+            <h3 class="preview-stat-value">${escapeHtml(item.value || "—")}</h3>
+            ${item.issuer || item.date ? `<p class="preview-muted">${escapeHtml(item.issuer || "")}${item.date ? ` · ${escapeHtml(item.date)}` : ""}</p>` : ""}
+            ${item.description ? `<p>${escapeHtml(item.description)}</p>` : ""}
+          </article>
+        `,
+        "Add honors or awards on the Information page or hide this section."
+      );
+    }
+    if (key === "licenses") {
+      return renderCardsSection(
+        "Licenses and Certificates",
+        state.licenses,
+        (item) => `
+          <article class="preview-card">
+            <h3>${escapeHtml(item.title || "Credential")}</h3>
+            <p class="preview-muted">${escapeHtml(item.issuer || "")}${item.date ? ` · ${escapeHtml(item.date)}` : ""}</p>
+            ${item.credentialId ? `<p><strong>Credential ID:</strong> ${escapeHtml(item.credentialId)}</p>` : ""}
+            ${item.link ? `<a class="preview-inline-link" href="${escapeHtml(item.link)}" target="_blank" rel="noreferrer">View credential</a>` : ""}
+          </article>
+        `,
+        "Add licenses or certificates on the Information page or hide this section."
+      );
+    }
+    if (key === "contact") {
+      const contact = visibleItems(state.contact)[0];
+      const links = visibleItems(state.externalLinks);
+      const fallbackLink = links.find((item) => item.type === "linkedin" || item.type === "email" || item.type === "github") || links[0];
+      const method = contact?.preferredMethod || fallbackLink?.type || "email";
+      const value = contact?.value || fallbackLink?.url || "";
+      const href = method === "email" && value && !String(value).startsWith("mailto:") ? `mailto:${value}` : value;
+      const body = value
+        ? `
+          <article class="preview-contact-card">
+            <p class="preview-kicker">Preferred contact</p>
+            <h3>Want to get in contact?</h3>
+            <p>${escapeHtml(contact?.note || "Reach out using the preferred method below.")}</p>
+            <div class="preview-link-row">
+              <a class="preview-contact-button" href="${escapeHtml(href)}" target="_blank" rel="noreferrer">${escapeHtml(contact?.label || `Contact via ${method}`)}</a>
+            </div>
+            <p class="preview-muted">${escapeHtml(value)}</p>
+          </article>
+        `
+        : emptySuggestion("Choose a preferred contact method on the Information page or hide this section.");
+      return renderSectionShell("Get in touch", body, true, value ? method : "Open");
+    }
+    if (key === "school") return renderCardsSection("School Development", state.school, (item) => `<article class="preview-card"><h3>${escapeHtml(item.title || "School Development")}</h3><p class="preview-muted">${escapeHtml(item.prof || "")}${item.stage ? ` · ${escapeHtml(item.stage)}` : ""}</p>${item.helped ? `<p><strong>Helped with:</strong> ${escapeHtml(item.helped)}</p>` : ""}${item.relevance ? `<p><strong>Relevance:</strong> ${escapeHtml(item.relevance)}</p>` : ""}${item.notes ? `<p>${escapeHtml(item.notes)}</p>` : ""}</article>`, "Add school development content on the Information page or hide this section.");
+    if (key === "about") return renderTextSection("About / Story", state.about, "Add about content on the Information page or hide this section.");
+    if (key === "looking") return renderTextSection("What I'm Looking For", state.looking, "Add looking-for content on the Information page or hide this section.");
+    if (key === "pitch") return renderTextSection("Pitch", state.pitch, "Add pitch content on the Information page or hide this section.");
+    if (key === "timelineItems") {
+      const items = [...visibleItems(state.timelineItems)].sort((a, b) => String(a.date || "9999-12-31").localeCompare(String(b.date || "9999-12-31")));
+      return renderCardsSection("Timeline", items, (item) => `<article class="preview-card"><p class="preview-muted">${escapeHtml(formatDate(item.date) || "")}</p><h3>${escapeHtml(item.title || "Timeline item")}</h3>${item.description ? `<p>${escapeHtml(item.description)}</p>` : ""}</article>`, "Add timeline entries on the Information page or hide this section.");
+    }
+    if (key === "recommendations") return renderCardsSection("Recommendations", state.recommendations, (item) => `<article class="preview-card"><h3>${escapeHtml(item.title || item.owner || "Recommendation")}</h3>${item.owner ? `<p class="preview-muted">${escapeHtml(item.owner)}</p>` : ""}${item.body ? `<p>${escapeHtml(item.body)}</p>` : ""}</article>`, "Add recommendations on the Information page or hide this section.");
+    if (key === "star") return renderCardsSection("STAR Moments", state.star, (item) => `<article class="preview-card"><h3>${escapeHtml(item.title || "STAR Example")}</h3><p><strong>Situation:</strong> ${escapeHtml(item.situation || "—")}</p><p><strong>Task:</strong> ${escapeHtml(item.task || "—")}</p><p><strong>Action:</strong> ${escapeHtml(item.action || "—")}</p><p><strong>Result:</strong> ${escapeHtml(item.result || "—")}</p></article>`, "Add STAR moments on the Information page or hide this section.");
+    return "";
+  }
+
+  function absolutePublicPageHref(username, pageSlug) {
+    const base = `${window.location.origin}${shareBasePath}/${encodeURIComponent(username)}`;
+    return pageSlug ? `${base}?page=${encodeURIComponent(pageSlug)}` : base;
+  }
+
+  async function copyShareLink(href) {
+    const button = document.getElementById("preview-share-link-button");
+    if (!button) return;
+    try {
+      await navigator.clipboard.writeText(href);
+      const original = button.textContent;
+      button.textContent = "Link copied";
+      setTimeout(() => {
+        button.textContent = original || "Share link";
+      }, 1800);
+    } catch {
+      window.prompt("Copy this public portfolio link:", href);
+    }
+  }
+
+  function renderPage(state, user) {
+    const root = document.getElementById("career-portfolio-preview-root");
+    if (!root) return;
+    const params = new URLSearchParams(window.location.search);
+    const selectedSlug = params.get("page") || state.portfolioMenuItems[0]?.slug || "home";
+    const selectedMenu = state.portfolioMenuItems.find((item) => item.slug === selectedSlug) || state.portfolioMenuItems[0];
+    const selectedPageId = selectedMenu?.id || state.portfolioMenuItems[0]?.id || "main";
+    const canShare = Boolean(user?.username);
+    const publicHref = canShare ? absolutePublicPageHref(user.username, selectedMenu?.slug || "home") : "";
+    const displayName = (visibleItems(state.profile)[0]?.fullName) || user?.displayName || user?.username || "Portfolio";
+
+    const nav = `
+      <header class="preview-site-header">
+        <div class="preview-site-header-inner">
+          <div class="preview-site-brand">
+            <p class="preview-kicker">${publicUsername ? "Shared portfolio" : "Portfolio preview"}</p>
+            <h1 class="preview-site-title">${escapeHtml(displayName)}</h1>
+            <p class="preview-muted">A clean, public-facing portfolio view with no HubLife navigation.</p>
+          </div>
+          <div class="preview-header-actions">
+            ${canShare ? `<button id="preview-share-link-button" class="preview-action-button" type="button">Copy share link</button>` : ""}
+          </div>
+        </div>
+        <div class="preview-site-nav-wrap">
+          <nav class="preview-nav">
+            ${state.portfolioMenuItems.map((item) => `<a class="preview-nav-link ${item.id === selectedPageId ? "active" : ""}" href="?page=${encodeURIComponent(item.slug)}">${escapeHtml(item.label)}</a>`).join("")}
+          </nav>
+        </div>
+      </header>
+    `;
+
+    const sections = [...state.portfolioSectionLayout]
+      .filter((item) => item.enabled && item.pageId === selectedPageId)
+      .sort((a, b) => Number(a.order || 0) - Number(b.order || 0))
+      .map((item) => renderSectionByKey(item.key, state, user))
+      .join("");
+
+    root.innerHTML = `
+      ${nav}
+      <main class="preview-main-shell">
+        ${sections || emptySuggestion("No sections are assigned to this menu page yet. Go back to Portfolio Layout to move sections here.")}
+      </main>
+    `;
+
+    if (canShare) {
+      root.querySelector("#preview-share-link-button")?.addEventListener("click", () => copyShareLink(publicHref));
+    }
+  }
+
+  async function init() {
+    if (publicUsername) {
+      const payload = await loadPublicState(publicUsername);
+      renderPage(normalizeState(payload.state || {}), payload.user || { username: publicUsername, displayName: publicUsername });
+      return;
+    }
+
+    const [savedState, user] = await Promise.all([loadPrivateState(), loadMe()]);
+    renderPage(normalizeState(savedState || {}), user);
+  }
+
+  init();
+}
