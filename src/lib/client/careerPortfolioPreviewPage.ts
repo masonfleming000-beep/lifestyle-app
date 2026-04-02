@@ -169,6 +169,70 @@ export function initCareerPortfolioPreviewPage(config: CareerPortfolioPreviewCon
     return normalizeArray(items).filter((item) => item?.visible !== false);
   }
 
+  function normalizeFieldType(value, fallback = "text") {
+    const next = String(value || "").trim().toLowerCase();
+    return ["text", "textarea", "number", "date", "list", "link", "image", "video", "file"].includes(next) ? next : fallback;
+  }
+
+  function splitCustomFieldValue(value) {
+    return String(value || "")
+      .split("\n")
+      .map((item) => item.trim())
+      .filter(Boolean);
+  }
+
+  function isProbablyUrl(value) {
+    const text = String(value || "").trim();
+    return /^https?:\/\//i.test(text) || text.startsWith("/") || text.startsWith("mailto:");
+  }
+
+  function formatMultilineHtml(value) {
+    return escapeHtml(value || "—").replaceAll("\n", "<br />");
+  }
+
+  function renderCustomFieldValue(field) {
+    const type = normalizeFieldType(field?.type, "text");
+    const values = splitCustomFieldValue(field?.value);
+    if (type === "image") {
+      const media = values.length ? values : [field?.value || ""];
+      return `
+        <div class="preview-link-row">
+          ${media.filter(Boolean).map((value) => isProbablyUrl(value)
+            ? `<img src="${escapeHtml(value)}" alt="${escapeHtml(field?.label || "Image")}" style="width:100%;max-width:18rem;border-radius:0.9rem;border:1px solid rgba(15,23,42,0.08);object-fit:cover;" />`
+            : `<p>${escapeHtml(value)}</p>`).join("")}
+        </div>
+      `;
+    }
+    if (type === "link" || type === "video" || type === "file") {
+      const links = values.length ? values : [field?.value || ""];
+      return `<div class="preview-link-row">${links.filter(Boolean).map((value, index) => isProbablyUrl(value)
+        ? `<a class="preview-pill-link" href="${escapeHtml(value)}" target="_blank" rel="noreferrer">${escapeHtml(field?.label || type)} ${links.length > 1 ? index + 1 : ""}</a>`
+        : `<span class="preview-muted">${escapeHtml(value)}</span>`).join("")}</div>`;
+    }
+    if (type === "list") {
+      return values.length ? `<ul class="preview-bullet-list">${values.map((value) => `<li>${escapeHtml(value)}</li>`).join("")}</ul>` : "";
+    }
+    if (type === "date") {
+      return `<p>${escapeHtml(formatDate(field?.value || "") || field?.value || "—")}</p>`;
+    }
+    return `<p>${formatMultilineHtml(field?.value || "—")}</p>`;
+  }
+
+  function renderCustomFields(fields) {
+    const items = normalizeArray(fields).filter((field) => field?.label || field?.value);
+    if (!items.length) return "";
+    return `
+      <div class="preview-custom-fields">
+        ${items.map((field) => `
+          <div class="preview-custom-field-item">
+            <p><strong>${escapeHtml(field?.label || "Field")}:</strong></p>
+            ${renderCustomFieldValue(field)}
+          </div>
+        `).join("")}
+      </div>
+    `;
+  }
+
   function emptySuggestion(text) {
     return `<article class="preview-empty-card"><p>${escapeHtml(text)}</p></article>`;
   }
@@ -207,6 +271,7 @@ export function initCareerPortfolioPreviewPage(config: CareerPortfolioPreviewCon
             <p class="preview-profile-headline">${escapeHtml(headline)}</p>
             <p class="preview-profile-description">${escapeHtml(description)}</p>
             ${linkButtons}
+            ${renderCustomFields(profile.customFields)}
           </div>
         </div>
       </section>
@@ -231,6 +296,7 @@ export function initCareerPortfolioPreviewPage(config: CareerPortfolioPreviewCon
             </div>
           </div>
           ${resume.note ? `<p>${escapeHtml(resume.note)}</p>` : ""}
+          ${renderCustomFields(resume.customFields)}
           ${isPdf(resume) && resume.fileUrl ? `<div class="preview-resume-frame-wrap"><iframe class="preview-resume-frame" src="${escapeHtml(resume.fileUrl)}" title="Resume Preview"></iframe></div>` : ""}
         </article>
       `
@@ -263,7 +329,7 @@ export function initCareerPortfolioPreviewPage(config: CareerPortfolioPreviewCon
     return renderCardsSection(
       title,
       items,
-      (item) => `<article class="preview-card"><h3>${escapeHtml(item.title || title)}</h3><p>${escapeHtml(item.body || "")}</p></article>`,
+      (item) => `<article class="preview-card"><h3>${escapeHtml(item.title || title)}</h3><p>${escapeHtml(item.body || "")}</p>${renderCustomFields(item.customFields)}</article>`,
       emptyText
     );
   }
@@ -282,6 +348,7 @@ export function initCareerPortfolioPreviewPage(config: CareerPortfolioPreviewCon
             ${formatRange(item.startDate, item.endDate) ? `<p class="preview-muted">${escapeHtml(formatRange(item.startDate, item.endDate))}</p>` : ""}
             ${item.summary ? `<p>${escapeHtml(item.summary)}</p>` : ""}
             ${item.bullets?.length ? `<ul class="preview-bullet-list">${item.bullets.map((bullet) => `<li>${escapeHtml(bullet)}</li>`).join("")}</ul>` : ""}
+            ${renderCustomFields(item.customFields)}
           </article>
         `,
         "Add work experience on the Information page or hide this section."
@@ -297,6 +364,7 @@ export function initCareerPortfolioPreviewPage(config: CareerPortfolioPreviewCon
             <p class="preview-muted">${escapeHtml(item.organization || "")}${item.date ? ` · ${escapeHtml(item.date)}` : ""}</p>
             ${item.summary ? `<p>${escapeHtml(item.summary)}</p>` : ""}
             ${item.bullets?.length ? `<ul class="preview-bullet-list">${item.bullets.map((bullet) => `<li>${escapeHtml(bullet)}</li>`).join("")}</ul>` : ""}
+            ${renderCustomFields(item.customFields)}
           </article>
         `,
         "Add leadership experience on the Information page or hide this section."
@@ -313,6 +381,7 @@ export function initCareerPortfolioPreviewPage(config: CareerPortfolioPreviewCon
             ${item.description ? `<p>${escapeHtml(item.description)}</p>` : ""}
             ${item.skills ? `<p><strong>Skills:</strong> ${escapeHtml(item.skills)}</p>` : ""}
             ${item.link ? `<a class="preview-inline-link" href="${escapeHtml(item.link)}" target="_blank" rel="noreferrer">Open project</a>` : ""}
+            ${renderCustomFields(item.customFields)}
           </article>
         `,
         "Add projects on the Information page or hide this section."
@@ -327,6 +396,7 @@ export function initCareerPortfolioPreviewPage(config: CareerPortfolioPreviewCon
             <h3>${escapeHtml(item.name || "Organization")}</h3>
             <p class="preview-muted">${escapeHtml(item.role || "")}${item.date ? ` · ${escapeHtml(item.date)}` : ""}</p>
             ${item.description ? `<p>${escapeHtml(item.description)}</p>` : ""}
+            ${renderCustomFields(item.customFields)}
           </article>
         `,
         "Add organizations on the Information page or hide this section."
@@ -342,6 +412,7 @@ export function initCareerPortfolioPreviewPage(config: CareerPortfolioPreviewCon
             <h3 class="preview-stat-value">${escapeHtml(item.value || "—")}</h3>
             ${item.issuer || item.date ? `<p class="preview-muted">${escapeHtml(item.issuer || "")}${item.date ? ` · ${escapeHtml(item.date)}` : ""}</p>` : ""}
             ${item.description ? `<p>${escapeHtml(item.description)}</p>` : ""}
+            ${renderCustomFields(item.customFields)}
           </article>
         `,
         "Add honors or awards on the Information page or hide this section."
@@ -357,6 +428,7 @@ export function initCareerPortfolioPreviewPage(config: CareerPortfolioPreviewCon
             <p class="preview-muted">${escapeHtml(item.issuer || "")}${item.date ? ` · ${escapeHtml(item.date)}` : ""}</p>
             ${item.credentialId ? `<p><strong>Credential ID:</strong> ${escapeHtml(item.credentialId)}</p>` : ""}
             ${item.link ? `<a class="preview-inline-link" href="${escapeHtml(item.link)}" target="_blank" rel="noreferrer">View credential</a>` : ""}
+            ${renderCustomFields(item.customFields)}
           </article>
         `,
         "Add licenses or certificates on the Information page or hide this section."
@@ -379,21 +451,22 @@ export function initCareerPortfolioPreviewPage(config: CareerPortfolioPreviewCon
               <a class="preview-contact-button" href="${escapeHtml(href)}" target="_blank" rel="noreferrer">${escapeHtml(contact?.label || `Contact via ${method}`)}</a>
             </div>
             <p class="preview-muted">${escapeHtml(value)}</p>
+            ${renderCustomFields(contact?.customFields)}
           </article>
         `
         : emptySuggestion("Choose a preferred contact method on the Information page or hide this section.");
       return renderSectionShell("Get in touch", body, true, value ? method : "Open");
     }
-    if (key === "school") return renderCardsSection("School Development", state.school, (item) => `<article class="preview-card"><h3>${escapeHtml(item.title || "School Development")}</h3><p class="preview-muted">${escapeHtml(item.prof || "")}${item.stage ? ` · ${escapeHtml(item.stage)}` : ""}</p>${item.helped ? `<p><strong>Helped with:</strong> ${escapeHtml(item.helped)}</p>` : ""}${item.relevance ? `<p><strong>Relevance:</strong> ${escapeHtml(item.relevance)}</p>` : ""}${item.notes ? `<p>${escapeHtml(item.notes)}</p>` : ""}</article>`, "Add school development content on the Information page or hide this section.");
+    if (key === "school") return renderCardsSection("School Development", state.school, (item) => `<article class="preview-card"><h3>${escapeHtml(item.title || "School Development")}</h3><p class="preview-muted">${escapeHtml(item.prof || "")}${item.stage ? ` · ${escapeHtml(item.stage)}` : ""}</p>${item.helped ? `<p><strong>Helped with:</strong> ${escapeHtml(item.helped)}</p>` : ""}${item.relevance ? `<p><strong>Relevance:</strong> ${escapeHtml(item.relevance)}</p>` : ""}${item.notes ? `<p>${escapeHtml(item.notes)}</p>` : ""}${renderCustomFields(item.customFields)}</article>`, "Add school development content on the Information page or hide this section.");
     if (key === "about") return renderTextSection("About / Story", state.about, "Add about content on the Information page or hide this section.");
     if (key === "looking") return renderTextSection("What I'm Looking For", state.looking, "Add looking-for content on the Information page or hide this section.");
     if (key === "pitch") return renderTextSection("Pitch", state.pitch, "Add pitch content on the Information page or hide this section.");
     if (key === "timelineItems") {
       const items = [...visibleItems(state.timelineItems)].sort((a, b) => String(a.date || "9999-12-31").localeCompare(String(b.date || "9999-12-31")));
-      return renderCardsSection("Timeline", items, (item) => `<article class="preview-card"><p class="preview-muted">${escapeHtml(formatDate(item.date) || "")}</p><h3>${escapeHtml(item.title || "Timeline item")}</h3>${item.description ? `<p>${escapeHtml(item.description)}</p>` : ""}</article>`, "Add timeline entries on the Information page or hide this section.");
+      return renderCardsSection("Timeline", items, (item) => `<article class="preview-card"><p class="preview-muted">${escapeHtml(formatDate(item.date) || "")}</p><h3>${escapeHtml(item.title || "Timeline item")}</h3>${item.description ? `<p>${escapeHtml(item.description)}</p>` : ""}${renderCustomFields(item.customFields)}</article>`, "Add timeline entries on the Information page or hide this section.");
     }
-    if (key === "recommendations") return renderCardsSection("Recommendations", state.recommendations, (item) => `<article class="preview-card"><h3>${escapeHtml(item.title || item.owner || "Recommendation")}</h3>${item.owner ? `<p class="preview-muted">${escapeHtml(item.owner)}</p>` : ""}${item.body ? `<p>${escapeHtml(item.body)}</p>` : ""}</article>`, "Add recommendations on the Information page or hide this section.");
-    if (key === "star") return renderCardsSection("STAR Moments", state.star, (item) => `<article class="preview-card"><h3>${escapeHtml(item.title || "STAR Example")}</h3><p><strong>Situation:</strong> ${escapeHtml(item.situation || "—")}</p><p><strong>Task:</strong> ${escapeHtml(item.task || "—")}</p><p><strong>Action:</strong> ${escapeHtml(item.action || "—")}</p><p><strong>Result:</strong> ${escapeHtml(item.result || "—")}</p></article>`, "Add STAR moments on the Information page or hide this section.");
+    if (key === "recommendations") return renderCardsSection("Recommendations", state.recommendations, (item) => `<article class="preview-card"><h3>${escapeHtml(item.title || item.owner || "Recommendation")}</h3>${item.owner ? `<p class="preview-muted">${escapeHtml(item.owner)}</p>` : ""}${item.body ? `<p>${escapeHtml(item.body)}</p>` : ""}${renderCustomFields(item.customFields)}</article>`, "Add recommendations on the Information page or hide this section.");
+    if (key === "star") return renderCardsSection("STAR Moments", state.star, (item) => `<article class="preview-card"><h3>${escapeHtml(item.title || "STAR Example")}</h3><p><strong>Situation:</strong> ${escapeHtml(item.situation || "—")}</p><p><strong>Task:</strong> ${escapeHtml(item.task || "—")}</p><p><strong>Action:</strong> ${escapeHtml(item.action || "—")}</p><p><strong>Result:</strong> ${escapeHtml(item.result || "—")}</p>${renderCustomFields(item.customFields)}</article>`, "Add STAR moments on the Information page or hide this section.");
     return "";
   }
 

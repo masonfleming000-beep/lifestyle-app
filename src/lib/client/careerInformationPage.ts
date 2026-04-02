@@ -78,6 +78,234 @@ export function initCareerInformationPage(config: CareerInformationClientConfig)
     }));
   }
 
+  const CUSTOM_FIELD_TYPES = [
+    { value: "text", label: "Text" },
+    { value: "textarea", label: "Long text" },
+    { value: "number", label: "Number" },
+    { value: "date", label: "Date" },
+    { value: "list", label: "List" },
+    { value: "link", label: "Link" },
+    { value: "image", label: "Image" },
+    { value: "video", label: "Video" },
+    { value: "file", label: "File" },
+  ];
+  const CUSTOM_FIELD_TYPE_SET = new Set(CUSTOM_FIELD_TYPES.map((item) => item.value));
+  const PROJECT_EXTRA_FIELD_OPTIONS = [
+    { key: "date", label: "Date", type: "date" },
+    { key: "status", label: "Status", type: "text" },
+    { key: "type", label: "Type", type: "text" },
+    { key: "team-members", label: "Team / Members", type: "list" },
+    { key: "goal", label: "Goal", type: "textarea" },
+    { key: "problem", label: "Problem", type: "textarea" },
+    { key: "approach", label: "Approach", type: "textarea" },
+    { key: "diagrams", label: "Diagrams", type: "image" },
+    { key: "components", label: "Components", type: "list" },
+    { key: "process", label: "Process", type: "textarea" },
+    { key: "challenges", label: "Challenges", type: "textarea" },
+    { key: "results", label: "Results", type: "textarea" },
+    { key: "impact", label: "Impact", type: "textarea" },
+    { key: "limitations", label: "Limitations", type: "textarea" },
+    { key: "next-steps", label: "Next Steps", type: "textarea" },
+    { key: "images", label: "Images", type: "image" },
+    { key: "videos", label: "Videos", type: "video" },
+    { key: "files", label: "Files", type: "file" },
+  ];
+  const PROJECT_EXTRA_FIELD_MAP = Object.fromEntries(PROJECT_EXTRA_FIELD_OPTIONS.map((item) => [item.key, item]));
+
+  function normalizeFieldType(value, fallback = "text") {
+    const next = String(value || "").trim().toLowerCase();
+    return CUSTOM_FIELD_TYPE_SET.has(next) ? next : fallback;
+  }
+
+  function normalizeCustomFields(fields) {
+    return normalizeArray(fields).map((field, index) => {
+      const rawLabel = String(field?.label || field?.name || field?.title || "").trim();
+      const rawKey = String(field?.key || "").trim();
+      const key = slugify(rawKey || rawLabel || `field-${index + 1}`);
+      const preset = PROJECT_EXTRA_FIELD_MAP[key];
+      const value = Array.isArray(field?.value)
+        ? field.value.filter(Boolean).join("\n")
+        : String(field?.value || "");
+      return {
+        id: field?.id || makeId(`field-${key || index}`),
+        key: key || `field-${index + 1}`,
+        label: rawLabel || preset?.label || `Field ${index + 1}`,
+        type: normalizeFieldType(field?.type, preset?.type || "text"),
+        value,
+      };
+    }).filter((field) => field.label || field.value);
+  }
+
+  function splitCustomFieldValue(value) {
+    return String(value || "")
+      .split("\n")
+      .map((item) => item.trim())
+      .filter(Boolean);
+  }
+
+  function isProbablyUrl(value) {
+    const text = String(value || "").trim();
+    return /^https?:\/\//i.test(text) || text.startsWith("/") || text.startsWith("mailto:");
+  }
+
+  function formatMultilineHtml(value) {
+    return escapeHtml(value || "—").replaceAll("\n", "<br />");
+  }
+
+  function customFieldTypeOptions(selectedType) {
+    const type = normalizeFieldType(selectedType, "text");
+    return CUSTOM_FIELD_TYPES.map((item) => `<option value="${item.value}" ${item.value === type ? "selected" : ""}>${item.label}</option>`).join("");
+  }
+
+  function customFieldPlaceholder(type) {
+    if (type === "date") return "Select a date";
+    if (type === "number") return "Enter a number";
+    if (type === "list") return "One item per line";
+    if (type === "link") return "Paste one link per line";
+    if (type === "image") return "Paste one image URL per line";
+    if (type === "video") return "Paste one video URL per line";
+    if (type === "file") return "Paste one file URL or file name per line";
+    if (type === "textarea") return "Enter details";
+    return "Enter value";
+  }
+
+  function buildCustomFieldValueControl(field) {
+    const type = normalizeFieldType(field?.type, "text");
+    const value = escapeHtml(field?.value || "");
+    const label = type === "link" || type === "image" || type === "video" || type === "file" ? "Value / URL(s)" : "Value";
+    if (type === "textarea" || type === "list" || type === "link" || type === "image" || type === "video" || type === "file") {
+      return `
+        <label class="edu-label dynamic-form-full">
+          <span>${label}</span>
+          <textarea data-role="field-value" class="form-textarea" placeholder="${escapeHtml(customFieldPlaceholder(type))}">${value}</textarea>
+        </label>
+      `;
+    }
+    return `
+      <label class="edu-label dynamic-form-full">
+        <span>${label}</span>
+        <input data-role="field-value" type="${type === "date" || type === "number" ? type : "text"}" class="form-input" value="${value}" placeholder="${escapeHtml(customFieldPlaceholder(type))}" />
+      </label>
+    `;
+  }
+
+  function buildCustomFieldCard(field) {
+    const normalized = normalizeCustomFields([field])[0] || {
+      id: makeId("field"),
+      key: slugify(field?.key || field?.label || "field"),
+      label: field?.label || "",
+      type: normalizeFieldType(field?.type, "text"),
+      value: String(field?.value || ""),
+    };
+    return `
+      <div class="custom-field-card" data-custom-field-id="${escapeHtml(normalized.id)}" data-field-key="${escapeHtml(normalized.key)}">
+        <div class="custom-field-card-top">
+          <label class="edu-label">
+            <span>Field name</span>
+            <input data-role="field-label" class="form-input" value="${escapeHtml(normalized.label)}" placeholder="Field label" />
+          </label>
+          <label class="edu-label">
+            <span>Data type</span>
+            <select data-role="field-type" class="form-input">${customFieldTypeOptions(normalized.type)}</select>
+          </label>
+          <div class="custom-field-remove-wrap">
+            <button type="button" class="button-secondary career-inline-button career-inline-button-mini" data-action="remove-custom-field">Remove</button>
+          </div>
+        </div>
+        <div data-role="field-value-wrap">
+          ${buildCustomFieldValueControl(normalized)}
+        </div>
+      </div>
+    `;
+  }
+
+  function availableProjectExtraFields(selectedKeys = []) {
+    const selected = new Set(selectedKeys);
+    return PROJECT_EXTRA_FIELD_OPTIONS.filter((item) => !selected.has(item.key));
+  }
+
+  function buildCustomFieldsManager(group, fields = []) {
+    const normalizedFields = normalizeCustomFields(fields);
+    const availableOptions = group === "projects"
+      ? availableProjectExtraFields(normalizedFields.map((field) => field.key))
+      : [];
+    return `
+      <div class="custom-field-manager" data-custom-field-group="${escapeHtml(group)}">
+        <div class="custom-field-toolbar">
+          <div>
+            <p class="field-hint custom-field-helper">${escapeHtml(group === "projects"
+              ? "Default project inputs stay the same. Add any extra project field or a fully custom field below, and it will carry into the portfolio preview."
+              : "Add a custom field if you want to save extra information like links, files, images, videos, lists, or notes for this section.")}</p>
+          </div>
+          <div class="custom-field-toolbar-actions">
+            ${group === "projects" ? `
+              <select class="form-input custom-field-picker" data-role="project-field-picker">
+                ${availableOptions.length
+                  ? availableOptions.map((item) => `<option value="${escapeHtml(item.key)}">${escapeHtml(item.label)}</option>`).join("")
+                  : `<option value="">All extra project fields already added</option>`}
+              </select>
+              <button type="button" class="button-secondary career-inline-button" data-action="add-project-field">Add field</button>
+            ` : ""}
+            <button type="button" class="button-secondary career-inline-button" data-action="add-custom-field">${group === "projects" ? "Add custom field" : "Add field"}</button>
+          </div>
+        </div>
+        <div class="custom-field-list" data-custom-field-list>
+          ${normalizedFields.length ? normalizedFields.map((field) => buildCustomFieldCard(field)).join("") : `<p class="field-hint custom-field-empty">No extra fields added yet.</p>`}
+        </div>
+      </div>
+    `;
+  }
+
+  function renderCustomFieldValue(field) {
+    const type = normalizeFieldType(field?.type, "text");
+    const values = splitCustomFieldValue(field?.value);
+    if (type === "image") {
+      const media = values.length ? values : [field?.value || ""];
+      return `
+        <div class="custom-field-media-grid">
+          ${media.filter(Boolean).map((value) => isProbablyUrl(value)
+            ? `<img class="custom-field-media" src="${escapeHtml(value)}" alt="${escapeHtml(field?.label || "Image")}" />`
+            : `<p>${escapeHtml(value)}</p>`).join("")}
+        </div>
+      `;
+    }
+    if (type === "link" || type === "video" || type === "file") {
+      const links = values.length ? values : [field?.value || ""];
+      return `
+        <div class="resume-link-row">
+          ${links.filter(Boolean).map((value, index) => isProbablyUrl(value)
+            ? `<a class="button-secondary career-inline-button career-inline-button-mini" href="${escapeHtml(value)}" target="_blank" rel="noreferrer">${escapeHtml(field?.label || type)} ${links.length > 1 ? index + 1 : ""}</a>`
+            : `<span>${escapeHtml(value)}</span>`).join("")}
+        </div>
+      `;
+    }
+    if (type === "list") {
+      return buildBullets(values);
+    }
+    if (type === "date") {
+      return `<p>${escapeHtml(formatDate(field?.value || "") || field?.value || "—")}</p>`;
+    }
+    if (type === "textarea") {
+      return `<p>${formatMultilineHtml(field?.value || "—")}</p>`;
+    }
+    return `<p>${formatMultilineHtml(field?.value || "—")}</p>`;
+  }
+
+  function buildCustomFieldsBlock(fields) {
+    const normalized = normalizeCustomFields(fields);
+    if (!normalized.length) return "";
+    return `
+      <div class="custom-field-output">
+        ${normalized.map((field) => `
+          <div class="custom-field-output-item">
+            <p><strong>${escapeHtml(field.label || "Field")}:</strong></p>
+            ${renderCustomFieldValue(field)}
+          </div>
+        `).join("")}
+      </div>
+    `;
+  }
+
   function normalizeData(raw) {
     const parsed = raw && typeof raw === "object" ? raw : {};
     const defaults = cloneDefaults();
@@ -91,6 +319,7 @@ export function initCareerInformationPage(config: CareerInformationClientConfig)
         description: item?.description || "",
         photoUrl: item?.photoUrl || "",
         visible: normalizeBoolean(item?.visible, true),
+        customFields: normalizeCustomFields(item?.customFields || item?.extraFields),
       })),
       externalLinks: normalizeArray(parsed.externalLinks).map((item) => ({
         id: item?.id || makeId("link"),
@@ -98,6 +327,7 @@ export function initCareerInformationPage(config: CareerInformationClientConfig)
         label: item?.label || "",
         url: item?.url || "",
         visible: normalizeBoolean(item?.visible, true),
+        customFields: normalizeCustomFields(item?.customFields || item?.extraFields),
       })),
       experience: normalizeArray(parsed.experience).map((item) => ({
         id: item?.id || makeId("experience"),
@@ -113,6 +343,7 @@ export function initCareerInformationPage(config: CareerInformationClientConfig)
           ? item.responsibilities.filter(Boolean)
           : splitLines(item?.responsibilities),
         visible: normalizeBoolean(item?.visible, true),
+        customFields: normalizeCustomFields(item?.customFields || item?.extraFields),
       })),
       leadership: normalizeArray(parsed.leadership).map((item) => ({
         id: item?.id || makeId("leadership"),
@@ -122,6 +353,7 @@ export function initCareerInformationPage(config: CareerInformationClientConfig)
         summary: item?.summary || "",
         bullets: Array.isArray(item?.bullets) ? item.bullets.filter(Boolean) : splitLines(item?.bullets),
         visible: normalizeBoolean(item?.visible, true),
+        customFields: normalizeCustomFields(item?.customFields || item?.extraFields),
       })),
       projects: normalizeArray(parsed.projects).map((item) => ({
         id: item?.id || makeId("project"),
@@ -131,6 +363,7 @@ export function initCareerInformationPage(config: CareerInformationClientConfig)
         skills: item?.skills || item?.parts || "",
         link: item?.link || "",
         visible: normalizeBoolean(item?.visible, true),
+        customFields: normalizeCustomFields(item?.customFields || item?.extraFields),
       })),
       organizations: normalizeArray(parsed.organizations).map((item) => ({
         id: item?.id || makeId("organization"),
@@ -139,6 +372,7 @@ export function initCareerInformationPage(config: CareerInformationClientConfig)
         date: item?.date || "",
         description: item?.description || "",
         visible: normalizeBoolean(item?.visible, true),
+        customFields: normalizeCustomFields(item?.customFields || item?.extraFields),
       })),
       honors: normalizeArray(parsed.honors || parsed.stats).map((item) => ({
         id: item?.id || makeId("honor"),
@@ -148,6 +382,7 @@ export function initCareerInformationPage(config: CareerInformationClientConfig)
         date: item?.date || "",
         description: item?.description || "",
         visible: normalizeBoolean(item?.visible, true),
+        customFields: normalizeCustomFields(item?.customFields || item?.extraFields),
       })),
       licenses: normalizeArray(parsed.licenses).map((item) => ({
         id: item?.id || makeId("license"),
@@ -157,6 +392,7 @@ export function initCareerInformationPage(config: CareerInformationClientConfig)
         credentialId: item?.credentialId || "",
         link: item?.link || "",
         visible: normalizeBoolean(item?.visible, true),
+        customFields: normalizeCustomFields(item?.customFields || item?.extraFields),
       })),
       contact: normalizeArray(parsed.contact).slice(0, 1).map((item) => ({
         id: item?.id || makeId("contact"),
@@ -165,6 +401,7 @@ export function initCareerInformationPage(config: CareerInformationClientConfig)
         label: item?.label || "",
         note: item?.note || "",
         visible: normalizeBoolean(item?.visible, true),
+        customFields: normalizeCustomFields(item?.customFields || item?.extraFields),
       })),
       resume: normalizeArray(parsed.resume).slice(0, 1).map((item) => ({
         id: item?.id || makeId("resume"),
@@ -175,6 +412,7 @@ export function initCareerInformationPage(config: CareerInformationClientConfig)
         fileUrl: item?.fileUrl || "",
         note: item?.note || "",
         visible: normalizeBoolean(item?.visible, true),
+        customFields: normalizeCustomFields(item?.customFields || item?.extraFields),
       })),
       school: normalizeArray(parsed.school).map((item) => ({
         id: item?.id || makeId("school"),
@@ -185,24 +423,28 @@ export function initCareerInformationPage(config: CareerInformationClientConfig)
         stage: item?.stage || "",
         notes: item?.notes || "",
         visible: normalizeBoolean(item?.visible, true),
+        customFields: normalizeCustomFields(item?.customFields || item?.extraFields),
       })),
       about: normalizeArray(parsed.about).map((item) => ({
         id: item?.id || makeId("about"),
         title: item?.title || "About Me",
         body: item?.body || "",
         visible: normalizeBoolean(item?.visible, true),
+        customFields: normalizeCustomFields(item?.customFields || item?.extraFields),
       })),
       looking: normalizeArray(parsed.looking).map((item) => ({
         id: item?.id || makeId("looking"),
         title: item?.title || "What I'm Looking For",
         body: item?.body || "",
         visible: normalizeBoolean(item?.visible, true),
+        customFields: normalizeCustomFields(item?.customFields || item?.extraFields),
       })),
       pitch: normalizeArray(parsed.pitch).map((item) => ({
         id: item?.id || makeId("pitch"),
         title: item?.title || "Pitch",
         body: item?.body || "",
         visible: normalizeBoolean(item?.visible, true),
+        customFields: normalizeCustomFields(item?.customFields || item?.extraFields),
       })),
       timelineItems: normalizeArray(parsed.timelineItems || parsed.timeline).map((item) => ({
         id: item?.id || makeId("timeline"),
@@ -210,6 +452,7 @@ export function initCareerInformationPage(config: CareerInformationClientConfig)
         date: item?.date || "",
         description: item?.description || "",
         visible: normalizeBoolean(item?.visible, true),
+        customFields: normalizeCustomFields(item?.customFields || item?.extraFields),
       })),
       recommendations: normalizeArray(parsed.recommendations).map((item) => ({
         id: item?.id || makeId("recommendation"),
@@ -217,6 +460,7 @@ export function initCareerInformationPage(config: CareerInformationClientConfig)
         body: item?.body || "",
         owner: item?.owner || "",
         visible: normalizeBoolean(item?.visible, true),
+        customFields: normalizeCustomFields(item?.customFields || item?.extraFields),
       })),
       star: normalizeArray(parsed.star).map((item) => ({
         id: item?.id || makeId("star"),
@@ -226,6 +470,7 @@ export function initCareerInformationPage(config: CareerInformationClientConfig)
         action: item?.action || "",
         result: item?.result || "",
         visible: normalizeBoolean(item?.visible, true),
+        customFields: normalizeCustomFields(item?.customFields || item?.extraFields),
       })),
       portfolioMenuItems: normalizeArray(parsed.portfolioMenuItems).length
         ? normalizeArray(parsed.portfolioMenuItems).map((item, index) => ({
@@ -419,6 +664,7 @@ export function initCareerInformationPage(config: CareerInformationClientConfig)
           <label class="edu-label"><span>Description</span><textarea id="dynamic-profile-description" class="form-textarea" placeholder="Short intro for your portfolio">${escapeHtml(item.description || "")}</textarea></label>
           <label class="check-row"><input id="dynamic-profile-visible" type="checkbox" ${item.visible !== false ? "checked" : ""} /><span>Show in portfolio</span></label>
         </div>
+        ${buildCustomFieldsManager("profile", item.customFields)}
       `,
       "dynamic-save-profile-btn",
       "Save Profile Basics"
@@ -435,6 +681,7 @@ export function initCareerInformationPage(config: CareerInformationClientConfig)
           <label class="edu-label dynamic-form-full"><span>URL or email</span><input id="dynamic-link-url" class="form-input" placeholder="https://... or hello@example.com" /></label>
           <label class="check-row dynamic-form-full"><input id="dynamic-link-visible" type="checkbox" checked /><span>Show in portfolio</span></label>
         </div>
+        ${buildCustomFieldsManager("externalLinks")}
       `,
       "dynamic-save-link-btn",
       "Add External Link"
@@ -455,6 +702,7 @@ export function initCareerInformationPage(config: CareerInformationClientConfig)
           <label class="edu-label dynamic-form-full"><span>Bullets (one per line)</span><textarea id="dynamic-exp-bullets" class="form-textarea" placeholder="Led...&#10;Built...&#10;Improved..."></textarea></label>
           <label class="check-row dynamic-form-full"><input id="dynamic-exp-visible" type="checkbox" checked /><span>Show in portfolio</span></label>
         </div>
+        ${buildCustomFieldsManager("experience")}
       `,
       "dynamic-save-exp-btn",
       "Save Work Experience"
@@ -473,6 +721,7 @@ export function initCareerInformationPage(config: CareerInformationClientConfig)
           <label class="edu-label dynamic-form-full"><span>Bullets (one per line)</span><textarea id="dynamic-leadership-bullets" class="form-textarea" placeholder="Managed...&#10;Organized...&#10;Mentored..."></textarea></label>
           <label class="check-row dynamic-form-full"><input id="dynamic-leadership-visible" type="checkbox" checked /><span>Show in portfolio</span></label>
         </div>
+        ${buildCustomFieldsManager("leadership")}
       `,
       "dynamic-save-leadership-btn",
       "Save Leadership Experience"
@@ -491,6 +740,7 @@ export function initCareerInformationPage(config: CareerInformationClientConfig)
           <label class="edu-label"><span>Link</span><input id="dynamic-project-link" class="form-input" placeholder="https://..." /></label>
           <label class="check-row dynamic-form-full"><input id="dynamic-project-visible" type="checkbox" checked /><span>Show in portfolio</span></label>
         </div>
+        ${buildCustomFieldsManager("projects")}
       `,
       "dynamic-save-project-btn",
       "Save Project"
@@ -508,6 +758,7 @@ export function initCareerInformationPage(config: CareerInformationClientConfig)
           <label class="edu-label dynamic-form-full"><span>Description</span><textarea id="dynamic-organization-description" class="form-textarea" placeholder="How you're involved"></textarea></label>
           <label class="check-row dynamic-form-full"><input id="dynamic-organization-visible" type="checkbox" checked /><span>Show in portfolio</span></label>
         </div>
+        ${buildCustomFieldsManager("organizations")}
       `,
       "dynamic-save-organization-btn",
       "Save Organization"
@@ -526,6 +777,7 @@ export function initCareerInformationPage(config: CareerInformationClientConfig)
           <label class="edu-label dynamic-form-full"><span>Description</span><textarea id="dynamic-honor-description" class="form-textarea" placeholder="Optional extra context"></textarea></label>
           <label class="check-row dynamic-form-full"><input id="dynamic-honor-visible" type="checkbox" checked /><span>Show in portfolio</span></label>
         </div>
+        ${buildCustomFieldsManager("honors")}
       `,
       "dynamic-save-honor-btn",
       "Save Honor or Award"
@@ -544,6 +796,7 @@ export function initCareerInformationPage(config: CareerInformationClientConfig)
           <label class="edu-label dynamic-form-full"><span>Credential link</span><input id="dynamic-license-link" class="form-input" placeholder="https://..." /></label>
           <label class="check-row dynamic-form-full"><input id="dynamic-license-visible" type="checkbox" checked /><span>Show in portfolio</span></label>
         </div>
+        ${buildCustomFieldsManager("licenses")}
       `,
       "dynamic-save-license-btn",
       "Save License or Certificate"
@@ -562,6 +815,7 @@ export function initCareerInformationPage(config: CareerInformationClientConfig)
           <label class="edu-label"><span>Note</span><textarea id="dynamic-contact-note" class="form-textarea" placeholder="Optional note about response preference">${escapeHtml(item.note || "")}</textarea></label>
           <label class="check-row"><input id="dynamic-contact-visible" type="checkbox" ${item.visible !== false ? "checked" : ""} /><span>Show in portfolio</span></label>
         </div>
+        ${buildCustomFieldsManager("contact", item.customFields)}
       `,
       "dynamic-save-contact-btn",
       "Save Preferred Contact"
@@ -579,6 +833,7 @@ export function initCareerInformationPage(config: CareerInformationClientConfig)
           <label class="edu-label"><span>Notes</span><textarea id="dynamic-resume-note" class="form-textarea" placeholder="Optional note about this version">${escapeHtml(item.note || "")}</textarea></label>
           <label class="check-row"><input id="dynamic-resume-visible" type="checkbox" ${item.visible !== false ? "checked" : ""} /><span>Show in portfolio</span></label>
         </div>
+        ${buildCustomFieldsManager("resume", item.customFields)}
       `,
       "dynamic-save-resume-btn",
       "Upload + Save Resume"
@@ -598,6 +853,7 @@ export function initCareerInformationPage(config: CareerInformationClientConfig)
           <label class="edu-label dynamic-form-full"><span>Notes</span><textarea id="dynamic-school-notes" class="form-textarea" placeholder="Extra context"></textarea></label>
           <label class="check-row dynamic-form-full"><input id="dynamic-school-visible" type="checkbox" checked /><span>Show in portfolio</span></label>
         </div>
+        ${buildCustomFieldsManager("school")}
       `,
       "dynamic-save-school-btn",
       "Save School Development"
@@ -613,6 +869,7 @@ export function initCareerInformationPage(config: CareerInformationClientConfig)
           <label class="edu-label"><span>Body</span><textarea id="dynamic-${prefix}-body" class="form-textarea" placeholder="${escapeHtml(defaults.bodyPlaceholder)}"></textarea></label>
           <label class="check-row"><input id="dynamic-${prefix}-visible" type="checkbox" checked /><span>Show in portfolio</span></label>
         </div>
+        ${buildCustomFieldsManager(prefix)}
       `,
       `dynamic-save-${prefix}-btn`,
       defaults.buttonText
@@ -629,6 +886,7 @@ export function initCareerInformationPage(config: CareerInformationClientConfig)
           <label class="edu-label dynamic-form-full"><span>Description</span><textarea id="dynamic-timeline-description" class="form-textarea" placeholder="What happened"></textarea></label>
           <label class="check-row dynamic-form-full"><input id="dynamic-timeline-visible" type="checkbox" checked /><span>Show in portfolio</span></label>
         </div>
+        ${buildCustomFieldsManager("timelineItems")}
       `,
       "dynamic-save-timeline-btn",
       "Save Timeline Item"
@@ -645,6 +903,7 @@ export function initCareerInformationPage(config: CareerInformationClientConfig)
           <label class="edu-label"><span>Role / context</span><input id="dynamic-rec-owner" class="form-input" placeholder="Manager, professor, mentor" /></label>
           <label class="check-row"><input id="dynamic-rec-visible" type="checkbox" checked /><span>Show in portfolio</span></label>
         </div>
+        ${buildCustomFieldsManager("recommendations")}
       `,
       "dynamic-save-rec-btn",
       "Save Recommendation"
@@ -663,10 +922,144 @@ export function initCareerInformationPage(config: CareerInformationClientConfig)
           <label class="edu-label"><span>Result</span><textarea id="dynamic-star-result" class="form-textarea"></textarea></label>
           <label class="check-row"><input id="dynamic-star-visible" type="checkbox" checked /><span>Show in portfolio</span></label>
         </div>
+        ${buildCustomFieldsManager("star")}
       `,
       "dynamic-save-star-btn",
       "Save STAR Example"
     );
+  }
+
+
+  function createPresetProjectField(key) {
+    const preset = PROJECT_EXTRA_FIELD_MAP[key];
+    if (!preset) return null;
+    return {
+      id: makeId(`field-${preset.key}`),
+      key: preset.key,
+      label: preset.label,
+      type: preset.type,
+      value: "",
+    };
+  }
+
+  function createCustomField(group) {
+    const defaultType = group === "about" || group === "looking" || group === "pitch" ? "textarea" : "text";
+    return {
+      id: makeId("field"),
+      key: makeId(`field-${group}`),
+      label: "",
+      type: defaultType,
+      value: "",
+    };
+  }
+
+  function refreshCustomFieldEmptyState(manager) {
+    const list = manager?.querySelector("[data-custom-field-list]");
+    if (!list) return;
+    const hasCards = !!list.querySelector(".custom-field-card");
+    const empty = list.querySelector(".custom-field-empty");
+    if (!hasCards && !empty) {
+      list.innerHTML = '<p class="field-hint custom-field-empty">No extra fields added yet.</p>';
+    }
+    if (hasCards && empty) {
+      empty.remove();
+    }
+  }
+
+  function refreshProjectFieldPicker(manager) {
+    const picker = manager?.querySelector('[data-role="project-field-picker"]');
+    if (!picker) return;
+    const selectedKeys = [...manager.querySelectorAll('.custom-field-card')].map((card) => String(card.getAttribute('data-field-key') || '').trim()).filter(Boolean);
+    const options = availableProjectExtraFields(selectedKeys);
+    picker.innerHTML = options.length
+      ? options.map((item) => `<option value="${escapeHtml(item.key)}">${escapeHtml(item.label)}</option>`).join("")
+      : '<option value="">All extra project fields already added</option>';
+    picker.disabled = !options.length;
+  }
+
+  function updateCustomFieldValueWrap(card, type) {
+    const wrap = card?.querySelector('[data-role="field-value-wrap"]');
+    if (!wrap) return;
+    const previousValue = card.querySelector('[data-role="field-value"]')?.value || "";
+    wrap.innerHTML = buildCustomFieldValueControl({ type, value: previousValue });
+  }
+
+  function appendCustomFieldCard(manager, field) {
+    const list = manager?.querySelector('[data-custom-field-list]');
+    if (!list || !field) return;
+    list.insertAdjacentHTML('beforeend', buildCustomFieldCard(field));
+    refreshCustomFieldEmptyState(manager);
+    refreshProjectFieldPicker(manager);
+    bindCustomFieldActions(manager);
+    const cards = list.querySelectorAll('.custom-field-card');
+    cards[cards.length - 1]?.querySelector('[data-role="field-label"]')?.focus();
+  }
+
+  function collectCustomFields(group) {
+    const manager = document.querySelector(`[data-custom-field-group="${group}"]`);
+    if (!manager) return [];
+    return [...manager.querySelectorAll('.custom-field-card')].map((card, index) => {
+      const label = String(card.querySelector('[data-role="field-label"]')?.value || '').trim();
+      const type = normalizeFieldType(card.querySelector('[data-role="field-type"]')?.value, "text");
+      const value = String(card.querySelector('[data-role="field-value"]')?.value || '').trim();
+      const rawKey = String(card.getAttribute('data-field-key') || '').trim();
+      const key = slugify(rawKey || label || `field-${index + 1}`);
+      return {
+        id: card.getAttribute('data-custom-field-id') || makeId(`field-${key}`),
+        key,
+        label: label || PROJECT_EXTRA_FIELD_MAP[key]?.label || `Field ${index + 1}`,
+        type,
+        value,
+      };
+    }).filter((field) => field.label || field.value);
+  }
+
+  function bindCustomFieldActions(scope = document) {
+    scope.querySelectorAll('[data-action="add-project-field"]').forEach((button) => {
+      if (button.dataset.bound === 'true') return;
+      button.dataset.bound = 'true';
+      button.addEventListener('click', () => {
+        const manager = button.closest('[data-custom-field-group]');
+        const picker = manager?.querySelector('[data-role="project-field-picker"]');
+        const field = createPresetProjectField(picker?.value || '');
+        if (!field) return;
+        appendCustomFieldCard(manager, field);
+      });
+    });
+
+    scope.querySelectorAll('[data-action="add-custom-field"]').forEach((button) => {
+      if (button.dataset.bound === 'true') return;
+      button.dataset.bound = 'true';
+      button.addEventListener('click', () => {
+        const manager = button.closest('[data-custom-field-group]');
+        const group = manager?.getAttribute('data-custom-field-group') || 'custom';
+        appendCustomFieldCard(manager, createCustomField(group));
+      });
+    });
+
+    scope.querySelectorAll('[data-action="remove-custom-field"]').forEach((button) => {
+      if (button.dataset.bound === 'true') return;
+      button.dataset.bound = 'true';
+      button.addEventListener('click', () => {
+        const manager = button.closest('[data-custom-field-group]');
+        button.closest('.custom-field-card')?.remove();
+        refreshCustomFieldEmptyState(manager);
+        refreshProjectFieldPicker(manager);
+      });
+    });
+
+    scope.querySelectorAll('[data-role="field-type"]').forEach((select) => {
+      if (select.dataset.bound === 'true') return;
+      select.dataset.bound = 'true';
+      select.addEventListener('change', () => {
+        updateCustomFieldValueWrap(select.closest('.custom-field-card'), select.value);
+      });
+    });
+
+    scope.querySelectorAll('[data-custom-field-group]').forEach((manager) => {
+      refreshCustomFieldEmptyState(manager);
+      refreshProjectFieldPicker(manager);
+    });
   }
 
   function renderDynamicForm() {
@@ -710,6 +1103,7 @@ export function initCareerInformationPage(config: CareerInformationClientConfig)
     };
 
     area.innerHTML = map[select.value] ? map[select.value]() : "";
+    bindCustomFieldActions(area);
     bindDynamicFormActions();
   }
 
@@ -732,6 +1126,7 @@ export function initCareerInformationPage(config: CareerInformationClientConfig)
           description: getValue("dynamic-profile-description"),
           photoUrl,
           visible: getChecked("dynamic-profile-visible"),
+          customFields: collectCustomFields("profile"),
         }];
         await persistAndRefresh();
         renderDynamicForm();
@@ -750,6 +1145,7 @@ export function initCareerInformationPage(config: CareerInformationClientConfig)
         label: getValue("dynamic-link-label"),
         url,
         visible: getChecked("dynamic-link-visible"),
+        customFields: collectCustomFields("externalLinks"),
       });
       await persistAndRefresh();
       renderDynamicForm();
@@ -768,6 +1164,7 @@ export function initCareerInformationPage(config: CareerInformationClientConfig)
         summary: getValue("dynamic-exp-summary"),
         bullets: splitLines(getValue("dynamic-exp-bullets")),
         visible: getChecked("dynamic-exp-visible"),
+        customFields: collectCustomFields("experience"),
       });
       await persistAndRefresh();
       renderDynamicForm();
@@ -784,6 +1181,7 @@ export function initCareerInformationPage(config: CareerInformationClientConfig)
         summary: getValue("dynamic-leadership-summary"),
         bullets: splitLines(getValue("dynamic-leadership-bullets")),
         visible: getChecked("dynamic-leadership-visible"),
+        customFields: collectCustomFields("leadership"),
       });
       await persistAndRefresh();
       renderDynamicForm();
@@ -800,6 +1198,7 @@ export function initCareerInformationPage(config: CareerInformationClientConfig)
         skills: getValue("dynamic-project-skills"),
         link: getValue("dynamic-project-link"),
         visible: getChecked("dynamic-project-visible"),
+        customFields: collectCustomFields("projects"),
       });
       await persistAndRefresh();
       renderDynamicForm();
@@ -815,6 +1214,7 @@ export function initCareerInformationPage(config: CareerInformationClientConfig)
         date: getValue("dynamic-organization-date"),
         description: getValue("dynamic-organization-description"),
         visible: getChecked("dynamic-organization-visible"),
+        customFields: collectCustomFields("organizations"),
       });
       await persistAndRefresh();
       renderDynamicForm();
@@ -831,6 +1231,7 @@ export function initCareerInformationPage(config: CareerInformationClientConfig)
         date: getValue("dynamic-honor-date"),
         description: getValue("dynamic-honor-description"),
         visible: getChecked("dynamic-honor-visible"),
+        customFields: collectCustomFields("honors"),
       });
       await persistAndRefresh();
       renderDynamicForm();
@@ -847,6 +1248,7 @@ export function initCareerInformationPage(config: CareerInformationClientConfig)
         credentialId: getValue("dynamic-license-credentialId"),
         link: getValue("dynamic-license-link"),
         visible: getChecked("dynamic-license-visible"),
+        customFields: collectCustomFields("licenses"),
       });
       await persistAndRefresh();
       renderDynamicForm();
@@ -862,6 +1264,7 @@ export function initCareerInformationPage(config: CareerInformationClientConfig)
         label: getValue("dynamic-contact-label"),
         note: getValue("dynamic-contact-note"),
         visible: getChecked("dynamic-contact-visible"),
+        customFields: collectCustomFields("contact"),
       }];
       await persistAndRefresh();
     });
@@ -886,9 +1289,10 @@ export function initCareerInformationPage(config: CareerInformationClientConfig)
             fileUrl: uploaded.fileUrl || "",
             note,
             visible,
+            customFields: collectCustomFields("resume"),
           };
         } else {
-          nextResume = { ...nextResume, title, note, visible };
+          nextResume = { ...nextResume, title, note, visible, customFields: collectCustomFields("resume") };
         }
         data.resume = [nextResume];
         await persistAndRefresh();
@@ -911,6 +1315,7 @@ export function initCareerInformationPage(config: CareerInformationClientConfig)
         stage: getValue("dynamic-school-stage"),
         notes: getValue("dynamic-school-notes"),
         visible: getChecked("dynamic-school-visible"),
+        customFields: collectCustomFields("school"),
       });
       await persistAndRefresh();
       renderDynamicForm();
@@ -925,6 +1330,7 @@ export function initCareerInformationPage(config: CareerInformationClientConfig)
           title: getValue(`dynamic-${key}-title`) || key,
           body,
           visible: getChecked(`dynamic-${key}-visible`),
+          customFields: collectCustomFields(key),
         });
         await persistAndRefresh();
         renderDynamicForm();
@@ -940,6 +1346,7 @@ export function initCareerInformationPage(config: CareerInformationClientConfig)
         date: getValue("dynamic-timeline-date"),
         description: getValue("dynamic-timeline-description"),
         visible: getChecked("dynamic-timeline-visible"),
+        customFields: collectCustomFields("timelineItems"),
       });
       await persistAndRefresh();
       renderDynamicForm();
@@ -954,6 +1361,7 @@ export function initCareerInformationPage(config: CareerInformationClientConfig)
         body: getValue("dynamic-rec-body"),
         owner: getValue("dynamic-rec-owner"),
         visible: getChecked("dynamic-rec-visible"),
+        customFields: collectCustomFields("recommendations"),
       });
       await persistAndRefresh();
       renderDynamicForm();
@@ -970,6 +1378,7 @@ export function initCareerInformationPage(config: CareerInformationClientConfig)
         action: getValue("dynamic-star-action"),
         result: getValue("dynamic-star-result"),
         visible: getChecked("dynamic-star-visible"),
+        customFields: collectCustomFields("star"),
       });
       await persistAndRefresh();
       renderDynamicForm();
@@ -1008,52 +1417,53 @@ export function initCareerInformationPage(config: CareerInformationClientConfig)
 
   function buildSavedCard(group, item) {
     const top = buildVisibilityBadge(item);
+    const extra = buildCustomFieldsBlock(item?.customFields);
     if (group === "profile") {
-      return `${top}<h3 class="card-title">${escapeHtml(item.fullName || "Profile basics")}</h3><p><strong>Headline:</strong> ${escapeHtml(item.headline || "—")}</p><p>${escapeHtml(item.description || "—")}</p><p><strong>Professional photo:</strong> ${escapeHtml(item.photoUrl || "Using account avatar fallback")}</p>`;
+      return `${top}<h3 class="card-title">${escapeHtml(item.fullName || "Profile basics")}</h3><p><strong>Headline:</strong> ${escapeHtml(item.headline || "—")}</p><p>${escapeHtml(item.description || "—")}</p><p><strong>Professional photo:</strong> ${escapeHtml(item.photoUrl || "Using account avatar fallback")}</p>${extra}`;
     }
     if (group === "externalLinks") {
-      return `${top}<h3 class="card-title">${escapeHtml(item.label || item.type || "Link")}</h3><p><strong>Type:</strong> ${escapeHtml(item.type || "—")}</p><p><strong>URL / value:</strong> ${escapeHtml(item.url || "—")}</p>`;
+      return `${top}<h3 class="card-title">${escapeHtml(item.label || item.type || "Link")}</h3><p><strong>Type:</strong> ${escapeHtml(item.type || "—")}</p><p><strong>URL / value:</strong> ${escapeHtml(item.url || "—")}</p>${extra}`;
     }
     if (group === "experience") {
-      return `${top}<h3 class="card-title">${escapeHtml(item.role || "Experience")}</h3><p><strong>Company:</strong> ${escapeHtml(item.company || "—")}</p><p><strong>Location:</strong> ${escapeHtml(item.location || "—")}</p><p><strong>Dates:</strong> ${escapeHtml(item.startDate || "—")}${item.endDate ? ` → ${escapeHtml(item.endDate)}` : ""}</p><p>${escapeHtml(item.summary || "—")}</p><div><strong>Bullets:</strong>${buildBullets(item.bullets)}</div>`;
+      return `${top}<h3 class="card-title">${escapeHtml(item.role || "Experience")}</h3><p><strong>Company:</strong> ${escapeHtml(item.company || "—")}</p><p><strong>Location:</strong> ${escapeHtml(item.location || "—")}</p><p><strong>Dates:</strong> ${escapeHtml(item.startDate || "—")}${item.endDate ? ` → ${escapeHtml(item.endDate)}` : ""}</p><p>${escapeHtml(item.summary || "—")}</p><div><strong>Bullets:</strong>${buildBullets(item.bullets)}</div>${extra}`;
     }
     if (group === "leadership") {
-      return `${top}<h3 class="card-title">${escapeHtml(item.title || "Leadership")}</h3><p><strong>Organization:</strong> ${escapeHtml(item.organization || "—")}</p><p><strong>Date:</strong> ${escapeHtml(item.date || "—")}</p><p>${escapeHtml(item.summary || "—")}</p><div><strong>Bullets:</strong>${buildBullets(item.bullets)}</div>`;
+      return `${top}<h3 class="card-title">${escapeHtml(item.title || "Leadership")}</h3><p><strong>Organization:</strong> ${escapeHtml(item.organization || "—")}</p><p><strong>Date:</strong> ${escapeHtml(item.date || "—")}</p><p>${escapeHtml(item.summary || "—")}</p><div><strong>Bullets:</strong>${buildBullets(item.bullets)}</div>${extra}`;
     }
     if (group === "projects") {
-      return `${top}<h3 class="card-title">${escapeHtml(item.title || "Project")}</h3><p><strong>Subtitle:</strong> ${escapeHtml(item.subtitle || "—")}</p><p>${escapeHtml(item.description || "—")}</p><p><strong>Skills:</strong> ${escapeHtml(item.skills || "—")}</p>${item.link ? `<p><strong>Link:</strong> <a href="${escapeHtml(item.link)}" target="_blank" rel="noreferrer">${escapeHtml(item.link)}</a></p>` : ""}`;
+      return `${top}<h3 class="card-title">${escapeHtml(item.title || "Project")}</h3><p><strong>Subtitle:</strong> ${escapeHtml(item.subtitle || "—")}</p><p>${escapeHtml(item.description || "—")}</p><p><strong>Skills:</strong> ${escapeHtml(item.skills || "—")}</p>${item.link ? `<p><strong>Link:</strong> <a href="${escapeHtml(item.link)}" target="_blank" rel="noreferrer">${escapeHtml(item.link)}</a></p>` : ""}${extra}`;
     }
     if (group === "organizations") {
-      return `${top}<h3 class="card-title">${escapeHtml(item.name || "Organization")}</h3><p><strong>Role:</strong> ${escapeHtml(item.role || "—")}</p><p><strong>Date:</strong> ${escapeHtml(item.date || "—")}</p><p>${escapeHtml(item.description || "—")}</p>`;
+      return `${top}<h3 class="card-title">${escapeHtml(item.name || "Organization")}</h3><p><strong>Role:</strong> ${escapeHtml(item.role || "—")}</p><p><strong>Date:</strong> ${escapeHtml(item.date || "—")}</p><p>${escapeHtml(item.description || "—")}</p>${extra}`;
     }
     if (group === "honors") {
-      return `${top}<h3 class="card-title">${escapeHtml(item.title || "Honor")}</h3><p><strong>Value:</strong> ${escapeHtml(item.value || "—")}</p><p><strong>Issuer:</strong> ${escapeHtml(item.issuer || "—")}</p><p><strong>Date:</strong> ${escapeHtml(item.date || "—")}</p><p>${escapeHtml(item.description || "—")}</p>`;
+      return `${top}<h3 class="card-title">${escapeHtml(item.title || "Honor")}</h3><p><strong>Value:</strong> ${escapeHtml(item.value || "—")}</p><p><strong>Issuer:</strong> ${escapeHtml(item.issuer || "—")}</p><p><strong>Date:</strong> ${escapeHtml(item.date || "—")}</p><p>${escapeHtml(item.description || "—")}</p>${extra}`;
     }
     if (group === "licenses") {
-      return `${top}<h3 class="card-title">${escapeHtml(item.title || "License")}</h3><p><strong>Issuer:</strong> ${escapeHtml(item.issuer || "—")}</p><p><strong>Date:</strong> ${escapeHtml(item.date || "—")}</p><p><strong>Credential ID:</strong> ${escapeHtml(item.credentialId || "—")}</p>${item.link ? `<p><strong>Link:</strong> <a href="${escapeHtml(item.link)}" target="_blank" rel="noreferrer">${escapeHtml(item.link)}</a></p>` : ""}`;
+      return `${top}<h3 class="card-title">${escapeHtml(item.title || "License")}</h3><p><strong>Issuer:</strong> ${escapeHtml(item.issuer || "—")}</p><p><strong>Date:</strong> ${escapeHtml(item.date || "—")}</p><p><strong>Credential ID:</strong> ${escapeHtml(item.credentialId || "—")}</p>${item.link ? `<p><strong>Link:</strong> <a href="${escapeHtml(item.link)}" target="_blank" rel="noreferrer">${escapeHtml(item.link)}</a></p>` : ""}${extra}`;
     }
     if (group === "contact") {
-      return `${top}<h3 class="card-title">${escapeHtml(item.label || "Preferred contact")}</h3><p><strong>Method:</strong> ${escapeHtml(item.preferredMethod || "—")}</p><p><strong>Value:</strong> ${escapeHtml(item.value || "—")}</p><p>${escapeHtml(item.note || "—")}</p>`;
+      return `${top}<h3 class="card-title">${escapeHtml(item.label || "Preferred contact")}</h3><p><strong>Method:</strong> ${escapeHtml(item.preferredMethod || "—")}</p><p><strong>Value:</strong> ${escapeHtml(item.value || "—")}</p><p>${escapeHtml(item.note || "—")}</p>${extra}`;
     }
     if (group === "resume") {
-      return `${top}<h3 class="card-title">${escapeHtml(item.title || "Resume")}</h3><p><strong>File name:</strong> ${escapeHtml(item.fileName || "—")}</p><p><strong>File type:</strong> ${escapeHtml(item.fileType || "—")}</p><p><strong>File size:</strong> ${item.fileSize ? `${Math.round(item.fileSize / 1024)} KB` : "—"}</p><p><strong>Note:</strong> ${escapeHtml(item.note || "—")}</p>${buildResumeActions(item)}${buildResumePreview(item)}`;
+      return `${top}<h3 class="card-title">${escapeHtml(item.title || "Resume")}</h3><p><strong>File name:</strong> ${escapeHtml(item.fileName || "—")}</p><p><strong>File type:</strong> ${escapeHtml(item.fileType || "—")}</p><p><strong>File size:</strong> ${item.fileSize ? `${Math.round(item.fileSize / 1024)} KB` : "—"}</p><p><strong>Note:</strong> ${escapeHtml(item.note || "—")}</p>${buildResumeActions(item)}${buildResumePreview(item)}${extra}`;
     }
     if (group === "school") {
-      return `${top}<h3 class="card-title">${escapeHtml(item.title || "School Development")}</h3><p><strong>Professor:</strong> ${escapeHtml(item.prof || "—")}</p><p><strong>Helped with:</strong> ${escapeHtml(item.helped || "—")}</p><p><strong>Relevance:</strong> ${escapeHtml(item.relevance || "—")}</p><p><strong>Stage:</strong> ${escapeHtml(item.stage || "—")}</p><p><strong>Notes:</strong> ${escapeHtml(item.notes || "—")}</p>`;
+      return `${top}<h3 class="card-title">${escapeHtml(item.title || "School Development")}</h3><p><strong>Professor:</strong> ${escapeHtml(item.prof || "—")}</p><p><strong>Helped with:</strong> ${escapeHtml(item.helped || "—")}</p><p><strong>Relevance:</strong> ${escapeHtml(item.relevance || "—")}</p><p><strong>Stage:</strong> ${escapeHtml(item.stage || "—")}</p><p><strong>Notes:</strong> ${escapeHtml(item.notes || "—")}</p>${extra}`;
     }
     if (group === "about" || group === "looking" || group === "pitch") {
-      return `${top}<h3 class="card-title">${escapeHtml(item.title || group)}</h3><p>${escapeHtml(item.body || "—")}</p>`;
+      return `${top}<h3 class="card-title">${escapeHtml(item.title || group)}</h3><p>${escapeHtml(item.body || "—")}</p>${extra}`;
     }
     if (group === "timelineItems") {
-      return `${top}<h3 class="card-title">${escapeHtml(item.title || "Timeline item")}</h3><p><strong>Date:</strong> ${escapeHtml(formatDate(item.date))}</p><p>${escapeHtml(item.description || "—")}</p>`;
+      return `${top}<h3 class="card-title">${escapeHtml(item.title || "Timeline item")}</h3><p><strong>Date:</strong> ${escapeHtml(formatDate(item.date))}</p><p>${escapeHtml(item.description || "—")}</p>${extra}`;
     }
     if (group === "recommendations") {
-      return `${top}<h3 class="card-title">${escapeHtml(item.title || "Recommendation")}</h3><p><strong>Source:</strong> ${escapeHtml(item.owner || "—")}</p><p>${escapeHtml(item.body || "—")}</p>`;
+      return `${top}<h3 class="card-title">${escapeHtml(item.title || "Recommendation")}</h3><p><strong>Source:</strong> ${escapeHtml(item.owner || "—")}</p><p>${escapeHtml(item.body || "—")}</p>${extra}`;
     }
     if (group === "star") {
-      return `${top}<h3 class="card-title">${escapeHtml(item.title || "STAR Example")}</h3><p><strong>Situation:</strong> ${escapeHtml(item.situation || "—")}</p><p><strong>Task:</strong> ${escapeHtml(item.task || "—")}</p><p><strong>Action:</strong> ${escapeHtml(item.action || "—")}</p><p><strong>Result:</strong> ${escapeHtml(item.result || "—")}</p>`;
+      return `${top}<h3 class="card-title">${escapeHtml(item.title || "STAR Example")}</h3><p><strong>Situation:</strong> ${escapeHtml(item.situation || "—")}</p><p><strong>Task:</strong> ${escapeHtml(item.task || "—")}</p><p><strong>Action:</strong> ${escapeHtml(item.action || "—")}</p><p><strong>Result:</strong> ${escapeHtml(item.result || "—")}</p>${extra}`;
     }
-    return `${top}<h3 class="card-title">${escapeHtml(item.title || "Entry")}</h3>`;
+    return `${top}<h3 class="card-title">${escapeHtml(item.title || "Entry")}</h3>${extra}`;
   }
 
   async function toggleVisible(group, id) {
