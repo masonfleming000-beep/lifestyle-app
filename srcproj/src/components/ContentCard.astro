@@ -1,0 +1,9 @@
+---
+import NoteCard from "./NoteCard.astro";
+const props = Astro.props;
+---
+
+<NoteCard {...props}>
+  <slot name="header-actions" slot="header-actions" />
+  <slot />
+</NoteCard>

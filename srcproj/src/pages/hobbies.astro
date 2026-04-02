@@ -1,0 +1,211 @@
+---
+/**
+ * Hobbies page.
+ * Organizes personal interests, activities, goals,
+ * and hobby-related tracking or reference content.
+ */
+import BaseLayout from "../layouts/BaseLayout.astro";
+import SurfaceCard from "../components/SurfaceCard.astro";
+import SectionHeader from "../components/SectionHeader.astro";
+import Button from "../components/Button.astro";
+import ViewEditPanelCard from "../components/primitives/ViewEditPanelCard.astro";
+import { hobbiesClientConfig } from "../config/pages/hobbies";
+---
+<BaseLayout title="Hobbies | Lifestyle App" description="Interactive hobby tracking and progress">
+  <section class="section">
+    <div class="hero surface-card">
+      <p class="kicker">Hobbies</p>
+      <h1>Track hobbies with real progress, stages, updates, library items, and stage-based logs.</h1>
+      <p>This version lets the user add, edit, and delete hobbies with saved progress across refreshes.</p>
+    </div>
+  </section>
+
+  <section class="section">
+    <div id="hobby-app">
+      <div class="grid two">
+        <SurfaceCard>
+          <SectionHeader title="Controls" subtitle="Manage hobbies and filter what you see." align="start" />
+
+          <div class="form-stack">
+            <div class="button-row">
+              <Button id="add-hobby-btn" type="button" variant="primary">Add Hobby</Button>
+              <Button id="delete-hobby-btn" type="button" variant="secondary">Delete Selected</Button>
+              <Button id="restore-hobbies-btn" type="button" variant="secondary">Restore Defaults</Button>
+            </div>
+
+            <div class="field-group">
+              <label class="field-label" for="hobby-select">Hobby</label>
+              <select id="hobby-select" class="ui-select"></select>
+            </div>
+
+            <div class="field-group">
+              <label class="field-label" for="filter-select">Filter</label>
+              <select id="filter-select" class="ui-select">
+                <option value="All">All</option>
+                <option value="Active">Active</option>
+                <option value="Paused">Paused</option>
+                <option value="Completed">Completed</option>
+                <option value="Dropped">Dropped</option>
+                <option value="Favorites">Favorites</option>
+              </select>
+            </div>
+
+            <div class="field-group">
+              <label class="field-label" for="search-hobbies">Search</label>
+              <input id="search-hobbies" class="ui-input" type="text" placeholder="Search hobbies..." />
+            </div>
+          </div>
+        </SurfaceCard>
+
+        <SurfaceCard soft={false}>
+          <SectionHeader title="Hobby List" subtitle="Quick view of all hobbies." align="start" />
+          <div id="hobby-card-list" class="hobby-card-list"></div>
+        </SurfaceCard>
+      </div>
+    </div>
+  </section>
+
+  <section class="section">
+    <ViewEditPanelCard
+      title="Selected Hobby"
+      subtitle="View collapsed by default. Edit only when needed."
+      cardClassName="hobby-summary-card"
+      viewPanelId="summary-view-panel"
+      editPanelId="selected-hobby-panel"
+      toggleButtonId="toggle-summary-btn"
+      editButtonId="edit-summary-btn"
+    >
+      <div slot="before-view" id="empty-state" class="empty-state" hidden>
+        No hobby selected yet. Add one to get started.
+      </div>
+
+      <div slot="edit">
+        <div class="grid two">
+          <div class="field-group">
+            <label class="field-label" for="hobby-name">Hobby Name</label>
+            <input id="hobby-name" class="ui-input" type="text" />
+          </div>
+
+          <div class="field-group">
+            <label class="field-label" for="hobby-category">Category</label>
+            <select id="hobby-category" class="ui-select">
+              <option value="Creative">Creative</option>
+              <option value="Fitness">Fitness</option>
+              <option value="Learning">Learning</option>
+              <option value="Collecting">Collecting</option>
+              <option value="Other">Other</option>
+            </select>
+          </div>
+
+          <div class="field-group">
+            <label class="field-label" for="hobby-status">Status</label>
+            <select id="hobby-status" class="ui-select">
+              <option value="Active">Active</option>
+              <option value="Paused">Paused</option>
+              <option value="Completed">Completed</option>
+              <option value="Dropped">Dropped</option>
+            </select>
+          </div>
+
+          <div class="field-group">
+            <label class="field-label" for="hobby-started">Started On</label>
+            <input id="hobby-started" class="ui-input" type="date" />
+          </div>
+
+          <div class="field-group">
+            <label class="field-label" for="hobby-hours">Hours Spent</label>
+            <input id="hobby-hours" class="ui-input" type="number" min="0" step="1" />
+          </div>
+
+          <div class="field-group field-checkbox">
+            <label class="checkbox-row">
+              <input id="hobby-favorite" type="checkbox" />
+              <span>Favorite / priority hobby</span>
+            </label>
+          </div>
+        </div>
+
+        <div class="field-group">
+          <label class="field-label" for="hobby-motivation">Motivation / Goal</label>
+          <textarea id="hobby-motivation" class="ui-textarea" rows="3"></textarea>
+        </div>
+
+        <div class="field-group">
+          <label class="field-label" for="hobby-notes">Notes</label>
+          <textarea id="hobby-notes" class="ui-textarea" rows="4"></textarea>
+        </div>
+
+        <div class="summary-grid" id="summary-grid"></div>
+
+        <div class="button-row top-gap">
+          <Button id="save-hobby-btn" type="button" variant="primary">Save Hobby Changes</Button>
+        </div>
+      </div>
+    </ViewEditPanelCard>
+  </section>
+
+  <section class="section">
+    <div class="grid two">
+      <ViewEditPanelCard
+        title="Stages"
+        subtitle="Track progress inside each hobby."
+        viewPanelId="stages-view-panel"
+        editPanelId="stages-edit-panel"
+        toggleButtonId="toggle-stages-btn"
+        editButtonId="edit-stages-btn"
+      >
+        <div slot="edit">
+          <div class="button-row bottom-gap">
+            <Button id="add-stage-btn" type="button" variant="primary">Add Stage</Button>
+          </div>
+          <div id="stage-list" class="stage-list"></div>
+        </div>
+      </ViewEditPanelCard>
+
+      <ViewEditPanelCard
+        title="Activity Log"
+        subtitle="Quick update history, with every entry tied to a stage."
+        viewPanelId="logs-view-panel"
+        editPanelId="logs-edit-panel"
+        toggleButtonId="toggle-logs-btn"
+        editButtonId="edit-logs-btn"
+      >
+        <div slot="edit">
+          <div class="button-row bottom-gap">
+            <Button id="add-log-btn" type="button" variant="primary">Add Log Entry</Button>
+          </div>
+          <div id="log-list" class="timeline-list"></div>
+        </div>
+      </ViewEditPanelCard>
+    </div>
+  </section>
+
+  <section class="section">
+    <ViewEditPanelCard
+      title="Library"
+      subtitle="Track books, songs, courses, and other items. Every item must belong to this hobby and one stage."
+      viewPanelId="library-view-panel"
+      editPanelId="library-edit-panel"
+      toggleButtonId="toggle-library-btn"
+      editButtonId="edit-library-btn"
+    >
+      <div slot="edit">
+        <div class="button-row bottom-gap">
+          <Button id="add-library-btn" type="button" variant="primary">Add Library Item</Button>
+        </div>
+        <div id="library-list" class="stage-list"></div>
+      </div>
+    </ViewEditPanelCard>
+  </section>
+
+  <script id="hobbies-page-config" type="application/json" set:html={JSON.stringify(hobbiesClientConfig)} />
+
+  <script>
+    import { initHobbiesPage } from "../lib/client/hobbiesPage";
+
+    const configElement = document.getElementById("hobbies-page-config");
+    const config = JSON.parse(configElement?.textContent || "{}");
+
+    initHobbiesPage(config);
+  </script>
+</BaseLayout>

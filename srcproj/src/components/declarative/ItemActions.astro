@@ -1,0 +1,9 @@
+---
+import ActionRenderer from './ActionRenderer.astro';
+import type { UIAction } from '../../lib/ui/types';
+interface Props { actions?: UIAction[]; itemId?: string; }
+const { actions = [], itemId = '' } = Astro.props;
+---
+<div class="editor-toolbar item-actions" data-item-id={itemId || undefined}>
+  {actions.map((action) => <ActionRenderer action={action} compact />)}
+</div>

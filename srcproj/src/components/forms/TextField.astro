@@ -1,0 +1,38 @@
+---
+interface Props {
+  id: string;
+  name?: string;
+  placeholder?: string;
+  value?: string;
+  type?: "text" | "url" | "search";
+  class?: string;
+}
+
+const {
+  id,
+  name,
+  placeholder = "",
+  value = "",
+  type = "text",
+  class: className = "",
+} = Astro.props;
+---
+
+<input
+  id={id}
+  name={name || id}
+  type={type}
+  value={value}
+  placeholder={placeholder}
+  class:list={["text-field-primitive", "todo-input", className]}
+/>
+
+<style>
+  .text-field-primitive {
+    min-height: 44px;
+    padding: 0.8rem 0.95rem;
+    border-radius: 14px;
+    font-size: 0.98rem;
+    width: 100%;
+  }
+</style>

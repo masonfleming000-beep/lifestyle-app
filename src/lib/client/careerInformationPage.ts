@@ -111,6 +111,104 @@ export function initCareerInformationPage(config: CareerInformationClientConfig)
     { key: "files", label: "Files", type: "file" },
   ];
   const PROJECT_EXTRA_FIELD_MAP = Object.fromEntries(PROJECT_EXTRA_FIELD_OPTIONS.map((item) => [item.key, item]));
+  const PROJECT_CARD_DISPLAY_OPTIONS = [
+    { key: "showCoverPhoto", label: "Cover photo" },
+    { key: "showSubtitle", label: "Subtitle" },
+    { key: "showDescription", label: "Description" },
+    { key: "showSkills", label: "Skills" },
+    { key: "showLink", label: "Link" },
+  ];
+
+  function normalizeProjectCardDisplay(value) {
+    const raw = value && typeof value === "object" ? value : {};
+    return {
+      showCoverPhoto: normalizeBoolean(raw?.showCoverPhoto, true),
+      showSubtitle: normalizeBoolean(raw?.showSubtitle, true),
+      showDescription: normalizeBoolean(raw?.showDescription, true),
+      showSkills: normalizeBoolean(raw?.showSkills, true),
+      showLink: normalizeBoolean(raw?.showLink, true),
+    };
+  }
+
+  function projectSectionLabelFromKey(key) {
+    const normalizedKey = String(key || "").trim();
+    if (normalizedKey === "cover-photo") return "Cover Photo";
+    if (normalizedKey === "subtitle") return "Subtitle";
+    if (normalizedKey === "description") return "Description";
+    if (normalizedKey === "skills") return "Skills";
+    if (normalizedKey === "project-link") return "Project Link";
+    if (normalizedKey.startsWith("field:")) {
+      const projectField = PROJECT_EXTRA_FIELD_MAP[normalizedKey.replace(/^field:/, "")];
+      return projectField?.label || normalizedKey.replace(/^field:/, "").replace(/-/g, " ");
+    }
+    return normalizedKey.replace(/-/g, " ");
+  }
+
+  function buildProjectPageSectionCandidates(project) {
+    const fields = normalizeCustomFields(project?.customFields || project?.extraFields);
+    const candidates = [];
+
+    const addSection = (key, title, type, value) => {
+      const textValue = type === "image" ? String(value || "").trim() : String(value || "").trim();
+      if (!textValue) return;
+      candidates.push({
+        key,
+        title,
+        type: normalizeFieldType(type, type === "image" ? "image" : "text"),
+        value: textValue,
+      });
+    };
+
+    addSection("cover-photo", "Cover Photo", "image", project?.coverPhotoUrl || project?.image || project?.photoUrl || "");
+    addSection("subtitle", "Subtitle", "text", project?.subtitle || "");
+    addSection("description", "Description", "textarea", project?.description || "");
+    addSection("skills", "Skills", "list", Array.isArray(project?.skills) ? project.skills.join("\n") : String(project?.skills || "").replace(/,\s*/g, "\n"));
+    addSection("project-link", "Project Link", "link", project?.link || "");
+
+    fields.forEach((field, index) => {
+      const key = `field:${field?.key || index}`;
+      if (!String(field?.value || "").trim()) return;
+      candidates.push({
+        key,
+        title: field?.label || projectSectionLabelFromKey(key),
+        type: normalizeFieldType(field?.type, "text"),
+        value: Array.isArray(field?.value) ? field.value.filter(Boolean).join("\n") : String(field?.value || ""),
+        fieldId: field?.id || `field-${index}`,
+      });
+    });
+
+    return candidates;
+  }
+
+  function syncProjectPageSections(project) {
+    const candidates = buildProjectPageSectionCandidates(project);
+    const existingSections = normalizeArray(project?.projectPageSections || project?.pageSections);
+    const existingMap = new Map(existingSections.map((section) => [String(section?.key || ""), section]));
+
+    return candidates
+      .map((candidate, index) => {
+        const existing = existingMap.get(candidate.key) || {};
+        return {
+          id: existing?.id || makeId(`project-section-${candidate.key || index}`),
+          key: candidate.key,
+          title: candidate.title,
+          type: candidate.type,
+          value: candidate.value,
+          fieldId: candidate.fieldId || existing?.fieldId || "",
+          visible: normalizeBoolean(existing?.visible, true),
+          order: Number.isFinite(Number(existing?.order)) ? Number(existing.order) : index,
+        };
+      })
+      .sort((a, b) => Number(a.order || 0) - Number(b.order || 0))
+      .map((section, index) => ({ ...section, order: index }));
+  }
+
+  function projectSectionPreviewValue(section) {
+    const type = normalizeFieldType(section?.type, "text");
+    if (type === "image") return String(section?.value || "").trim() ? "Image set" : "Empty";
+    if (type === "list") return splitCustomFieldValue(section?.value || "").slice(0, 2).join(", ") || "Empty";
+    return String(section?.value || "").trim().slice(0, 60) || "Empty";
+  }
 
   function normalizeFieldType(value, fallback = "text") {
     const next = String(value || "").trim().toLowerCase();
@@ -154,7 +252,7 @@ export function initCareerInformationPage(config: CareerInformationClientConfig)
 
   function customFieldTypeOptions(selectedType) {
     const type = normalizeFieldType(selectedType, "text");
-    return CUSTOM_FIELD_TYPES.map((item) => `<option value="${item.value}" ${item.value === type ? "selected" : ""}>${item.label}</option>`).join("");
+    return CUSTOM_FIELD_TYPES.map((item) => `<option value="${item.value}" ${item.value === type ? "selected" : ""}>${item.label}</option>`).join("\n");
   }
 
   function customFieldPlaceholder(type) {
@@ -241,7 +339,7 @@ export function initCareerInformationPage(config: CareerInformationClientConfig)
             ${group === "projects" ? `
               <select class="form-input custom-field-picker" data-role="project-field-picker">
                 ${availableOptions.length
-                  ? availableOptions.map((item) => `<option value="${escapeHtml(item.key)}">${escapeHtml(item.label)}</option>`).join("")
+                  ? availableOptions.map((item) => `<option value="${escapeHtml(item.key)}">${escapeHtml(item.label)}</option>`).join("\n")
                   : `<option value="">All extra project fields already added</option>`}
               </select>
               <button type="button" class="button-secondary career-inline-button" data-action="add-project-field">Add field</button>
@@ -250,7 +348,7 @@ export function initCareerInformationPage(config: CareerInformationClientConfig)
           </div>
         </div>
         <div class="custom-field-list" data-custom-field-list>
-          ${normalizedFields.length ? normalizedFields.map((field) => buildCustomFieldCard(field)).join("") : `<p class="field-hint custom-field-empty">No extra fields added yet.</p>`}
+          ${normalizedFields.length ? normalizedFields.map((field) => buildCustomFieldCard(field)).join("\n") : `<p class="field-hint custom-field-empty">No extra fields added yet.</p>`}
         </div>
       </div>
     `;
@@ -265,7 +363,7 @@ export function initCareerInformationPage(config: CareerInformationClientConfig)
         <div class="custom-field-media-grid">
           ${media.filter(Boolean).map((value) => isProbablyUrl(value)
             ? `<img class="custom-field-media" src="${escapeHtml(value)}" alt="${escapeHtml(field?.label || "Image")}" />`
-            : `<p>${escapeHtml(value)}</p>`).join("")}
+            : `<p>${escapeHtml(value)}</p>`).join("\n")}
         </div>
       `;
     }
@@ -275,7 +373,7 @@ export function initCareerInformationPage(config: CareerInformationClientConfig)
         <div class="resume-link-row">
           ${links.filter(Boolean).map((value, index) => isProbablyUrl(value)
             ? `<a class="button-secondary career-inline-button career-inline-button-mini" href="${escapeHtml(value)}" target="_blank" rel="noreferrer">${escapeHtml(field?.label || type)} ${links.length > 1 ? index + 1 : ""}</a>`
-            : `<span>${escapeHtml(value)}</span>`).join("")}
+            : `<span>${escapeHtml(value)}</span>`).join("\n")}
         </div>
       `;
     }
@@ -301,7 +399,7 @@ export function initCareerInformationPage(config: CareerInformationClientConfig)
             <p><strong>${escapeHtml(field.label || "Field")}:</strong></p>
             ${renderCustomFieldValue(field)}
           </div>
-        `).join("")}
+        `).join("\n")}
       </div>
     `;
   }
@@ -355,16 +453,26 @@ export function initCareerInformationPage(config: CareerInformationClientConfig)
         visible: normalizeBoolean(item?.visible, true),
         customFields: normalizeCustomFields(item?.customFields || item?.extraFields),
       })),
-      projects: normalizeArray(parsed.projects).map((item) => ({
-        id: item?.id || makeId("project"),
-        title: item?.title || "",
-        subtitle: item?.subtitle || item?.stage || "",
-        description: item?.description || "",
-        skills: item?.skills || item?.parts || "",
-        link: item?.link || "",
-        visible: normalizeBoolean(item?.visible, true),
-        customFields: normalizeCustomFields(item?.customFields || item?.extraFields),
-      })),
+      projects: normalizeArray(parsed.projects).map((item) => {
+        const customFields = normalizeCustomFields(item?.customFields || item?.extraFields);
+        const project = {
+          id: item?.id || makeId("project"),
+          title: item?.title || "",
+          subtitle: item?.subtitle || item?.stage || "",
+          description: item?.description || "",
+          skills: Array.isArray(item?.skills) ? item.skills.filter(Boolean).join(", ") : item?.skills || item?.parts || "",
+          link: item?.link || "",
+          coverPhotoUrl: item?.coverPhotoUrl || item?.image || item?.photoUrl || "",
+          projectSlug: slugify(item?.projectSlug || item?.slug || item?.title || item?.id || "project"),
+          visible: normalizeBoolean(item?.visible, true),
+          cardDisplay: normalizeProjectCardDisplay(item?.cardDisplay),
+          customFields,
+        };
+        return {
+          ...project,
+          projectPageSections: syncProjectPageSections({ ...project, projectPageSections: item?.projectPageSections || item?.pageSections }),
+        };
+      }),
       organizations: normalizeArray(parsed.organizations).map((item) => ({
         id: item?.id || makeId("organization"),
         name: item?.name || item?.title || "",
@@ -730,17 +838,32 @@ export function initCareerInformationPage(config: CareerInformationClientConfig)
 
   function buildProjectsForm() {
     return formShell(
-      "Use this for featured portfolio projects.",
+      "Use this for featured portfolio projects. The project card can show a subset of the content, while the project page can reveal each section in its own dropdown.",
       `
         <div class="dynamic-form-grid">
           <label class="edu-label"><span>Project title</span><input id="dynamic-project-title" class="form-input" placeholder="Project name" /></label>
           <label class="edu-label"><span>Subtitle / stage</span><input id="dynamic-project-subtitle" class="form-input" placeholder="Capstone · Shipped · Ongoing" /></label>
           <label class="edu-label dynamic-form-full"><span>Description</span><textarea id="dynamic-project-description" class="form-textarea" placeholder="What the project is and what it achieved"></textarea></label>
           <label class="edu-label"><span>Skills / stack</span><input id="dynamic-project-skills" class="form-input" placeholder="Astro, React, Figma, Python" /></label>
-          <label class="edu-label"><span>Link</span><input id="dynamic-project-link" class="form-input" placeholder="https://..." /></label>
+          <label class="edu-label"><span>Project link</span><input id="dynamic-project-link" class="form-input" placeholder="https://..." /></label>
+          <label class="edu-label dynamic-form-full"><span>Cover photo URL</span><input id="dynamic-project-cover" class="form-input" placeholder="https://.../cover.jpg" /></label>
+          <fieldset class="project-card-toggle-group dynamic-form-full">
+            <legend>Show on portfolio project card</legend>
+            <div class="project-card-toggle-grid">
+              ${PROJECT_CARD_DISPLAY_OPTIONS.map((option) => `
+                <label class="check-row compact">
+                  <input id="dynamic-project-card-${option.key}" type="checkbox" checked />
+                  <span>${option.label}</span>
+                </label>
+              `).join("\n")}
+            </div>
+          </fieldset>
           <label class="check-row dynamic-form-full"><input id="dynamic-project-visible" type="checkbox" checked /><span>Show in portfolio</span></label>
         </div>
         ${buildCustomFieldsManager("projects")}
+        <div class="project-form-note">
+          <p><strong>After saving:</strong> each project gets its own portfolio section, a dedicated project page, and a saved section manager below where you can move project-page sections up or down or hide them.</p>
+        </div>
       `,
       "dynamic-save-project-btn",
       "Save Project"
@@ -972,7 +1095,7 @@ export function initCareerInformationPage(config: CareerInformationClientConfig)
     const selectedKeys = [...manager.querySelectorAll('.custom-field-card')].map((card) => String(card.getAttribute('data-field-key') || '').trim()).filter(Boolean);
     const options = availableProjectExtraFields(selectedKeys);
     picker.innerHTML = options.length
-      ? options.map((item) => `<option value="${escapeHtml(item.key)}">${escapeHtml(item.label)}</option>`).join("")
+      ? options.map((item) => `<option value="${escapeHtml(item.key)}">${escapeHtml(item.label)}</option>`).join("\n")
       : '<option value="">All extra project fields already added</option>';
     picker.disabled = !options.length;
   }
@@ -1190,15 +1313,29 @@ export function initCareerInformationPage(config: CareerInformationClientConfig)
     document.getElementById("dynamic-save-project-btn")?.addEventListener("click", async () => {
       const title = getValue("dynamic-project-title");
       if (!title) return;
-      data.projects.unshift({
+      const customFields = collectCustomFields("projects");
+      const project = {
         id: makeId("project"),
         title,
         subtitle: getValue("dynamic-project-subtitle"),
         description: getValue("dynamic-project-description"),
         skills: getValue("dynamic-project-skills"),
         link: getValue("dynamic-project-link"),
+        coverPhotoUrl: getValue("dynamic-project-cover"),
+        projectSlug: slugify(title),
         visible: getChecked("dynamic-project-visible"),
-        customFields: collectCustomFields("projects"),
+        cardDisplay: normalizeProjectCardDisplay({
+          showCoverPhoto: getChecked("dynamic-project-card-showCoverPhoto"),
+          showSubtitle: getChecked("dynamic-project-card-showSubtitle"),
+          showDescription: getChecked("dynamic-project-card-showDescription"),
+          showSkills: getChecked("dynamic-project-card-showSkills"),
+          showLink: getChecked("dynamic-project-card-showLink"),
+        }),
+        customFields,
+      };
+      data.projects.unshift({
+        ...project,
+        projectPageSections: syncProjectPageSections(project),
       });
       await persistAndRefresh();
       renderDynamicForm();
@@ -1391,7 +1528,7 @@ export function initCareerInformationPage(config: CareerInformationClientConfig)
 
   function buildBullets(items) {
     return Array.isArray(items) && items.length
-      ? `<ul class="list-clean">${items.map((item) => `<li>${escapeHtml(item)}</li>`).join("")}</ul>`
+      ? `<ul class="list-clean">${items.map((item) => `<li>${escapeHtml(item)}</li>`).join("\n")}</ul>`
       : "<p>—</p>";
   }
 
@@ -1431,7 +1568,49 @@ export function initCareerInformationPage(config: CareerInformationClientConfig)
       return `${top}<h3 class="card-title">${escapeHtml(item.title || "Leadership")}</h3><p><strong>Organization:</strong> ${escapeHtml(item.organization || "—")}</p><p><strong>Date:</strong> ${escapeHtml(item.date || "—")}</p><p>${escapeHtml(item.summary || "—")}</p><div><strong>Bullets:</strong>${buildBullets(item.bullets)}</div>${extra}`;
     }
     if (group === "projects") {
-      return `${top}<h3 class="card-title">${escapeHtml(item.title || "Project")}</h3><p><strong>Subtitle:</strong> ${escapeHtml(item.subtitle || "—")}</p><p>${escapeHtml(item.description || "—")}</p><p><strong>Skills:</strong> ${escapeHtml(item.skills || "—")}</p>${item.link ? `<p><strong>Link:</strong> <a href="${escapeHtml(item.link)}" target="_blank" rel="noreferrer">${escapeHtml(item.link)}</a></p>` : ""}${extra}`;
+      const cardDisplay = normalizeProjectCardDisplay(item?.cardDisplay);
+      const pageSections = syncProjectPageSections(item);
+      return `
+        ${top}
+        <h3 class="card-title">${escapeHtml(item.title || "Project")}</h3>
+        ${item.coverPhotoUrl ? `<div class="project-cover-preview-wrap"><img class="project-cover-preview" src="${escapeHtml(item.coverPhotoUrl)}" alt="${escapeHtml(item.title || "Project cover")}" /></div>` : ""}
+        <p><strong>Slug:</strong> ${escapeHtml(item.projectSlug || slugify(item.title || "project"))}</p>
+        <p><strong>Subtitle:</strong> ${escapeHtml(item.subtitle || "—")}</p>
+        <p>${escapeHtml(item.description || "—")}</p>
+        <p><strong>Skills:</strong> ${escapeHtml(item.skills || "—")}</p>
+        ${item.link ? `<p><strong>Link:</strong> <a href="${escapeHtml(item.link)}" target="_blank" rel="noreferrer">${escapeHtml(item.link)}</a></p>` : ""}
+        <div class="project-settings-block">
+          <div>
+            <p class="project-settings-title"><strong>Project card visibility</strong></p>
+            <div class="project-card-display-list">
+              ${PROJECT_CARD_DISPLAY_OPTIONS.map((option) => `
+                <button class="button-secondary career-inline-button career-inline-button-mini project-inline-toggle-btn" type="button" data-action="toggle-project-card-display" data-display-key="${escapeHtml(option.key)}">
+                  ${cardDisplay[option.key] ? "Hide" : "Show"} ${escapeHtml(option.label)}
+                </button>
+              `).join("\n")}
+            </div>
+          </div>
+          <div>
+            <p class="project-settings-title"><strong>Project page sections</strong></p>
+            <div class="project-page-section-list">
+              ${pageSections.map((section, index) => `
+                <div class="project-page-section-row" data-project-section-key="${escapeHtml(section.key)}">
+                  <div>
+                    <p class="project-page-section-title">${escapeHtml(section.title || projectSectionLabelFromKey(section.key))}</p>
+                    <p class="project-page-section-value">${escapeHtml(projectSectionPreviewValue(section))}</p>
+                  </div>
+                  <div class="project-page-section-actions">
+                    <button class="button-secondary career-inline-button career-inline-button-mini" type="button" data-action="project-section-up" data-project-section-key="${escapeHtml(section.key)}" ${index === 0 ? "disabled" : ""}>Up</button>
+                    <button class="button-secondary career-inline-button career-inline-button-mini" type="button" data-action="project-section-down" data-project-section-key="${escapeHtml(section.key)}" ${index === pageSections.length - 1 ? "disabled" : ""}>Down</button>
+                    <button class="button-secondary career-inline-button career-inline-button-mini" type="button" data-action="toggle-project-section" data-project-section-key="${escapeHtml(section.key)}">${section.visible !== false ? "Hide" : "Show"}</button>
+                  </div>
+                </div>
+              `).join("\n")}
+            </div>
+          </div>
+        </div>
+        ${extra}
+      `;
     }
     if (group === "organizations") {
       return `${top}<h3 class="card-title">${escapeHtml(item.name || "Organization")}</h3><p><strong>Role:</strong> ${escapeHtml(item.role || "—")}</p><p><strong>Date:</strong> ${escapeHtml(item.date || "—")}</p><p>${escapeHtml(item.description || "—")}</p>${extra}`;
@@ -1476,6 +1655,56 @@ export function initCareerInformationPage(config: CareerInformationClientConfig)
     await persistAndRefresh();
   }
 
+  async function updateProject(id, updater) {
+    data.projects = normalizeArray(data.projects).map((item) => {
+      if (item.id !== id) return item;
+      const updated = typeof updater === "function" ? updater(item) : { ...item, ...(updater || {}) };
+      const synced = syncProjectPageSections({ ...updated, customFields: normalizeCustomFields(updated?.customFields) });
+      return {
+        ...updated,
+        projectSlug: slugify(updated?.projectSlug || updated?.title || updated?.id || "project"),
+        cardDisplay: normalizeProjectCardDisplay(updated?.cardDisplay),
+        projectPageSections: synced,
+      };
+    });
+    await persistAndRefresh();
+  }
+
+  async function toggleProjectCardDisplay(id, key) {
+    await updateProject(id, (item) => ({
+      ...item,
+      cardDisplay: {
+        ...normalizeProjectCardDisplay(item?.cardDisplay),
+        [key]: !normalizeProjectCardDisplay(item?.cardDisplay)?.[key],
+      },
+    }));
+  }
+
+  async function moveProjectPageSection(id, sectionKey, direction) {
+    await updateProject(id, (item) => {
+      const sections = syncProjectPageSections(item);
+      const index = sections.findIndex((section) => section.key === sectionKey);
+      const target = index + direction;
+      if (index < 0 || target < 0 || target >= sections.length) return item;
+      const nextSections = [...sections];
+      const [current] = nextSections.splice(index, 1);
+      nextSections.splice(target, 0, current);
+      return {
+        ...item,
+        projectPageSections: nextSections.map((section, order) => ({ ...section, order })),
+      };
+    });
+  }
+
+  async function toggleProjectPageSection(id, sectionKey) {
+    await updateProject(id, (item) => ({
+      ...item,
+      projectPageSections: syncProjectPageSections(item).map((section, index) => section.key === sectionKey
+        ? { ...section, visible: !normalizeBoolean(section?.visible, true), order: index }
+        : { ...section, order: index }),
+    }));
+  }
+
   function renderGroup(wrapId, countId, group, items, emptyText) {
     const wrap = document.getElementById(wrapId);
     if (!wrap) return;
@@ -1501,6 +1730,28 @@ export function initCareerInformationPage(config: CareerInformationClientConfig)
       card.querySelector(".danger-btn")?.addEventListener("click", async () => {
         await deleteItem(group, item.id);
       });
+      if (group === "projects") {
+        card.querySelectorAll('[data-action="toggle-project-card-display"]').forEach((button) => {
+          button.addEventListener("click", async () => {
+            await toggleProjectCardDisplay(item.id, button.getAttribute("data-display-key") || "");
+          });
+        });
+        card.querySelectorAll('[data-action="project-section-up"]').forEach((button) => {
+          button.addEventListener("click", async () => {
+            await moveProjectPageSection(item.id, button.getAttribute("data-project-section-key") || "", -1);
+          });
+        });
+        card.querySelectorAll('[data-action="project-section-down"]').forEach((button) => {
+          button.addEventListener("click", async () => {
+            await moveProjectPageSection(item.id, button.getAttribute("data-project-section-key") || "", 1);
+          });
+        });
+        card.querySelectorAll('[data-action="toggle-project-section"]').forEach((button) => {
+          button.addEventListener("click", async () => {
+            await toggleProjectPageSection(item.id, button.getAttribute("data-project-section-key") || "");
+          });
+        });
+      }
       wrap.appendChild(card);
     });
   }

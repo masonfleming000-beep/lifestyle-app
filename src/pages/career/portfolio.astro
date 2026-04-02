@@ -19,7 +19,7 @@ const publicAppUrl = import.meta.env.PUBLIC_APP_URL || import.meta.env.APP_URL |
   <PageHero
     kicker="Career / Portfolio"
     title="Portfolio Layout"
-    description="Clean up the public-facing portfolio flow here. Add menu items, assign sections to menu pages, reorder the stack, and preview a no-HubLife public view."
+    description="Clean up the public-facing portfolio flow here. Add menu items, assign sections to menu pages, reorder the stack, separate projects into their own quick-link sections, and preview a no-HubLife public view."
   >
     <PageActions>
       {careerPortfolioHeroActions.map((action) => (
@@ -33,7 +33,7 @@ const publicAppUrl = import.meta.env.PUBLIC_APP_URL || import.meta.env.APP_URL |
       <SurfaceCard className="portfolio-panel-card">
         <SectionHeader
           title="Portfolio navigation"
-          subtitle="Create top-level menu items, then move sections into the page each menu item should open."
+          subtitle="Create top-level menu items, then move sections into the page each menu item should open. Every saved project becomes its own quick-link section automatically."
         >
           <div id="portfolio-layout-status" class="save-status neutral">Loading...</div>
         </SectionHeader>
@@ -45,7 +45,7 @@ const publicAppUrl = import.meta.env.PUBLIC_APP_URL || import.meta.env.APP_URL |
       <SurfaceCard className="portfolio-panel-card">
         <SectionHeader
           title="Section order and page assignment"
-          subtitle="Default sections stay available as suggestions even when the corresponding information is still blank. Hide any you do not want to show."
+          subtitle="Default sections stay available as suggestions even when the corresponding information is still blank. Saved projects are split into their own reorderable quick-link sections."
         >
             </SectionHeader>
 

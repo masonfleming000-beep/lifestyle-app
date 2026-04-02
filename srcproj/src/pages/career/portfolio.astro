@@ -1,0 +1,280 @@
+---
+import BaseLayout from "../../layouts/BaseLayout.astro";
+import PageHero from "../../components/PageHero.astro";
+import Button from "../../components/Button.astro";
+import SurfaceCard from "../../components/SurfaceCard.astro";
+import SectionHeader from "../../components/SectionHeader.astro";
+import PageActions from "../../components/ui/PageActions.astro";
+import {
+  careerInformationPageKey,
+  careerPortfolioHeroActions,
+  careerPortfolioSectionOrder,
+  careerPortfolioSectionTitles,
+} from "../../config/pages/careerShared";
+
+const publicAppUrl = import.meta.env.PUBLIC_APP_URL || import.meta.env.APP_URL || "";
+---
+
+<BaseLayout title="Portfolio Layout | Lifestyle App" description="Arrange your public portfolio layout">
+  <PageHero
+    kicker="Career / Portfolio"
+    title="Portfolio Layout"
+    description="Clean up the public-facing portfolio flow here. Add menu items, assign sections to menu pages, reorder the stack, and preview a no-HubLife public view."
+  >
+    <PageActions>
+      {careerPortfolioHeroActions.map((action) => (
+        <Button href={action.href} variant={action.variant || "secondary"}>{action.label}</Button>
+      ))}
+    </PageActions>
+  </PageHero>
+
+  <section class="section">
+    <div class="portfolio-editor-shell">
+      <SurfaceCard className="portfolio-panel-card">
+        <SectionHeader
+          title="Portfolio navigation"
+          subtitle="Create top-level menu items, then move sections into the page each menu item should open."
+        >
+          <div id="portfolio-layout-status" class="save-status neutral">Loading...</div>
+        </SectionHeader>
+
+        <div id="portfolio-layout-overview"></div>
+        <div id="portfolio-menu-manager" class="top-gap"></div>
+      </SurfaceCard>
+
+      <SurfaceCard className="portfolio-panel-card">
+        <SectionHeader
+          title="Section order and page assignment"
+          subtitle="Default sections stay available as suggestions even when the corresponding information is still blank. Hide any you do not want to show."
+        >
+            </SectionHeader>
+
+        <div id="portfolio-section-manager" class="portfolio-section-manager"></div>
+      </SurfaceCard>
+
+      <SurfaceCard className="portfolio-panel-card">
+        <SectionHeader
+          title="Project page sections"
+          subtitle="Each project gets its own page. Reorder or hide the info cards that appear on that project page without touching Information."
+        />
+
+        <div id="portfolio-project-pages-manager" class="portfolio-section-manager"></div>
+      </SurfaceCard>
+    </div>
+  </section>
+
+  <script
+    id="career-portfolio-page-config"
+    type="application/json"
+    set:html={JSON.stringify({
+      sourcePageKey: careerInformationPageKey,
+      sectionOrder: careerPortfolioSectionOrder,
+      sectionTitles: careerPortfolioSectionTitles,
+      previewPath: "/career/portfolio-preview",
+      shareBasePath: "/portfolio",
+      publicAppUrl,
+    })}
+  />
+
+  <script>
+    import { initCareerPortfolioPage } from "../../lib/client/careerPortfolioPage";
+
+    const configElement = document.getElementById("career-portfolio-page-config");
+    const config = JSON.parse(configElement?.textContent || "{}");
+
+    initCareerPortfolioPage(config);
+  </script>
+
+  <style>
+    .portfolio-editor-shell {
+      display: grid;
+      gap: 1.25rem;
+    }
+
+    .portfolio-panel-card {
+      display: grid;
+      gap: 1rem;
+      border-radius: 1.25rem;
+    }
+
+    .top-gap {
+      margin-top: 0.25rem;
+    }
+
+    .portfolio-overview-grid,
+    .portfolio-menu-list,
+    .portfolio-section-manager {
+      display: grid;
+      gap: 1rem;
+    }
+
+    .portfolio-menu-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: flex-start;
+      gap: 1rem;
+      flex-wrap: wrap;
+      margin-bottom: 0.25rem;
+    }
+
+    .portfolio-menu-header-actions,
+    .portfolio-menu-card-actions,
+    .portfolio-layout-buttons {
+      display: flex;
+      gap: 0.65rem;
+      flex-wrap: wrap;
+      align-items: center;
+    }
+
+    .portfolio-menu-card {
+      display: flex;
+      justify-content: space-between;
+      align-items: flex-start;
+      gap: 1rem;
+      padding: 1rem;
+      border-radius: 1rem;
+      border: 1px solid var(--border-soft);
+    }
+
+    .portfolio-menu-card-copy {
+      flex: 1;
+      min-width: 0;
+    }
+
+    .portfolio-menu-slug {
+      margin: 0.4rem 0 0;
+      color: var(--text-muted);
+      word-break: break-word;
+    }
+
+    .portfolio-layout-card {
+      overflow: hidden;
+    }
+
+    .portfolio-layout-summary {
+      list-style: none;
+      cursor: pointer;
+      padding: 1rem 1.1rem;
+      display: flex;
+      justify-content: space-between;
+      gap: 1rem;
+      align-items: center;
+    }
+
+    .portfolio-layout-summary::-webkit-details-marker {
+      display: none;
+    }
+
+    .portfolio-layout-summary-right {
+      display: inline-flex;
+      align-items: center;
+      gap: 0.75rem;
+      flex: 0 0 auto;
+    }
+
+    .portfolio-layout-body {
+      padding: 0 1.1rem 1.1rem;
+      display: grid;
+      gap: 1rem;
+    }
+
+    .portfolio-layout-controls {
+      display: grid;
+      grid-template-columns: minmax(220px, 320px) 1fr;
+      gap: 1rem;
+      align-items: end;
+    }
+
+    .portfolio-section-meta {
+      padding: 1rem;
+      border-radius: 1rem;
+      border: 1px solid var(--border-soft);
+    }
+
+    .portfolio-section-meta p {
+      margin: 0.35rem 0 0;
+    }
+
+    .portfolio-project-page-card,
+    .portfolio-project-page-section-card {
+      display: grid;
+      gap: 1rem;
+      padding: 1rem;
+      border-radius: 1rem;
+      border: 1px solid var(--border-soft);
+    }
+
+    .portfolio-project-page-grid {
+      display: grid;
+      gap: 0.85rem;
+    }
+
+    .section-chip {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      padding: 0.35rem 0.7rem;
+      border-radius: 999px;
+      font-size: 0.82rem;
+      font-weight: 700;
+    }
+
+    .section-chip.on {
+      background: rgba(22, 163, 74, 0.12);
+      color: #15803d;
+    }
+
+    .section-chip.off {
+      background: rgba(107, 114, 128, 0.12);
+      color: #4b5563;
+    }
+
+    .save-status {
+      display: inline-flex;
+      align-items: center;
+      padding: 0.45rem 0.8rem;
+      border-radius: 999px;
+      font-size: 0.85rem;
+      font-weight: 700;
+    }
+
+    .save-status.neutral {
+      background: rgba(107, 114, 128, 0.12);
+      color: #4b5563;
+    }
+
+    .save-status.success {
+      background: rgba(22, 163, 74, 0.12);
+      color: #15803d;
+    }
+
+    .save-status.error {
+      background: rgba(220, 38, 38, 0.12);
+      color: #b91c1c;
+    }
+
+    .edu-label {
+      display: grid;
+      gap: 0.45rem;
+    }
+
+    .edu-label span {
+      font-weight: 600;
+    }
+
+    @media (max-width: 900px) {
+      .portfolio-menu-card,
+      .portfolio-layout-controls {
+        grid-template-columns: 1fr;
+      }
+
+      .portfolio-menu-card {
+        flex-direction: column;
+      }
+
+      .portfolio-menu-card-actions {
+        width: 100%;
+      }
+    }
+  </style>
+</BaseLayout>

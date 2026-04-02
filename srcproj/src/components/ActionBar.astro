@@ -1,0 +1,91 @@
+---
+/**
+ * Shared actions row / editor toolbar.
+ */
+interface ActionItem {
+  label: string;
+  id?: string;
+  href?: string;
+  type?: "button" | "submit" | "reset";
+  variant?: "primary" | "secondary" | "danger";
+  disabled?: boolean;
+  className?: string;
+  dataAction?: string;
+}
+
+interface Props {
+  actions?: ActionItem[];
+  align?: "start" | "end" | "between";
+  wrap?: boolean;
+}
+
+const {
+  actions = [],
+  align = "start",
+  wrap = true,
+} = Astro.props;
+
+function classForVariant(variant?: string) {
+  if (variant === "danger") return "danger-btn";
+  if (variant === "primary") return "button-primary";
+  return "button-secondary";
+}
+---
+
+<div class:list={["editor-toolbar", `action-bar-${align}`, wrap && "action-bar-wrap"]}>
+  {actions.map((action) => (
+    action.href ? (
+      <a
+        id={action.id || undefined}
+        href={action.href}
+        class:list={[classForVariant(action.variant), "action-bar-link", action.className, action.disabled && "is-disabled"]}
+        data-action={action.dataAction || undefined}
+        aria-disabled={action.disabled ? "true" : undefined}
+      >
+        {action.label}
+      </a>
+    ) : (
+      <button
+        id={action.id || undefined}
+        type={action.type || "button"}
+        class:list={[classForVariant(action.variant), action.className]}
+        disabled={action.disabled}
+        data-action={action.dataAction || undefined}
+      >
+        {action.label}
+      </button>
+    )
+  ))}
+
+  <slot />
+</div>
+
+<style>
+  .action-bar-wrap {
+    flex-wrap: wrap;
+  }
+
+  .action-bar-start {
+    justify-content: flex-start;
+  }
+
+  .action-bar-end {
+    justify-content: flex-end;
+  }
+
+  .action-bar-between {
+    justify-content: space-between;
+  }
+
+  .action-bar-link {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    text-decoration: none;
+  }
+
+  .action-bar-link.is-disabled {
+    pointer-events: none;
+    opacity: 0.6;
+  }
+</style>

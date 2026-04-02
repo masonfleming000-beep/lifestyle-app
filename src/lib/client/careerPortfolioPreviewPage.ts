@@ -1,10 +1,12 @@
 // @ts-nocheck
+import { findProjectByLayoutKey, isProjectLayoutKey, normalizeProjectIdentity, syncPortfolioSectionLayout } from "../careerPortfolioSections";
 interface CareerPortfolioPreviewConfig {
   pageKey?: string;
   sectionTitles?: Record<string, string>;
   publicUsername?: string;
   shareBasePath?: string;
   publicAppUrl?: string;
+  projectSlug?: string;
 }
 
 export function initCareerPortfolioPreviewPage(config: CareerPortfolioPreviewConfig) {
@@ -12,6 +14,15 @@ export function initCareerPortfolioPreviewPage(config: CareerPortfolioPreviewCon
   const publicUsername = String(config.publicUsername || "").trim();
   const shareBasePath = config.shareBasePath || "/portfolio";
   const publicAppUrl = String(config.publicAppUrl || "").trim();
+  const initialProjectSlug = String(config.projectSlug || "").trim();
+
+  const PROJECT_CARD_DISPLAY_DEFAULTS = {
+    showCoverPhoto: true,
+    showSubtitle: true,
+    showDescription: true,
+    showSkills: true,
+    showLink: true,
+  };
 
   function escapeHtml(value) {
     return String(value || "")
@@ -36,7 +47,6 @@ export function initCareerPortfolioPreviewPage(config: CareerPortfolioPreviewCon
       .replace(/[^a-z0-9]+/g, "-")
       .replace(/(^-|-$)/g, "") || "page";
   }
-
 
   function publicOrigin() {
     if (!publicAppUrl) return window.location.origin;
@@ -68,6 +78,124 @@ export function initCareerPortfolioPreviewPage(config: CareerPortfolioPreviewCon
     }));
   }
 
+  function normalizeFieldType(value, fallback = "text") {
+    const next = String(value || "").trim().toLowerCase();
+    return ["text", "textarea", "number", "date", "list", "link", "image", "video", "file"].includes(next) ? next : fallback;
+  }
+
+  function splitCustomFieldValue(value) {
+    return String(value || "")
+      .split("\n")
+      .map((item) => item.trim())
+      .filter(Boolean);
+  }
+
+  function isProbablyUrl(value) {
+    const text = String(value || "").trim();
+    return /^https?:\/\//i.test(text) || text.startsWith("/") || text.startsWith("mailto:");
+  }
+
+  function formatMultilineHtml(value) {
+    return escapeHtml(value || "—").replaceAll("\n", "<br />");
+  }
+
+  function formatDate(dateStr) {
+    if (!dateStr) return "";
+    const date = new Date(`${dateStr}T00:00:00`);
+    if (Number.isNaN(date.getTime())) return dateStr;
+    return date.toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" });
+  }
+
+  function formatRange(startDate, endDate) {
+    const start = formatDate(startDate);
+    const end = formatDate(endDate);
+    if (!start && !end) return "";
+    if (start && end) return `${start} - ${end}`;
+    return start || end;
+  }
+
+  function visibleItems(items) {
+    return normalizeArray(items).filter((item) => item?.visible !== false);
+  }
+
+  function normalizeProjectCardDisplay(value) {
+    const raw = value && typeof value === "object" ? value : {};
+    return {
+      showCoverPhoto: normalizeBoolean(raw?.showCoverPhoto, PROJECT_CARD_DISPLAY_DEFAULTS.showCoverPhoto),
+      showSubtitle: normalizeBoolean(raw?.showSubtitle, PROJECT_CARD_DISPLAY_DEFAULTS.showSubtitle),
+      showDescription: normalizeBoolean(raw?.showDescription, PROJECT_CARD_DISPLAY_DEFAULTS.showDescription),
+      showSkills: normalizeBoolean(raw?.showSkills, PROJECT_CARD_DISPLAY_DEFAULTS.showSkills),
+      showLink: normalizeBoolean(raw?.showLink, PROJECT_CARD_DISPLAY_DEFAULTS.showLink),
+    };
+  }
+
+  function buildProjectPageSectionCandidates(project) {
+    const candidates = [];
+    const addSection = (key, title, type, value) => {
+      const textValue = Array.isArray(value) ? value.filter(Boolean).join("\n") : String(value || "").trim();
+      if (!textValue) return;
+      candidates.push({ key, title, type: normalizeFieldType(type, type), value: textValue });
+    };
+
+    addSection("cover-photo", "Cover Photo", "image", project?.coverPhotoUrl || "");
+    addSection("subtitle", "Subtitle", "text", project?.subtitle || "");
+    addSection("description", "Description", "textarea", project?.description || "");
+    addSection("skills", "Skills", "list", String(project?.skills || "").replace(/,\s*/g, "\n"));
+    addSection("project-link", "Project Link", "link", project?.link || "");
+
+    normalizeArray(project?.customFields).forEach((field, index) => {
+      const key = `field:${field?.key || index}`;
+      const rawValue = Array.isArray(field?.value) ? field.value.filter(Boolean).join("\n") : String(field?.value || "");
+      if (!rawValue.trim()) return;
+      candidates.push({
+        key,
+        title: field?.label || `Field ${index + 1}`,
+        type: normalizeFieldType(field?.type, "text"),
+        value: rawValue,
+      });
+    });
+
+    return candidates;
+  }
+
+  function syncProjectPageSections(project) {
+    const candidates = buildProjectPageSectionCandidates(project);
+    const existingSections = normalizeArray(project?.projectPageSections || project?.pageSections);
+    const existingMap = new Map(existingSections.map((section) => [String(section?.key || ""), section]));
+
+    return candidates
+      .map((candidate, index) => {
+        const existing = existingMap.get(candidate.key) || {};
+        return {
+          id: existing?.id || `project-section-${candidate.key || index}`,
+          key: candidate.key,
+          title: candidate.title,
+          type: candidate.type,
+          value: candidate.value,
+          visible: normalizeBoolean(existing?.visible, true),
+          order: Number.isFinite(Number(existing?.order)) ? Number(existing.order) : index,
+        };
+      })
+      .sort((a, b) => Number(a.order || 0) - Number(b.order || 0))
+      .map((section, index) => ({ ...section, order: index }));
+  }
+
+  function normalizeProject(item, index = 0) {
+    const projectIdentity = normalizeProjectIdentity(item, index);
+    const project = {
+      ...projectIdentity,
+      visible: normalizeBoolean(item?.visible, true),
+      coverPhotoUrl: item?.coverPhotoUrl || item?.image || item?.photoUrl || projectIdentity?.coverPhotoUrl || "",
+      cardDisplay: normalizeProjectCardDisplay(item?.cardDisplay),
+      customFields: normalizeArray(item?.customFields).filter((field) => field?.label || field?.value),
+    };
+
+    return {
+      ...project,
+      projectPageSections: syncProjectPageSections(project),
+    };
+  }
+
   function normalizeState(raw) {
     const parsed = raw && typeof raw === "object" ? raw : {};
     const menuItems = normalizeArray(parsed.portfolioMenuItems).length
@@ -93,13 +221,25 @@ export function initCareerPortfolioPreviewPage(config: CareerPortfolioPreviewCon
       order: Number.isFinite(Number(item?.order)) ? Number(item.order) : index,
     }));
 
+    const projects = normalizeArray(parsed.projects).map((item, index) => normalizeProject(item, index));
+    const syncedLayout = syncPortfolioSectionLayout(layout, projects, {
+      titleFor,
+      defaultMenuId: menuItems[0]?.id || "main",
+    }).map((item, index) => ({
+      ...item,
+      pageId: menuIds.has(item?.pageId) ? item.pageId : menuItems[0]?.id || "main",
+      enabled: normalizeBoolean(item?.enabled, true),
+      collapsed: normalizeBoolean(item?.collapsed, false),
+      order: Number.isFinite(Number(item?.order)) ? Number(item.order) : index,
+    }));
+
     return {
       ...parsed,
       profile: normalizeArray(parsed.profile).map((item) => ({ ...item, visible: normalizeBoolean(item?.visible, true) })),
       externalLinks: normalizeArray(parsed.externalLinks).map((item) => ({ ...item, visible: normalizeBoolean(item?.visible, true) })),
       experience: normalizeArray(parsed.experience).map((item) => ({ ...item, visible: normalizeBoolean(item?.visible, true) })),
       leadership: normalizeArray(parsed.leadership).map((item) => ({ ...item, visible: normalizeBoolean(item?.visible, true) })),
-      projects: normalizeArray(parsed.projects).map((item) => ({ ...item, visible: normalizeBoolean(item?.visible, true) })),
+      projects,
       organizations: normalizeArray(parsed.organizations).map((item) => ({ ...item, visible: normalizeBoolean(item?.visible, true) })),
       honors: normalizeArray(parsed.honors || parsed.stats).map((item) => ({ ...item, visible: normalizeBoolean(item?.visible, true) })),
       licenses: normalizeArray(parsed.licenses).map((item) => ({ ...item, visible: normalizeBoolean(item?.visible, true) })),
@@ -113,7 +253,7 @@ export function initCareerPortfolioPreviewPage(config: CareerPortfolioPreviewCon
       recommendations: normalizeArray(parsed.recommendations).map((item) => ({ ...item, visible: normalizeBoolean(item?.visible, true) })),
       star: normalizeArray(parsed.star).map((item) => ({ ...item, visible: normalizeBoolean(item?.visible, true) })),
       portfolioMenuItems: menuItems,
-      portfolioSectionLayout: layout,
+      portfolioSectionLayout: syncedLayout,
     };
   }
 
@@ -150,46 +290,6 @@ export function initCareerPortfolioPreviewPage(config: CareerPortfolioPreviewCon
     return String(item?.fileType || "").toLowerCase().includes("pdf") || String(item?.fileName || "").toLowerCase().endsWith(".pdf");
   }
 
-  function formatDate(dateStr) {
-    if (!dateStr) return "";
-    const date = new Date(`${dateStr}T00:00:00`);
-    if (Number.isNaN(date.getTime())) return dateStr;
-    return date.toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" });
-  }
-
-  function formatRange(startDate, endDate) {
-    const start = formatDate(startDate);
-    const end = formatDate(endDate);
-    if (!start && !end) return "";
-    if (start && end) return `${start} - ${end}`;
-    return start || end;
-  }
-
-  function visibleItems(items) {
-    return normalizeArray(items).filter((item) => item?.visible !== false);
-  }
-
-  function normalizeFieldType(value, fallback = "text") {
-    const next = String(value || "").trim().toLowerCase();
-    return ["text", "textarea", "number", "date", "list", "link", "image", "video", "file"].includes(next) ? next : fallback;
-  }
-
-  function splitCustomFieldValue(value) {
-    return String(value || "")
-      .split("\n")
-      .map((item) => item.trim())
-      .filter(Boolean);
-  }
-
-  function isProbablyUrl(value) {
-    const text = String(value || "").trim();
-    return /^https?:\/\//i.test(text) || text.startsWith("/") || text.startsWith("mailto:");
-  }
-
-  function formatMultilineHtml(value) {
-    return escapeHtml(value || "—").replaceAll("\n", "<br />");
-  }
-
   function renderCustomFieldValue(field) {
     const type = normalizeFieldType(field?.type, "text");
     const values = splitCustomFieldValue(field?.value);
@@ -198,12 +298,12 @@ export function initCareerPortfolioPreviewPage(config: CareerPortfolioPreviewCon
       return `
         <div class="preview-link-row">
           ${media.filter(Boolean).map((value) => isProbablyUrl(value)
-            ? `<img src="${escapeHtml(value)}" alt="${escapeHtml(field?.label || "Image")}" style="width:100%;max-width:18rem;border-radius:0.9rem;border:1px solid rgba(15,23,42,0.08);object-fit:cover;" />`
+            ? `<img src="${escapeHtml(value)}" alt="${escapeHtml(field?.label || "Image")}" style="width:100%;max-width:22rem;border-radius:1rem;border:1px solid rgba(15,23,42,0.08);object-fit:cover;" />`
             : `<p>${escapeHtml(value)}</p>`).join("")}
         </div>
       `;
     }
-    if (type === "link" || type === "video" || type === "file") {
+    if (["link", "video", "file"].includes(type)) {
       const links = values.length ? values : [field?.value || ""];
       return `<div class="preview-link-row">${links.filter(Boolean).map((value, index) => isProbablyUrl(value)
         ? `<a class="preview-pill-link" href="${escapeHtml(value)}" target="_blank" rel="noreferrer">${escapeHtml(field?.label || type)} ${links.length > 1 ? index + 1 : ""}</a>`
@@ -237,6 +337,35 @@ export function initCareerPortfolioPreviewPage(config: CareerPortfolioPreviewCon
     return `<article class="preview-empty-card"><p>${escapeHtml(text)}</p></article>`;
   }
 
+  function renderSectionShell(title, body, open = true, countText = "") {
+    return `
+      <section class="preview-section">
+        <details class="preview-details" ${open ? "open" : ""}>
+          <summary>
+            <span>${escapeHtml(title)}</span>
+            <span class="preview-summary-chip">${escapeHtml(countText || "Open")}</span>
+          </summary>
+          <div class="preview-section-body">${body}</div>
+        </details>
+      </section>
+    `;
+  }
+
+  function renderCardsSection(title, items, renderer, emptyText) {
+    const visible = visibleItems(items);
+    const cards = visible.length ? visible.map(renderer).join("") : emptySuggestion(emptyText);
+    return renderSectionShell(title, `<div class="preview-grid">${cards}</div>`, true, `${visible.length} item${visible.length === 1 ? "" : "s"}`);
+  }
+
+  function renderTextSection(title, items, emptyText) {
+    return renderCardsSection(
+      title,
+      items,
+      (item) => `<article class="preview-card"><h3>${escapeHtml(item.title || title)}</h3><p>${escapeHtml(item.body || "")}</p>${renderCustomFields(item.customFields)}</article>`,
+      emptyText
+    );
+  }
+
   function renderProfileSection(state, user) {
     const profile = visibleItems(state.profile)[0] || {};
     const links = visibleItems(state.externalLinks);
@@ -244,12 +373,7 @@ export function initCareerPortfolioPreviewPage(config: CareerPortfolioPreviewCon
     const headline = profile.headline || "Add a short professional headline in Information Builder.";
     const description = profile.description || "This section is blank for now. Add your name, intro, and links on the Information page or hide this section from Portfolio Layout.";
     const avatar = profile.photoUrl || user?.avatarUrl || user?.avatarFileDataUrl || "";
-    const initials = String(name || "Y")
-      .split(" ")
-      .map((item) => item[0])
-      .join("")
-      .slice(0, 2)
-      .toUpperCase();
+    const initials = String(name || "Y").split(" ").map((item) => item[0]).join("").slice(0, 2).toUpperCase();
 
     const linkButtons = links.length
       ? `<div class="preview-link-row">${links.map((item) => {
@@ -305,36 +429,164 @@ export function initCareerPortfolioPreviewPage(config: CareerPortfolioPreviewCon
     return renderSectionShell("Resume", body, true);
   }
 
-  function renderSectionShell(title, body, open = true, countText = "") {
+  function absolutePublicPageHref(username, pageSlug) {
+    const base = `${publicOrigin()}${shareBasePath}/${encodeURIComponent(username)}`;
+    return pageSlug ? `${base}?page=${encodeURIComponent(pageSlug)}` : base;
+  }
+
+  function absoluteProjectPageHref(username, projectSlug, pageSlug = "") {
+    const params = new URLSearchParams();
+    if (pageSlug) params.set("page", pageSlug);
+    const query = params.toString();
+    return `${publicOrigin()}${shareBasePath}/${encodeURIComponent(username)}/project/${encodeURIComponent(projectSlug)}${query ? `?${query}` : ""}`;
+  }
+
+  function relativePreviewProjectHref(pageSlug, projectSlug) {
+    const params = new URLSearchParams();
+    if (pageSlug) params.set("page", pageSlug);
+    if (projectSlug) params.set("project", projectSlug);
+    const query = params.toString();
+    return query ? `?${query}` : "?project=";
+  }
+
+  function renderProjectCard(project, user, pageSlug) {
+    const display = normalizeProjectCardDisplay(project?.cardDisplay);
+    const href = publicUsername
+      ? absoluteProjectPageHref(publicUsername, project.projectSlug, pageSlug)
+      : relativePreviewProjectHref(pageSlug, project.projectSlug);
+
     return `
-      <section class="preview-section">
-        <details class="preview-details" ${open ? "open" : ""}>
-          <summary>
-            <span>${escapeHtml(title)}</span>
-            <span class="preview-summary-chip">${escapeHtml(countText || "Open")}</span>
-          </summary>
-          <div class="preview-section-body">${body}</div>
-        </details>
-      </section>
+      <article class="preview-card preview-project-card preview-project-card-link-shell">
+        <a class="preview-stretched-link" href="${escapeHtml(href)}" aria-label="Open ${escapeHtml(project.title || "Project")} project page"></a>
+        ${display.showCoverPhoto && project.coverPhotoUrl ? `<div class="preview-project-cover-link"><img class="preview-project-cover" src="${escapeHtml(project.coverPhotoUrl)}" alt="${escapeHtml(project.title || "Project cover")}" /></div>` : ""}
+        <div class="preview-card-head">
+          <div>
+            <p class="preview-kicker">Project quick link</p>
+            <h3>${escapeHtml(project.title || "Project")}</h3>
+          </div>
+          <div class="preview-link-row preview-project-card-actions">
+            <span class="preview-summary-chip preview-project-card-chip">Opens full page</span>
+            ${display.showLink && project.link ? `<a class="preview-pill-link preview-project-live-link" href="${escapeHtml(project.link)}" target="_blank" rel="noreferrer">Live link</a>` : ""}
+          </div>
+        </div>
+        ${display.showSubtitle && project.subtitle ? `<p class="preview-muted">${escapeHtml(project.subtitle)}</p>` : ""}
+        ${display.showDescription && project.description ? `<p>${escapeHtml(project.description)}</p>` : ""}
+        ${display.showSkills && project.skills ? `<p><strong>Skills:</strong> ${escapeHtml(project.skills)}</p>` : ""}
+      </article>
     `;
   }
 
-  function renderCardsSection(title, items, renderer, emptyText) {
-    const visible = visibleItems(items);
-    const cards = visible.length ? visible.map(renderer).join("") : emptySuggestion(emptyText);
-    return renderSectionShell(title, `<div class="preview-grid">${cards}</div>`, true, `${visible.length} item${visible.length === 1 ? "" : "s"}`);
+  function renderProjectsAsSeparateSections(state, user, pageSlug) {
+    const projects = visibleItems(state.projects);
+    if (!projects.length) {
+      return renderSectionShell(
+        "Projects",
+        emptySuggestion("Add projects on the Information page or hide this section."),
+        true,
+        "0 items"
+      );
+    }
+
+    return projects.map((project) => renderSectionShell(
+      project.title || "Project",
+      renderProjectCard(project, user, pageSlug),
+      true,
+      "Quick link"
+    )).join("");
   }
 
-  function renderTextSection(title, items, emptyText) {
-    return renderCardsSection(
-      title,
-      items,
-      (item) => `<article class="preview-card"><h3>${escapeHtml(item.title || title)}</h3><p>${escapeHtml(item.body || "")}</p>${renderCustomFields(item.customFields)}</article>`,
-      emptyText
+  function renderProjectLayoutSection(section, state, user, pageSlug) {
+    const project = findProjectByLayoutKey(state.projects, section?.key);
+    if (!project || project.visible === false) {
+      return renderSectionShell(
+        section?.title || "Project",
+        emptySuggestion("This project is hidden in Information Builder. Show it there or move another project into this spot."),
+        true,
+        "Hidden"
+      );
+    }
+
+    return renderSectionShell(
+      project.title || section?.title || "Project",
+      renderProjectCard(project, user, pageSlug),
+      true,
+      "Quick link"
     );
   }
 
-  function renderSectionByKey(key, state, user) {
+  function renderProjectPageSection(section) {
+    const type = normalizeFieldType(section?.type, "text");
+    const values = splitCustomFieldValue(section?.value || "");
+
+    if (type === "image") {
+      const media = values.length ? values : [section?.value || ""];
+      return renderSectionShell(
+        section?.title || "Media",
+        `<div class="preview-project-media-grid">${media.filter(Boolean).map((value) => isProbablyUrl(value)
+          ? `<img class="preview-project-detail-image" src="${escapeHtml(value)}" alt="${escapeHtml(section?.title || "Project image")}" />`
+          : `<p>${escapeHtml(value)}</p>`).join("")}</div>`,
+        true,
+        "Media"
+      );
+    }
+
+    if (["link", "video", "file"].includes(type)) {
+      const links = values.length ? values : [section?.value || ""];
+      return renderSectionShell(
+        section?.title || "Links",
+        `<div class="preview-link-row">${links.filter(Boolean).map((value, index) => isProbablyUrl(value)
+          ? `<a class="preview-pill-link" href="${escapeHtml(value)}" target="_blank" rel="noreferrer">${escapeHtml(section?.title || "Link")} ${links.length > 1 ? index + 1 : ""}</a>`
+          : `<span>${escapeHtml(value)}</span>`).join("")}</div>`,
+        true,
+        `${links.filter(Boolean).length} link${links.filter(Boolean).length === 1 ? "" : "s"}`
+      );
+    }
+
+    if (type === "list") {
+      return renderSectionShell(
+        section?.title || "List",
+        values.length ? `<ul class="preview-bullet-list">${values.map((value) => `<li>${escapeHtml(value)}</li>`).join("")}</ul>` : `<p class="preview-muted">No items added.</p>`,
+        true,
+        `${values.length} item${values.length === 1 ? "" : "s"}`
+      );
+    }
+
+    if (type === "date") {
+      return renderSectionShell(section?.title || "Date", `<p>${escapeHtml(formatDate(section?.value || "") || section?.value || "—")}</p>`, true, "Date");
+    }
+
+    return renderSectionShell(section?.title || "Details", `<p>${formatMultilineHtml(section?.value || "—")}</p>`, true, "Open");
+  }
+
+  function renderProjectPage(project, state, user, selectedMenu) {
+    const visibleSections = normalizeArray(project?.projectPageSections)
+      .filter((section) => section?.visible !== false)
+      .sort((a, b) => Number(a.order || 0) - Number(b.order || 0));
+    const backHref = publicUsername
+      ? absolutePublicPageHref(publicUsername, selectedMenu?.slug || state.portfolioMenuItems[0]?.slug || "home")
+      : `?page=${encodeURIComponent(selectedMenu?.slug || state.portfolioMenuItems[0]?.slug || "home")}`;
+
+    return `
+      <main class="preview-main-shell">
+        <section class="preview-project-hero-wrap">
+          <article class="preview-project-hero-card preview-project-hero-card-minimal">
+            <div class="preview-project-hero-copy">
+              <a class="preview-inline-link preview-back-link" href="${escapeHtml(backHref)}">Back to portfolio</a>
+              <p class="preview-kicker">Project page</p>
+              <h1 class="preview-project-page-title">${escapeHtml(project?.title || "Project")}</h1>
+              <p class="preview-project-page-subtitle">Every visible piece of project information appears below as its own dropdown card. Reorder or hide them from Information Builder.</p>
+              <div class="preview-link-row">
+                <span class="preview-project-skill-summary">${visibleSections.length} visible section${visibleSections.length === 1 ? "" : "s"}</span>
+              </div>
+            </div>
+          </article>
+        </section>
+        ${visibleSections.length ? visibleSections.map((section) => renderProjectPageSection(section)).join("") : emptySuggestion("This project has no visible sections yet. Go back to Information Builder to turn some on.")}
+      </main>
+    `;
+  }
+
+  function renderSectionByKey(key, state, user, pageSlug) {
     if (key === "profile") return renderProfileSection(state, user);
     if (key === "resume") return renderResumeSection(state);
     if (key === "experience") {
@@ -370,23 +622,8 @@ export function initCareerPortfolioPreviewPage(config: CareerPortfolioPreviewCon
         "Add leadership experience on the Information page or hide this section."
       );
     }
-    if (key === "projects") {
-      return renderCardsSection(
-        "Projects",
-        state.projects,
-        (item) => `
-          <article class="preview-card">
-            <h3>${escapeHtml(item.title || "Project")}</h3>
-            ${item.subtitle ? `<p class="preview-muted">${escapeHtml(item.subtitle)}</p>` : ""}
-            ${item.description ? `<p>${escapeHtml(item.description)}</p>` : ""}
-            ${item.skills ? `<p><strong>Skills:</strong> ${escapeHtml(item.skills)}</p>` : ""}
-            ${item.link ? `<a class="preview-inline-link" href="${escapeHtml(item.link)}" target="_blank" rel="noreferrer">Open project</a>` : ""}
-            ${renderCustomFields(item.customFields)}
-          </article>
-        `,
-        "Add projects on the Information page or hide this section."
-      );
-    }
+    if (isProjectLayoutKey(key)) return renderProjectLayoutSection({ key, title: findProjectByLayoutKey(state.projects, key)?.title || "Project" }, state, user, pageSlug);
+    if (key === "projects") return renderProjectsAsSeparateSections(state, user, pageSlug);
     if (key === "organizations") {
       return renderCardsSection(
         "Organizations",
@@ -470,11 +707,6 @@ export function initCareerPortfolioPreviewPage(config: CareerPortfolioPreviewCon
     return "";
   }
 
-  function absolutePublicPageHref(username, pageSlug) {
-    const base = `${publicOrigin()}${shareBasePath}/${encodeURIComponent(username)}`;
-    return pageSlug ? `${base}?page=${encodeURIComponent(pageSlug)}` : base;
-  }
-
   async function copyShareLink(href) {
     const button = document.getElementById("preview-share-link-button");
     if (!button) return;
@@ -493,19 +725,26 @@ export function initCareerPortfolioPreviewPage(config: CareerPortfolioPreviewCon
   function renderPage(state, user) {
     const root = document.getElementById("career-portfolio-preview-root");
     if (!root) return;
+
     const params = new URLSearchParams(window.location.search);
     const selectedSlug = params.get("page") || state.portfolioMenuItems[0]?.slug || "home";
     const selectedMenu = state.portfolioMenuItems.find((item) => item.slug === selectedSlug) || state.portfolioMenuItems[0];
     const selectedPageId = selectedMenu?.id || state.portfolioMenuItems[0]?.id || "main";
+    const activeProjectSlug = initialProjectSlug || params.get("project") || "";
+    const activeProject = visibleItems(state.projects).find((item) => item.projectSlug === activeProjectSlug);
     const canShare = Boolean(user?.username);
-    const publicHref = canShare ? absolutePublicPageHref(user.username, selectedMenu?.slug || "home") : "";
-    const displayName = (visibleItems(state.profile)[0]?.fullName) || user?.displayName || user?.username || "Portfolio";
+    const shareHref = canShare
+      ? (activeProject
+          ? absoluteProjectPageHref(user.username, activeProject.projectSlug, selectedMenu?.slug || "home")
+          : absolutePublicPageHref(user.username, selectedMenu?.slug || "home"))
+      : "";
+    const displayName = visibleItems(state.profile)[0]?.fullName || user?.displayName || user?.username || "Portfolio";
 
     const nav = `
       <header class="preview-site-header">
         <div class="preview-site-header-inner">
           <div class="preview-site-brand">
-            <p class="preview-kicker">${publicUsername ? "Shared portfolio" : "Portfolio preview"}</p>
+            <p class="preview-kicker">${publicUsername ? (activeProject ? "Shared project page" : "Shared portfolio") : (activeProject ? "Project preview" : "Portfolio preview")}</p>
             <h1 class="preview-site-title">${escapeHtml(displayName)}</h1>
             <p class="preview-muted">A clean, public-facing portfolio view with no HubLife navigation.</p>
           </div>
@@ -515,27 +754,35 @@ export function initCareerPortfolioPreviewPage(config: CareerPortfolioPreviewCon
         </div>
         <div class="preview-site-nav-wrap">
           <nav class="preview-nav">
-            ${state.portfolioMenuItems.map((item) => `<a class="preview-nav-link ${item.id === selectedPageId ? "active" : ""}" href="?page=${encodeURIComponent(item.slug)}">${escapeHtml(item.label)}</a>`).join("")}
+            ${state.portfolioMenuItems.map((item) => {
+              const href = publicUsername
+                ? absolutePublicPageHref(publicUsername, item.slug)
+                : `?page=${encodeURIComponent(item.slug)}`;
+              return `<a class="preview-nav-link ${item.id === selectedPageId ? "active" : ""}" href="${escapeHtml(href)}">${escapeHtml(item.label)}</a>`;
+            }).join("")}
           </nav>
         </div>
       </header>
     `;
 
-    const sections = [...state.portfolioSectionLayout]
-      .filter((item) => item.enabled && item.pageId === selectedPageId)
-      .sort((a, b) => Number(a.order || 0) - Number(b.order || 0))
-      .map((item) => renderSectionByKey(item.key, state, user))
-      .join("");
+    const content = activeProject
+      ? renderProjectPage(activeProject, state, user, selectedMenu)
+      : `
+        <main class="preview-main-shell">
+          ${[...state.portfolioSectionLayout]
+            .filter((item) => item.enabled && item.pageId === selectedPageId)
+            .sort((a, b) => Number(a.order || 0) - Number(b.order || 0))
+            .map((item) => isProjectLayoutKey(item.key)
+              ? renderProjectLayoutSection(item, state, user, selectedMenu?.slug || "home")
+              : renderSectionByKey(item.key, state, user, selectedMenu?.slug || "home"))
+            .join("") || emptySuggestion("No sections are assigned to this menu page yet. Go back to Portfolio Layout to move sections here.")}
+        </main>
+      `;
 
-    root.innerHTML = `
-      ${nav}
-      <main class="preview-main-shell">
-        ${sections || emptySuggestion("No sections are assigned to this menu page yet. Go back to Portfolio Layout to move sections here.")}
-      </main>
-    `;
+    root.innerHTML = `${nav}${content}`;
 
     if (canShare) {
-      root.querySelector("#preview-share-link-button")?.addEventListener("click", () => copyShareLink(publicHref));
+      root.querySelector("#preview-share-link-button")?.addEventListener("click", () => copyShareLink(shareHref));
     }
   }
 

@@ -1,4 +1,15 @@
 // @ts-nocheck
+import {
+  countItemsForSectionKey,
+  findProjectByLayoutKey,
+  isProjectLayoutKey,
+  normalizeArray,
+  normalizeBoolean,
+  normalizeProjectIdentity,
+  slugify,
+  syncPortfolioSectionLayout,
+} from "../careerPortfolioSections";
+
 interface CareerPortfolioClientConfig {
   sourcePageKey: string;
   sectionOrder?: string[];
@@ -30,22 +41,6 @@ export function initCareerPortfolioPage(config: CareerPortfolioClientConfig) {
       .replaceAll("'", "&#039;");
   }
 
-  function normalizeArray(value) {
-    return Array.isArray(value) ? value : [];
-  }
-
-  function normalizeBoolean(value, fallback = true) {
-    return typeof value === "boolean" ? value : fallback;
-  }
-
-  function slugify(value) {
-    return String(value || "")
-      .toLowerCase()
-      .replace(/[^a-z0-9]+/g, "-")
-      .replace(/(^-|-$)/g, "") || "page";
-  }
-
-
   function publicOrigin() {
     if (!publicAppUrl) return window.location.origin;
     try {
@@ -67,6 +62,7 @@ export function initCareerPortfolioPage(config: CareerPortfolioClientConfig) {
     const order = Array.isArray(config.sectionOrder) && config.sectionOrder.length
       ? config.sectionOrder
       : ["profile", "resume", "experience", "leadership", "projects", "organizations", "honors", "licenses", "contact"];
+
     return order.map((key, index) => ({
       id: `layout-${key}`,
       key,
@@ -88,34 +84,22 @@ export function initCareerPortfolioPage(config: CareerPortfolioClientConfig) {
         }))
       : defaultMenuItems();
 
-    const menuIds = new Set(menuItems.map((item) => item.id));
-    const providedLayout = normalizeArray(parsed.portfolioSectionLayout).length
+    const projects = normalizeArray(parsed.projects).map((item, index) => normalizeProjectIdentity(item, index));
+    const fallbackLayout = normalizeArray(parsed.portfolioSectionLayout).length
       ? normalizeArray(parsed.portfolioSectionLayout)
       : defaultSectionLayout();
 
-    const knownKeys = new Set((config.sectionOrder || []).concat(providedLayout.map((item) => item?.key).filter(Boolean)));
-    const layout = providedLayout.map((item, index) => ({
+    const syncedLayout = syncPortfolioSectionLayout(fallbackLayout, projects, {
+      titleFor,
+      defaultMenuId: menuItems[0]?.id || "main",
+    }).map((item, index) => ({
+      ...item,
       id: item?.id || makeId(`layout-${item?.key || index}`),
-      key: item?.key || "",
-      title: item?.title || titleFor(item?.key || "") || `Section ${index + 1}`,
-      pageId: menuIds.has(item?.pageId) ? item.pageId : menuItems[0]?.id || "main",
+      pageId: menuItems.some((menuItem) => menuItem.id === item?.pageId) ? item.pageId : menuItems[0]?.id || "main",
       enabled: normalizeBoolean(item?.enabled, true),
       collapsed: normalizeBoolean(item?.collapsed, false),
       order: Number.isFinite(Number(item?.order)) ? Number(item.order) : index,
     }));
-
-    (config.sectionOrder || []).forEach((key) => {
-      if (layout.some((item) => item.key === key)) return;
-      layout.push({
-        id: `layout-${key}`,
-        key,
-        title: titleFor(key),
-        pageId: menuItems[0]?.id || "main",
-        enabled: ["profile", "resume", "experience", "leadership", "projects", "organizations", "honors", "licenses", "contact"].includes(key),
-        collapsed: false,
-        order: layout.length,
-      });
-    });
 
     return {
       ...parsed,
@@ -123,7 +107,7 @@ export function initCareerPortfolioPage(config: CareerPortfolioClientConfig) {
       externalLinks: normalizeArray(parsed.externalLinks),
       experience: normalizeArray(parsed.experience),
       leadership: normalizeArray(parsed.leadership),
-      projects: normalizeArray(parsed.projects),
+      projects,
       organizations: normalizeArray(parsed.organizations),
       honors: normalizeArray(parsed.honors || parsed.stats),
       licenses: normalizeArray(parsed.licenses),
@@ -137,7 +121,7 @@ export function initCareerPortfolioPage(config: CareerPortfolioClientConfig) {
       recommendations: normalizeArray(parsed.recommendations),
       star: normalizeArray(parsed.star),
       portfolioMenuItems: menuItems,
-      portfolioSectionLayout: layout,
+      portfolioSectionLayout: syncedLayout,
     };
   }
 
@@ -152,6 +136,20 @@ export function initCareerPortfolioPage(config: CareerPortfolioClientConfig) {
       return payload?.state ?? null;
     } catch (error) {
       console.error("Failed to load portfolio layout state:", error);
+      return null;
+    }
+  }
+
+  async function loadMe() {
+    try {
+      const res = await fetch("/api/me", {
+        credentials: "include",
+        cache: "no-store",
+      });
+      if (!res.ok) return null;
+      const payload = await res.json();
+      return payload?.user || null;
+    } catch {
       return null;
     }
   }
@@ -191,12 +189,16 @@ export function initCareerPortfolioPage(config: CareerPortfolioClientConfig) {
   let isSaving = false;
   let pendingSave = false;
 
-  function sectionCount(key) {
-    return normalizeArray(data[key]).length;
+  function refreshDynamicSections() {
+    data.projects = normalizeArray(data.projects).map((item, index) => normalizeProjectIdentity(item, index));
+    data.portfolioSectionLayout = syncPortfolioSectionLayout(data.portfolioSectionLayout, data.projects, {
+      titleFor,
+      defaultMenuId: data.portfolioMenuItems[0]?.id || "main",
+    });
   }
 
-  function visibleCount(key) {
-    return normalizeArray(data[key]).filter((item) => item?.visible !== false).length;
+  function sectionStats(key) {
+    return countItemsForSectionKey(data, key);
   }
 
   function saveStatus(text, kind = "neutral") {
@@ -213,9 +215,12 @@ export function initCareerPortfolioPage(config: CareerPortfolioClientConfig) {
       saveStatus("Queued save...", "neutral");
       return;
     }
+
     isSaving = true;
     saveStatus("Saving...", "neutral");
+
     try {
+      refreshDynamicSections();
       data.portfolioSectionLayout = [...data.portfolioSectionLayout]
         .sort((a, b) => Number(a.order || 0) - Number(b.order || 0))
         .map((item, index) => ({ ...item, order: index }));
@@ -256,7 +261,7 @@ export function initCareerPortfolioPage(config: CareerPortfolioClientConfig) {
       </div>
       <div class="portfolio-menu-list">
         ${data.portfolioMenuItems
-          .map((item, index) => `
+          .map((item) => `
             <article class="portfolio-menu-card card">
               <div class="portfolio-menu-card-copy">
                 <label class="edu-label">
@@ -285,6 +290,7 @@ export function initCareerPortfolioPage(config: CareerPortfolioClientConfig) {
       const nextIndex = data.portfolioMenuItems.length + 1;
       const label = `Page ${nextIndex}`;
       data.portfolioMenuItems.push({ id: makeId("menu"), label, slug: slugify(label) });
+      refreshDynamicSections();
       renderAll();
       await saveState();
     });
@@ -301,6 +307,7 @@ export function initCareerPortfolioPage(config: CareerPortfolioClientConfig) {
           counter += 1;
         }
         data.portfolioMenuItems = data.portfolioMenuItems.map((item) => item.id === id ? { ...item, label: value, slug } : item);
+        refreshDynamicSections();
         renderAll();
         await saveState();
       });
@@ -327,6 +334,7 @@ export function initCareerPortfolioPage(config: CareerPortfolioClientConfig) {
           counter += 1;
         }
         data.portfolioMenuItems.push({ id: makeId("menu"), label, slug });
+        refreshDynamicSections();
         renderAll();
         await saveState();
       });
@@ -339,6 +347,7 @@ export function initCareerPortfolioPage(config: CareerPortfolioClientConfig) {
         data.portfolioMenuItems = data.portfolioMenuItems.filter((item) => item.id !== id);
         const fallbackId = data.portfolioMenuItems[0]?.id || "main";
         data.portfolioSectionLayout = data.portfolioSectionLayout.map((item) => item.pageId === id ? { ...item, pageId: fallbackId } : item);
+        refreshDynamicSections();
         renderAll();
         await saveState();
       });
@@ -358,26 +367,59 @@ export function initCareerPortfolioPage(config: CareerPortfolioClientConfig) {
     data.portfolioSectionLayout = ordered;
   }
 
-  function sectionHint(key) {
-    const count = sectionCount(key);
-    if (count > 0) {
-      return `${visibleCount(key)} visible / ${count} saved in Information Builder`;
+  function sectionHint(section) {
+    const stats = sectionStats(section.key);
+    if (isProjectLayoutKey(section.key)) {
+      const project = findProjectByLayoutKey(data.projects, section.key);
+      if (!project) return "This project was removed. Save again to clean up the layout.";
+      return project.visible !== false
+        ? "Quick-link card is visible in preview and opens the dedicated project page."
+        : "Project entry is hidden in Information Builder, so this quick link stays hidden until you show it again.";
+    }
+    if (stats.saved > 0) {
+      return `${stats.visible} visible / ${stats.saved} saved in Information Builder`;
     }
     return "No saved content yet — this stays as a suggestion until you fill it in or hide it.";
+  }
+
+  function sectionMetaRows(section) {
+    const stats = sectionStats(section.key);
+    const project = isProjectLayoutKey(section.key) ? findProjectByLayoutKey(data.projects, section.key) : null;
+    const assignedPage = data.portfolioMenuItems.find((item) => item.id === section.pageId)?.label || "Home";
+
+    if (project) {
+      return `
+        <p><strong>Section key:</strong> ${escapeHtml(section.key)}</p>
+        <p><strong>Project page slug:</strong> ${escapeHtml(project.projectSlug || "project")}</p>
+        <p><strong>Assigned page:</strong> ${escapeHtml(assignedPage)}</p>
+        <p><strong>Card visibility:</strong> ${project.visible !== false ? "Visible" : "Hidden in Information Builder"}</p>
+        <p><strong>Public behavior:</strong> The section card acts as a quick link to the dedicated project page, and the page itself uses the project's visible dropdown sections.</p>
+      `;
+    }
+
+    return `
+      <p><strong>Section key:</strong> ${escapeHtml(section.key)}</p>
+      <p><strong>Assigned page:</strong> ${escapeHtml(assignedPage)}</p>
+      <p><strong>Saved content:</strong> ${stats.saved} item(s)</p>
+      <p><strong>Visible content:</strong> ${stats.visible} item(s)</p>
+      <p><strong>Note:</strong> Content is edited on the Information page. This page only controls order, visibility, and which menu page each section lives on.</p>
+    `;
   }
 
   function renderSectionManager() {
     const root = document.getElementById("portfolio-section-manager");
     if (!root) return;
+
+    refreshDynamicSections();
     const ordered = [...data.portfolioSectionLayout].sort((a, b) => Number(a.order || 0) - Number(b.order || 0));
     root.innerHTML = ordered
       .map((section, index) => `
         <details class="dropdown-card expandable-section surface-dropdown portfolio-layout-card" ${section.collapsed ? "" : "open"}>
           <summary class="portfolio-layout-summary">
             <div>
-              <p class="kicker">Section ${index + 1}</p>
+              <p class="kicker">${isProjectLayoutKey(section.key) ? `Project link ${index + 1}` : `Section ${index + 1}`}</p>
               <h2 class="section-title">${escapeHtml(section.title || titleFor(section.key))}</h2>
-              <p class="section-subtitle">${escapeHtml(sectionHint(section.key))}</p>
+              <p class="section-subtitle">${escapeHtml(sectionHint(section))}</p>
             </div>
             <div class="portfolio-layout-summary-right">
               <span class="section-chip ${section.enabled ? "on" : "off"}">${section.enabled ? "Shown" : "Hidden"}</span>
@@ -401,11 +443,7 @@ export function initCareerPortfolioPage(config: CareerPortfolioClientConfig) {
               </div>
             </div>
             <div class="portfolio-section-meta card">
-              <p><strong>Section key:</strong> ${escapeHtml(section.key)}</p>
-              <p><strong>Assigned page:</strong> ${escapeHtml(data.portfolioMenuItems.find((item) => item.id === section.pageId)?.label || "Home")}</p>
-              <p><strong>Saved content:</strong> ${sectionCount(section.key)} item(s)</p>
-              <p><strong>Visible content:</strong> ${visibleCount(section.key)} item(s)</p>
-              <p><strong>Note:</strong> Content is edited on the Information page. This page only controls order, visibility, and which menu page each section lives on.</p>
+              ${sectionMetaRows(section)}
             </div>
           </div>
         </details>
@@ -445,13 +483,21 @@ export function initCareerPortfolioPage(config: CareerPortfolioClientConfig) {
   function renderOverview() {
     const root = document.getElementById("portfolio-layout-overview");
     if (!root) return;
+
+    refreshDynamicSections();
     const shown = data.portfolioSectionLayout.filter((item) => item.enabled).length;
     const hidden = data.portfolioSectionLayout.length - shown;
+    const projectLinks = data.portfolioSectionLayout.filter((item) => isProjectLayoutKey(item.key)).length;
+
     root.innerHTML = `
       <div class="metric-grid portfolio-overview-grid">
         <article class="stat-card surface-section portfolio-stat-card">
           <div class="stat-card-top"><p class="stat-card-label">Menu items</p><h3 class="stat-card-value">${data.portfolioMenuItems.length}</h3></div>
           <p class="stat-card-description">Top navigation pages available in preview.</p>
+        </article>
+        <article class="stat-card surface-section portfolio-stat-card">
+          <div class="stat-card-top"><p class="stat-card-label">Project quick links</p><h3 class="stat-card-value">${projectLinks}</h3></div>
+          <p class="stat-card-description">Each saved project becomes its own reorderable section card.</p>
         </article>
         <article class="stat-card surface-section portfolio-stat-card">
           <div class="stat-card-top"><p class="stat-card-label">Shown sections</p><h3 class="stat-card-value">${shown}</h3></div>

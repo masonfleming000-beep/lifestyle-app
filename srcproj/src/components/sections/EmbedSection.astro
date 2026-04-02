@@ -1,0 +1,71 @@
+---
+import SurfaceCard from "../ui/SurfaceCard.astro";
+import SectionHeader from "../SectionHeader.astro";
+import ActionRenderer from "../renderers/ActionRenderer.astro";
+import FormRenderer from "../renderers/FormRenderer.astro";
+import type {
+  ActionItemConfig,
+  RendererActionGroupConfig,
+  RendererFormConfig,
+  RendererHelperTextConfig,
+} from "../../types/ui";
+
+interface Props {
+  title: string;
+  subtitle?: string;
+  kicker?: string;
+  id?: string;
+  actions?: ActionItemConfig[];
+  form?: RendererFormConfig;
+  helperText?: RendererHelperTextConfig;
+  auxiliaryActions?: RendererActionGroupConfig;
+  containerId?: string;
+  containerClassName?: string;
+  sectionClassName?: string;
+}
+
+const {
+  title,
+  subtitle = "",
+  kicker = "",
+  id,
+  actions = [],
+  form,
+  helperText,
+  auxiliaryActions,
+  containerId = "",
+  containerClassName = "",
+  sectionClassName = "",
+} = Astro.props;
+---
+
+<div class={sectionClassName || undefined}>
+  <SurfaceCard id={id}>
+    <SectionHeader title={title} subtitle={subtitle} kicker={kicker}>
+      {actions.length > 0 && <ActionRenderer actions={actions} align="end" />}
+      <slot name="actions" />
+    </SectionHeader>
+
+    {form && <FormRenderer form={form} />}
+
+    {auxiliaryActions && (
+      <ActionRenderer
+        id={auxiliaryActions.id}
+        className={auxiliaryActions.className}
+        hidden={auxiliaryActions.hidden}
+        align={auxiliaryActions.align || "start"}
+        actions={auxiliaryActions.actions}
+      />
+    )}
+
+    {helperText && (
+      <p id={helperText.id} class:list={[helperText.className, helperText.hidden && "today-form-hidden"]}>
+        {helperText.text}
+      </p>
+    )}
+
+    {containerId && <div id={containerId} class={containerClassName || undefined}></div>}
+
+    <slot />
+  </SurfaceCard>
+</div>

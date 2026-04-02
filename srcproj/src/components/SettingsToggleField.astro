@@ -1,0 +1,19 @@
+---
+interface Props {
+  id: string;
+  title: string;
+  description?: string;
+  checked?: boolean;
+  className?: string;
+}
+
+const { id, title, description = "", checked = false, className = "" } = Astro.props as Props;
+---
+
+<label class={`settings-toggle-card ${className}`.trim()} for={id}>
+  <div class="settings-toggle-copy">
+    <span class="settings-toggle-title">{title}</span>
+    {description ? <span class="settings-toggle-description">{description}</span> : null}
+  </div>
+  <input id={id} class="settings-checkbox" type="checkbox" checked={checked} />
+</label>

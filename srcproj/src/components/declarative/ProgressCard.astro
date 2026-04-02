@@ -1,0 +1,18 @@
+---
+interface Props { title: string; value: number; max?: number; unit?: string; }
+const { title, value, max = 100, unit = '%' } = Astro.props;
+const pct = Math.max(0, Math.min(100, (value / max) * 100));
+---
+<section class="input-card progress-card">
+  <div class="progress-card-header">
+    <h3 class="section-title">{title}</h3>
+    <strong>{value}{unit}</strong>
+  </div>
+  <div class="progress-track"><span style={`width:${pct}%`}></span></div>
+</section>
+<style>
+  .progress-card { display:grid; gap:0.6rem; }
+  .progress-card-header { display:flex; justify-content:space-between; gap:1rem; }
+  .progress-track { height:0.7rem; border-radius:999px; background:var(--pill-bg); overflow:hidden; }
+  .progress-track span { display:block; height:100%; background:var(--text-main); }
+</style>

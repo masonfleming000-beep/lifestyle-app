@@ -1,0 +1,65 @@
+---
+import ChecklistCard from "../ChecklistCard.astro";
+import ActionRenderer from "../renderers/ActionRenderer.astro";
+import FormRenderer from "../renderers/FormRenderer.astro";
+import type { ActionItemConfig, RendererFormConfig } from "../../types/ui";
+
+interface ListItemObject {
+  text: string;
+  done?: boolean;
+  id?: string | number;
+}
+
+interface Props {
+  id?: string;
+  title: string;
+  subtitle?: string;
+  kicker?: string;
+  listId: string;
+  formId?: string;
+  items?: Array<string | ListItemObject>;
+  emptyText?: string;
+  mode?: "checklist" | "list";
+  actions?: ActionItemConfig[];
+  form?: RendererFormConfig;
+  sectionClassName?: string;
+  listDataKey?: string;
+}
+
+const {
+  id,
+  title,
+  subtitle = "",
+  kicker = "",
+  listId,
+  formId,
+  items = [],
+  emptyText = "No items yet.",
+  mode = "checklist",
+  actions = [],
+  form,
+  sectionClassName = "",
+  listDataKey = "",
+} = Astro.props;
+---
+
+<div class={sectionClassName || undefined}>
+  <ChecklistCard
+    id={id}
+    title={title}
+    subtitle={subtitle}
+    kicker={kicker}
+    listId={listId}
+    formId={formId}
+    items={items}
+    emptyText={emptyText}
+    mode={mode}
+    listDataKey={listDataKey}
+  >
+    {actions.length > 0 && <ActionRenderer slot="actions" actions={actions} align="end" />}
+    {form && <FormRenderer slot="form" form={form} />}
+    <slot name="actions" slot="actions" />
+    <slot name="form" slot="form" />
+    <slot name="empty" slot="empty" />
+  </ChecklistCard>
+</div>

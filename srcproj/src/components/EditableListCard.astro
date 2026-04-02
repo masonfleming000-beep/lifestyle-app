@@ -1,0 +1,14 @@
+---
+import ChecklistCard from "./ChecklistCard.astro";
+const props = Astro.props;
+---
+
+<ChecklistCard {...props} mode={props.mode ?? "list"}>
+  <slot name="actions" slot="actions" />
+  <slot name="before-list" slot="before-list" />
+  <slot name="empty" slot="empty" />
+  <slot name="item-actions" slot="item-actions" />
+  <slot />
+  <slot name="form" slot="form" />
+  <slot name="form-fields" slot="form-fields" />
+</ChecklistCard>

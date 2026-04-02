@@ -12,6 +12,7 @@ interface Props {
   shareBasePath?: string;
   publicUsername?: string;
   publicAppUrl?: string;
+  projectSlug?: string;
 }
 
 const {
@@ -20,11 +21,21 @@ const {
   shareBasePath = "/portfolio",
   publicUsername = "",
   publicAppUrl = "",
+  projectSlug = "",
 } = Astro.props;
 
 const isPublicPage = Boolean(String(publicUsername || "").trim());
-const pageTitle = isPublicPage ? "Public Portfolio" : "Portfolio Preview";
-const heroDescription = isPublicPage
+const isProjectPage = Boolean(String(projectSlug || "").trim());
+const pageTitle = isProjectPage
+  ? isPublicPage
+    ? "Public Project"
+    : "Project Preview"
+  : isPublicPage
+  ? "Public Portfolio"
+  : "Portfolio Preview";
+const heroDescription = isProjectPage
+  ? "Preview the dedicated project page with separate dropdown sections for every piece of project information the user decided to show."
+  : isPublicPage
   ? "A clean, public-facing portfolio view powered by the same shared UI system as the editor, without the HubLife navigation chrome."
   : "Preview the public-facing portfolio using the shared career UI shell before copying a share link or publishing it.";
 ---
@@ -64,6 +75,7 @@ const heroDescription = isPublicPage
     publicUsername,
     shareBasePath,
     publicAppUrl,
+    projectSlug,
   })}
 />
 

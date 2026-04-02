@@ -295,10 +295,122 @@
   font-size: clamp(1.5rem, 3vw, 2.2rem);
 }
 
+.preview-project-card,
+.preview-project-hero-card {
+  display: grid;
+  gap: 1rem;
+}
+
+.preview-project-card-link-shell {
+  position: relative;
+}
+
+.preview-stretched-link {
+  position: absolute;
+  inset: 0;
+  border-radius: inherit;
+  z-index: 1;
+}
+
+.preview-project-live-link,
+.preview-project-card-actions {
+  position: relative;
+  z-index: 2;
+}
+
+.preview-project-card-chip {
+  min-width: auto;
+}
+
+.preview-project-cover-link {
+  display: block;
+}
+
+.preview-project-cover,
+.preview-project-hero-image,
+.preview-project-detail-image {
+  width: 100%;
+  display: block;
+  object-fit: cover;
+  border-radius: 1rem;
+  border: 1px solid var(--border-soft);
+}
+
+.preview-project-cover {
+  aspect-ratio: 16 / 9;
+}
+
+.preview-project-hero-wrap {
+  margin-top: 0;
+  margin-bottom: 1rem;
+}
+
+.preview-project-hero-card {
+  grid-template-columns: minmax(0, 1.1fr) minmax(280px, 0.9fr);
+  align-items: stretch;
+  border: 1px solid var(--border-soft);
+  background: var(--card-surface-color);
+  border-radius: 1.35rem;
+  box-shadow: var(--card-shadow);
+  padding: 1.25rem;
+}
+
+.preview-project-hero-card-minimal {
+  grid-template-columns: 1fr;
+}
+
+.preview-project-hero-copy {
+  display: grid;
+  gap: 0.85rem;
+}
+
+.preview-back-link {
+  display: inline-flex;
+  width: fit-content;
+}
+
+.preview-project-page-title {
+  margin: 0;
+  font-size: clamp(2rem, 4vw, 3.4rem);
+  line-height: 1.05;
+}
+
+.preview-project-page-subtitle {
+  margin: 0;
+  color: var(--text-muted);
+  font-size: 1.02rem;
+}
+
+.preview-project-hero-media {
+  display: grid;
+  align-items: stretch;
+}
+
+.preview-project-hero-image {
+  height: 100%;
+  min-height: 280px;
+}
+
+.preview-project-media-grid {
+  display: grid;
+  gap: 1rem;
+}
+
+.preview-project-skill-summary {
+  display: inline-flex;
+  align-items: center;
+  padding: 0.72rem 1rem;
+  border-radius: 999px;
+  background: var(--pill-bg);
+  color: var(--text-main);
+  font-weight: 700;
+}
+
 @media (max-width: 720px) {
   .preview-site-header-inner,
   .preview-profile-card,
-  .preview-card-head {
+  .preview-card-head,
+  .preview-project-hero-card {
     grid-template-columns: 1fr;
     flex-direction: column;
     align-items: stretch;
@@ -306,5 +418,9 @@
 
   .preview-avatar-frame {
     width: 132px;
+  }
+
+  .preview-project-hero-image {
+    min-height: 220px;
   }
 }

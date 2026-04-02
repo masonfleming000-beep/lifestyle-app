@@ -1,0 +1,19 @@
+---
+import PublicLayout from "../../layouts/PublicLayout.astro";
+import CareerPortfolioPreviewShell from "../../components/career/CareerPortfolioPreviewShell.astro";
+import {
+  careerInformationPageKey,
+  careerPortfolioSectionTitles,
+} from "../../config/pages/careerShared";
+
+const publicAppUrl = import.meta.env.PUBLIC_APP_URL || import.meta.env.APP_URL || "";
+---
+
+<PublicLayout title="Portfolio Preview | Lifestyle App" description="Portfolio preview">
+  <CareerPortfolioPreviewShell
+    pageKey={careerInformationPageKey}
+    sectionTitles={careerPortfolioSectionTitles}
+    shareBasePath="/portfolio"
+    publicAppUrl={publicAppUrl}
+  />
+</PublicLayout>

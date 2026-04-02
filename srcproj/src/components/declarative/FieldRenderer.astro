@@ -1,0 +1,27 @@
+---
+import TextField from '../fields/TextField.astro';
+import TextareaField from '../fields/TextareaField.astro';
+import NumberField from '../fields/NumberField.astro';
+import SelectField from '../fields/SelectField.astro';
+import CheckboxField from '../fields/CheckboxField.astro';
+import DateField from '../fields/DateField.astro';
+import SearchField from '../fields/SearchField.astro';
+import FileUploadField from '../fields/FileUploadField.astro';
+import TagInput from '../fields/TagInput.astro';
+import type { FieldConfig } from '../../lib/ui/types';
+interface Props { field: FieldConfig; }
+const { field } = Astro.props;
+const componentMap = {
+  text: TextField,
+  textarea: TextareaField,
+  number: NumberField,
+  select: SelectField,
+  checkbox: CheckboxField,
+  date: DateField,
+  search: SearchField,
+  file: FileUploadField,
+  tags: TagInput,
+};
+const Component = componentMap[field.type] || TextField;
+---
+<Component field={field} />

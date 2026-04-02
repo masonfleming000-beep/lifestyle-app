@@ -438,6 +438,95 @@ import {
       background: var(--card-surface-color);
     }
 
+    .project-card-toggle-group {
+      margin: 0;
+      border: 1px solid var(--border-soft);
+      border-radius: 1rem;
+      padding: 0.9rem 1rem;
+      display: grid;
+      gap: 0.85rem;
+    }
+
+    .project-card-toggle-group legend {
+      padding: 0 0.35rem;
+      font-weight: 700;
+    }
+
+    .project-card-toggle-grid,
+    .project-card-display-list,
+    .project-page-section-actions {
+      display: flex;
+      gap: 0.65rem;
+      flex-wrap: wrap;
+      align-items: center;
+    }
+
+    .check-row.compact {
+      margin: 0;
+      font-weight: 500;
+    }
+
+    .project-form-note,
+    .project-settings-block {
+      margin-top: 1rem;
+      padding: 0.95rem 1rem;
+      border: 1px solid var(--border-soft);
+      border-radius: 1rem;
+      background: var(--embed-surface-color);
+      display: grid;
+      gap: 1rem;
+    }
+
+    .project-form-note p,
+    .project-settings-title,
+    .project-page-section-title,
+    .project-page-section-value {
+      margin: 0;
+    }
+
+    .project-cover-preview-wrap {
+      width: min(100%, 24rem);
+      border-radius: 1rem;
+      overflow: hidden;
+      border: 1px solid var(--border-soft);
+      margin-bottom: 0.85rem;
+      background: var(--embed-surface-color);
+    }
+
+    .project-cover-preview {
+      display: block;
+      width: 100%;
+      aspect-ratio: 16 / 9;
+      object-fit: cover;
+    }
+
+    .project-page-section-list {
+      display: grid;
+      gap: 0.75rem;
+    }
+
+    .project-page-section-row {
+      display: flex;
+      justify-content: space-between;
+      gap: 1rem;
+      align-items: center;
+      padding: 0.85rem 0.9rem;
+      border: 1px solid var(--border-soft);
+      border-radius: 0.9rem;
+      background: var(--card-surface-color);
+    }
+
+    .project-page-section-title {
+      font-weight: 700;
+      color: var(--text-main);
+    }
+
+    .project-page-section-value {
+      color: var(--text-muted);
+      font-size: 0.94rem;
+      margin-top: 0.2rem;
+    }
+
     @media (max-width: 900px) {
       .assignment-card {
         flex-direction: column;
