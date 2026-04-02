@@ -425,7 +425,7 @@ export function initCareerPortfolioPreviewPage(config: CareerPortfolioPreviewCon
             <p class="preview-muted">A clean, public-facing portfolio view with no HubLife navigation.</p>
           </div>
           <div class="preview-header-actions">
-            ${canShare ? `<button id="preview-share-link-button" class="preview-action-button" type="button">Copy share link</button>` : ""}
+            ${canShare ? `<button id="preview-share-link-button" class="button-secondary" type="button">Copy share link</button>` : ""}
           </div>
         </div>
         <div class="preview-site-nav-wrap">
