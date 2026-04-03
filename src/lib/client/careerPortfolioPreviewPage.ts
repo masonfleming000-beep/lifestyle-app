@@ -746,7 +746,7 @@ export function initCareerPortfolioPreviewPage(config: CareerPortfolioPreviewCon
           <div class="preview-site-brand">
             <p class="preview-kicker">${publicUsername ? (activeProject ? "Shared project page" : "Shared portfolio") : (activeProject ? "Project preview" : "Portfolio preview")}</p>
             <h1 class="preview-site-title">${escapeHtml(displayName)}</h1>
-            <p class="preview-muted">Public facing portfolio view. </p>
+            <p class="preview-muted">A clean, public-facing portfolio view with no HubLife navigation.</p>
           </div>
           <div class="preview-header-actions">
             ${canShare ? `<button id="preview-share-link-button" class="button-secondary" type="button">Copy share link</button>` : ""}

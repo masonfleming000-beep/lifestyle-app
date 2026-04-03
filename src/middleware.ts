@@ -132,7 +132,7 @@ function previewDomainMessagePage() {
   <body>
     <main>
       <div class="eyebrow">Preview only</div>
-      <h1>Application is still in development.</h1>
+      <h1>HubLife is still in development.</h1>
       <p>
         The app used to build this portfolio is currently in development by Mason Fleming.
         This preview domain is only available for public portfolio share links right now.
