@@ -16,14 +16,14 @@ interface CareerPortfolioClientConfig {
   sectionTitles?: Record<string, string>;
   previewPath?: string;
   shareBasePath?: string;
-  publicAppUrl?: string;
+  shareLinkBaseUrl?: string;
 }
 
 export function initCareerPortfolioPage(config: CareerPortfolioClientConfig) {
   const sourcePageKey = config.sourcePageKey || "career-information";
   const previewPath = config.previewPath || "/career/portfolio-preview";
   const shareBasePath = config.shareBasePath || "/portfolio";
-  const publicAppUrl = String(config.publicAppUrl || "").trim();
+  const shareLinkBaseUrl = String(config.shareLinkBaseUrl || "").trim();
 
   function makeId(prefix = "id") {
     if (window.crypto && typeof window.crypto.randomUUID === "function") {
@@ -42,9 +42,9 @@ export function initCareerPortfolioPage(config: CareerPortfolioClientConfig) {
   }
 
   function publicOrigin() {
-    if (!publicAppUrl) return window.location.origin;
+    if (!shareLinkBaseUrl) return window.location.origin;
     try {
-      return new URL(publicAppUrl).origin;
+      return new URL(shareLinkBaseUrl).origin;
     } catch {
       return window.location.origin;
     }

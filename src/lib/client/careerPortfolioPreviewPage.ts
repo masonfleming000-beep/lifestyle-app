@@ -5,7 +5,7 @@ interface CareerPortfolioPreviewConfig {
   sectionTitles?: Record<string, string>;
   publicUsername?: string;
   shareBasePath?: string;
-  publicAppUrl?: string;
+  shareLinkBaseUrl?: string;
   projectSlug?: string;
 }
 
@@ -13,7 +13,7 @@ export function initCareerPortfolioPreviewPage(config: CareerPortfolioPreviewCon
   const pageKey = config.pageKey || "career-information";
   const publicUsername = String(config.publicUsername || "").trim();
   const shareBasePath = config.shareBasePath || "/portfolio";
-  const publicAppUrl = String(config.publicAppUrl || "").trim();
+  const shareLinkBaseUrl = String(config.shareLinkBaseUrl || "").trim();
   const initialProjectSlug = String(config.projectSlug || "").trim();
 
   const PROJECT_CARD_DISPLAY_DEFAULTS = {
@@ -49,9 +49,9 @@ export function initCareerPortfolioPreviewPage(config: CareerPortfolioPreviewCon
   }
 
   function publicOrigin() {
-    if (!publicAppUrl) return window.location.origin;
+    if (!shareLinkBaseUrl) return window.location.origin;
     try {
-      return new URL(publicAppUrl).origin;
+      return new URL(shareLinkBaseUrl).origin;
     } catch {
       return window.location.origin;
     }

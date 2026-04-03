@@ -7,7 +7,10 @@ import {
 } from "../../config/pages/careerShared";
 
 const { username = "" } = Astro.params;
-const publicAppUrl = import.meta.env.PUBLIC_APP_URL || import.meta.env.APP_URL || "";
+const useTempPublicPortfolio = import.meta.env.TEMP_PUBLIC_PORTFOLIO_ONLY === "true";
+const shareLinkBaseUrl = useTempPublicPortfolio
+  ? import.meta.env.TEMP_PUBLIC_PORTFOLIO_URL || import.meta.env.PUBLIC_APP_URL || import.meta.env.APP_URL || ""
+  : import.meta.env.PUBLIC_APP_URL || import.meta.env.APP_URL || "";
 ---
 
 <PublicLayout title="Public Portfolio | Lifestyle App" description="Public portfolio">
@@ -16,6 +19,6 @@ const publicAppUrl = import.meta.env.PUBLIC_APP_URL || import.meta.env.APP_URL |
     sectionTitles={careerPortfolioSectionTitles}
     publicUsername={username}
     shareBasePath="/portfolio"
-    publicAppUrl={publicAppUrl}
+    shareLinkBaseUrl={shareLinkBaseUrl}
   />
 </PublicLayout>

@@ -11,7 +11,7 @@ interface Props {
   sectionTitles: Record<string, string>;
   shareBasePath?: string;
   publicUsername?: string;
-  publicAppUrl?: string;
+  shareLinkBaseUrl?: string;
   projectSlug?: string;
 }
 
@@ -20,7 +20,7 @@ const {
   sectionTitles,
   shareBasePath = "/portfolio",
   publicUsername = "",
-  publicAppUrl = "",
+  shareLinkBaseUrl = "",
   projectSlug = "",
 } = Astro.props;
 
@@ -74,7 +74,7 @@ const heroDescription = isProjectPage
     sectionTitles,
     publicUsername,
     shareBasePath,
-    publicAppUrl,
+    shareLinkBaseUrl,
     projectSlug,
   })}
 />

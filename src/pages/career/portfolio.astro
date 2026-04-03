@@ -12,7 +12,10 @@ import {
   careerPortfolioSectionTitles,
 } from "../../config/pages/careerShared";
 
-const publicAppUrl = import.meta.env.PUBLIC_APP_URL || import.meta.env.APP_URL || "";
+const useTempPublicPortfolio = import.meta.env.TEMP_PUBLIC_PORTFOLIO_ONLY === "true";
+const shareLinkBaseUrl = useTempPublicPortfolio
+  ? import.meta.env.TEMP_PUBLIC_PORTFOLIO_URL || import.meta.env.PUBLIC_APP_URL || import.meta.env.APP_URL || ""
+  : import.meta.env.PUBLIC_APP_URL || import.meta.env.APP_URL || "";
 ---
 
 <BaseLayout title="Portfolio Layout | Lifestyle App" description="Arrange your public portfolio layout">
@@ -63,7 +66,7 @@ const publicAppUrl = import.meta.env.PUBLIC_APP_URL || import.meta.env.APP_URL |
       sectionTitles: careerPortfolioSectionTitles,
       previewPath: "/career/portfolio-preview",
       shareBasePath: "/portfolio",
-      publicAppUrl,
+      shareLinkBaseUrl,
     })}
   />
 

@@ -9,6 +9,8 @@ interface ImportMetaEnv {
   readonly INVITE_ONLY?: string;
   readonly ALLOWED_SIGNUP_EMAILS?: string;
   readonly ALLOWED_ORIGINS?: string;
+  readonly TEMP_PUBLIC_PORTFOLIO_URL?: string;
+  readonly TEMP_PUBLIC_PORTFOLIO_ONLY?: string;
 }
 
 interface ImportMeta {
