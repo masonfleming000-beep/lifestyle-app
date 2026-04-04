@@ -349,8 +349,8 @@ export function initCareerPortfolioPreviewPage(config: CareerPortfolioPreviewCon
     }
     if (type === "video") {
       const links = values.length ? values : [field?.value || ""];
-      return `<div class="preview-link-row">${links.filter(Boolean).map((value, index) => isProbablyUrl(value)
-        ? `<div class="preview-inline-media"><video class="preview-inline-video" src="${escapeHtml(value)}" controls preload="metadata" style="width:min(100%,32rem);border-radius:1rem;border:1px solid rgba(15,23,42,0.12);"></video><a class="preview-pill-link" href="${escapeHtml(value)}" target="_blank" rel="noreferrer">${escapeHtml(field?.label || type)} ${links.length > 1 ? index + 1 : ""}</a></div>`
+      return `<div class="preview-link-row" style="flex-direction:column;align-items:flex-start;">${links.filter(Boolean).map((value, index) => isProbablyUrl(value)
+        ? `<div style="width:100%;max-width:26rem;"><video controls preload="metadata" src="${escapeHtml(value)}" style="width:100%;border-radius:1rem;border:1px solid rgba(15,23,42,0.08);"></video><div class="preview-link-row" style="margin-top:0.5rem;"><a class="preview-pill-link" href="${escapeHtml(value)}" target="_blank" rel="noreferrer">${escapeHtml(field?.label || type)} ${links.length > 1 ? index + 1 : ""}</a></div></div>`
         : `<span class="preview-muted">${escapeHtml(value)}</span>`).join("")}</div>`;
     }
     if (["link", "file"].includes(type)) {
@@ -584,8 +584,8 @@ export function initCareerPortfolioPreviewPage(config: CareerPortfolioPreviewCon
       const links = values.length ? values : [section?.value || ""];
       return renderSectionShell(
         section?.title || "Video",
-        `<div class="preview-link-row">${links.filter(Boolean).map((value, index) => isProbablyUrl(value)
-          ? `<div class="preview-inline-media"><video class="preview-inline-video" src="${escapeHtml(value)}" controls preload="metadata" style="width:min(100%,32rem);border-radius:1rem;border:1px solid rgba(15,23,42,0.12);"></video><a class="preview-pill-link" href="${escapeHtml(value)}" target="_blank" rel="noreferrer">${escapeHtml(section?.title || "Video")} ${links.length > 1 ? index + 1 : ""}</a></div>`
+        `<div class="preview-link-row" style="flex-direction:column;align-items:flex-start;">${links.filter(Boolean).map((value, index) => isProbablyUrl(value)
+          ? `<div style="width:100%;max-width:30rem;"><video controls preload="metadata" src="${escapeHtml(value)}" style="width:100%;border-radius:1rem;border:1px solid rgba(15,23,42,0.08);"></video><div class="preview-link-row" style="margin-top:0.5rem;"><a class="preview-pill-link" href="${escapeHtml(value)}" target="_blank" rel="noreferrer">${escapeHtml(section?.title || "Video")} ${links.length > 1 ? index + 1 : ""}</a></div></div>`
           : `<span>${escapeHtml(value)}</span>`).join("")}</div>`,
         true,
         `${links.filter(Boolean).length} video${links.filter(Boolean).length === 1 ? "" : "s"}`

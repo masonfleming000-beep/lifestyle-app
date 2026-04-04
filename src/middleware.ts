@@ -17,7 +17,6 @@ const PUBLIC_PREFIXES = [
   "/api/career/portfolio-public",
   "/portfolio/",
   "/images/",
-  "/uploads/",
   "/_astro/",
 ];
 
@@ -30,6 +29,10 @@ const PREVIEW_DOMAIN_ALLOWED_PATHS = new Set([
 const PREVIEW_DOMAIN_ALLOWED_PREFIXES = [
   "/portfolio/",
   "/api/career/portfolio-public",
+  "/api/upload-avatar",
+  "/api/upload-resume",
+  "/api/upload-career-asset",
+  "/api/state",
   "/images/",
   "/uploads/",
   "/_astro/",
