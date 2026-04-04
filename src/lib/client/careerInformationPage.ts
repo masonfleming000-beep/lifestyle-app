@@ -1590,24 +1590,6 @@ export function initCareerInformationPage(config: CareerInformationClientConfig)
               `).join("\n")}
             </div>
           </div>
-          <div>
-            <p class="project-settings-title"><strong>Project page sections</strong></p>
-            <div class="project-page-section-list">
-              ${pageSections.map((section, index) => `
-                <div class="project-page-section-row" data-project-section-key="${escapeHtml(section.key)}">
-                  <div>
-                    <p class="project-page-section-title">${escapeHtml(section.title || projectSectionLabelFromKey(section.key))}</p>
-                    <p class="project-page-section-value">${escapeHtml(projectSectionPreviewValue(section))}</p>
-                  </div>
-                  <div class="project-page-section-actions">
-                    <button class="button-secondary career-inline-button career-inline-button-mini" type="button" data-action="project-section-up" data-project-section-key="${escapeHtml(section.key)}" ${index === 0 ? "disabled" : ""}>Up</button>
-                    <button class="button-secondary career-inline-button career-inline-button-mini" type="button" data-action="project-section-down" data-project-section-key="${escapeHtml(section.key)}" ${index === pageSections.length - 1 ? "disabled" : ""}>Down</button>
-                    <button class="button-secondary career-inline-button career-inline-button-mini" type="button" data-action="toggle-project-section" data-project-section-key="${escapeHtml(section.key)}">${section.visible !== false ? "Hide" : "Show"}</button>
-                  </div>
-                </div>
-              `).join("\n")}
-            </div>
-          </div>
         </div>
         ${extra}
       `;
@@ -1680,31 +1662,6 @@ export function initCareerInformationPage(config: CareerInformationClientConfig)
     }));
   }
 
-  async function moveProjectPageSection(id, sectionKey, direction) {
-    await updateProject(id, (item) => {
-      const sections = syncProjectPageSections(item);
-      const index = sections.findIndex((section) => section.key === sectionKey);
-      const target = index + direction;
-      if (index < 0 || target < 0 || target >= sections.length) return item;
-      const nextSections = [...sections];
-      const [current] = nextSections.splice(index, 1);
-      nextSections.splice(target, 0, current);
-      return {
-        ...item,
-        projectPageSections: nextSections.map((section, order) => ({ ...section, order })),
-      };
-    });
-  }
-
-  async function toggleProjectPageSection(id, sectionKey) {
-    await updateProject(id, (item) => ({
-      ...item,
-      projectPageSections: syncProjectPageSections(item).map((section, index) => section.key === sectionKey
-        ? { ...section, visible: !normalizeBoolean(section?.visible, true), order: index }
-        : { ...section, order: index }),
-    }));
-  }
-
   function renderGroup(wrapId, countId, group, items, emptyText) {
     const wrap = document.getElementById(wrapId);
     if (!wrap) return;
@@ -1734,21 +1691,6 @@ export function initCareerInformationPage(config: CareerInformationClientConfig)
         card.querySelectorAll('[data-action="toggle-project-card-display"]').forEach((button) => {
           button.addEventListener("click", async () => {
             await toggleProjectCardDisplay(item.id, button.getAttribute("data-display-key") || "");
-          });
-        });
-        card.querySelectorAll('[data-action="project-section-up"]').forEach((button) => {
-          button.addEventListener("click", async () => {
-            await moveProjectPageSection(item.id, button.getAttribute("data-project-section-key") || "", -1);
-          });
-        });
-        card.querySelectorAll('[data-action="project-section-down"]').forEach((button) => {
-          button.addEventListener("click", async () => {
-            await moveProjectPageSection(item.id, button.getAttribute("data-project-section-key") || "", 1);
-          });
-        });
-        card.querySelectorAll('[data-action="toggle-project-section"]').forEach((button) => {
-          button.addEventListener("click", async () => {
-            await toggleProjectPageSection(item.id, button.getAttribute("data-project-section-key") || "");
           });
         });
       }

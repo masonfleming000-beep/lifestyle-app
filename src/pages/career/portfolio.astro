@@ -238,6 +238,43 @@ const shareLinkBaseUrl = useTempPublicPortfolio
       gap: 0.45rem;
     }
 
+
+    .portfolio-field-manager,
+    .portfolio-field-group,
+    .project-page-section-list {
+      display: grid;
+      gap: 0.85rem;
+    }
+
+    .portfolio-inline-toggle-list,
+    .project-page-section-actions {
+      display: flex;
+      gap: 0.65rem;
+      flex-wrap: wrap;
+      align-items: center;
+    }
+
+    .project-page-section-row {
+      display: flex;
+      justify-content: space-between;
+      gap: 1rem;
+      align-items: flex-start;
+      padding: 0.9rem 1rem;
+      border: 1px solid var(--border-soft);
+      border-radius: 1rem;
+    }
+
+    .project-page-section-title,
+    .project-page-section-value,
+    .project-settings-title {
+      margin: 0;
+    }
+
+    .project-page-section-value {
+      color: var(--text-muted);
+      margin-top: 0.25rem;
+    }
+
     .edu-label span {
       font-weight: 600;
     }

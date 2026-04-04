@@ -16,6 +16,49 @@ export function initCareerPortfolioPreviewPage(config: CareerPortfolioPreviewCon
   const shareLinkBaseUrl = String(config.shareLinkBaseUrl || "").trim();
   const initialProjectSlug = String(config.projectSlug || "").trim();
 
+  const SECTION_FIELD_TEMPLATES = {
+    profile: ["headline", "description", "links"],
+    resume: ["file-name", "actions", "note", "preview"],
+    experience: ["company-location", "dates", "summary", "bullets"],
+    leadership: ["organization-date", "summary", "bullets"],
+    organizations: ["role-date", "description"],
+    honors: ["value", "issuer-date", "description"],
+    licenses: ["issuer-date", "credential-id", "link"],
+    contact: ["note", "action", "value"],
+    school: ["prof-stage", "helped", "relevance", "notes"],
+    about: ["body"],
+    looking: ["body"],
+    pitch: ["body"],
+    timelineItems: ["date", "description"],
+    recommendations: ["owner", "body"],
+    star: ["situation", "task", "action", "result"],
+  };
+
+  function syncFieldLayout(key, existing) {
+    const template = Array.isArray(SECTION_FIELD_TEMPLATES[key]) ? SECTION_FIELD_TEMPLATES[key] : [];
+    const existingMap = new Map(normalizeArray(existing).map((item) => [String(item?.key || ''), item]));
+    return template.map((fieldKey, index) => {
+      const prev = existingMap.get(fieldKey) || {};
+      return { key: fieldKey, visible: normalizeBoolean(prev?.visible, true), order: Number.isFinite(Number(prev?.order)) ? Number(prev.order) : index };
+    }).sort((a, b) => Number(a.order || 0) - Number(b.order || 0)).map((item, index) => ({ ...item, order: index }));
+  }
+
+  function renderOrderedBlocks(sectionKey, blocks, extras = "") {
+    const layout = syncFieldLayout(sectionKey, state?.portfolioFieldLayout?.[sectionKey]);
+    const seen = new Set();
+    const html = [];
+    layout.forEach((item) => {
+      seen.add(item.key);
+      if (item.visible === false) return;
+      if (blocks[item.key]) html.push(blocks[item.key]);
+    });
+    Object.keys(blocks).forEach((key) => {
+      if (!seen.has(key) && blocks[key]) html.push(blocks[key]);
+    });
+    if (extras) html.push(extras);
+    return html.join("");
+  }
+
   const PROJECT_CARD_DISPLAY_DEFAULTS = {
     showCoverPhoto: true,
     showSubtitle: true,
@@ -235,6 +278,7 @@ export function initCareerPortfolioPreviewPage(config: CareerPortfolioPreviewCon
 
     return {
       ...parsed,
+      portfolioFieldLayout: Object.fromEntries(Object.keys(SECTION_FIELD_TEMPLATES).map((key) => [key, syncFieldLayout(key, parsed?.portfolioFieldLayout?.[key])])),
       profile: normalizeArray(parsed.profile).map((item) => ({ ...item, visible: normalizeBoolean(item?.visible, true) })),
       externalLinks: normalizeArray(parsed.externalLinks).map((item) => ({ ...item, visible: normalizeBoolean(item?.visible, true) })),
       experience: normalizeArray(parsed.experience).map((item) => ({ ...item, visible: normalizeBoolean(item?.visible, true) })),
@@ -357,14 +401,16 @@ export function initCareerPortfolioPreviewPage(config: CareerPortfolioPreviewCon
     return renderSectionShell(title, `<div class="preview-grid">${cards}</div>`, true, `${visible.length} item${visible.length === 1 ? "" : "s"}`);
   }
 
-  function renderTextSection(title, items, emptyText) {
+  function renderTextSection(sectionKey, title, items, emptyText) {
     return renderCardsSection(
       title,
       items,
-      (item) => `<article class="preview-card"><h3>${escapeHtml(item.title || title)}</h3><p>${escapeHtml(item.body || "")}</p>${renderCustomFields(item.customFields)}</article>`,
+      (item) => `<article class="preview-card"><h3>${escapeHtml(item.title || title)}</h3>${renderOrderedBlocks(sectionKey, { body: `<p>${escapeHtml(item.body || "")}</p>` }, renderCustomFields(item.customFields))}</article>`,
       emptyText
     );
   }
+
+  let state;
 
   function renderProfileSection(state, user) {
     const profile = visibleItems(state.profile)[0] || {};
@@ -392,10 +438,11 @@ export function initCareerPortfolioPreviewPage(config: CareerPortfolioPreviewCon
           <div class="preview-profile-copy">
             <p class="preview-kicker">Public portfolio</p>
             <h1>${escapeHtml(name)}</h1>
-            <p class="preview-profile-headline">${escapeHtml(headline)}</p>
-            <p class="preview-profile-description">${escapeHtml(description)}</p>
-            ${linkButtons}
-            ${renderCustomFields(profile.customFields)}
+            ${renderOrderedBlocks("profile", {
+              "headline": `<p class="preview-profile-headline">${escapeHtml(headline)}</p>`,
+              "description": `<p class="preview-profile-description">${escapeHtml(description)}</p>`,
+              "links": linkButtons,
+            }, renderCustomFields(profile.customFields))}
           </div>
         </div>
       </section>
@@ -411,17 +458,14 @@ export function initCareerPortfolioPreviewPage(config: CareerPortfolioPreviewCon
             <div>
               <p class="preview-kicker">Resume</p>
               <h3>${escapeHtml(resume.title || "Resume")}</h3>
-              <p class="preview-muted">${escapeHtml(resume.fileName || "Uploaded file")}</p>
-            </div>
-            <div class="preview-link-row">
-              ${isPdf(resume) ? `<a class="preview-pill-link" href="${escapeHtml(resume.fileUrl)}#toolbar=1" target="_blank" rel="noreferrer">View</a>` : ""}
-              ${resume.fileUrl ? `<a class="preview-pill-link" href="${escapeHtml(resume.fileUrl)}" target="_blank" rel="noreferrer">Open</a>` : ""}
-              ${resume.fileUrl ? `<a class="preview-pill-link" href="${escapeHtml(resume.fileUrl)}" download>Download</a>` : ""}
-            </div>
+              </div>
           </div>
-          ${resume.note ? `<p>${escapeHtml(resume.note)}</p>` : ""}
-          ${renderCustomFields(resume.customFields)}
-          ${isPdf(resume) && resume.fileUrl ? `<div class="preview-resume-frame-wrap"><iframe class="preview-resume-frame" src="${escapeHtml(resume.fileUrl)}" title="Resume Preview"></iframe></div>` : ""}
+          ${renderOrderedBlocks("resume", {
+            "file-name": `<p class="preview-muted">${escapeHtml(resume.fileName || "Uploaded file")}</p>`,
+            "actions": `<div class="preview-link-row">${isPdf(resume) ? `<a class="preview-pill-link" href="${escapeHtml(resume.fileUrl)}#toolbar=1" target="_blank" rel="noreferrer">View</a>` : ""}${resume.fileUrl ? `<a class="preview-pill-link" href="${escapeHtml(resume.fileUrl)}" target="_blank" rel="noreferrer">Open</a>` : ""}${resume.fileUrl ? `<a class="preview-pill-link" href="${escapeHtml(resume.fileUrl)}" download>Download</a>` : ""}</div>`,
+            "note": resume.note ? `<p>${escapeHtml(resume.note)}</p>` : "",
+            "preview": isPdf(resume) && resume.fileUrl ? `<div class="preview-resume-frame-wrap"><iframe class="preview-resume-frame" src="${escapeHtml(resume.fileUrl)}" title="Resume Preview"></iframe></div>` : "",
+          }, renderCustomFields(resume.customFields))}
         </article>
       `
       : emptySuggestion("Resume section is empty. Upload a resume on the Information page or hide this section.");
@@ -683,27 +727,26 @@ export function initCareerPortfolioPreviewPage(config: CareerPortfolioPreviewCon
           <article class="preview-contact-card">
             <p class="preview-kicker">Preferred contact</p>
             <h3>Want to get in contact?</h3>
-            <p>${escapeHtml(contact?.note || "Reach out using the preferred method below.")}</p>
-            <div class="preview-link-row">
-              <a class="preview-contact-button" href="${escapeHtml(href)}" target="_blank" rel="noreferrer">${escapeHtml(contact?.label || `Contact via ${method}`)}</a>
-            </div>
-            <p class="preview-muted">${escapeHtml(value)}</p>
-            ${renderCustomFields(contact?.customFields)}
+            ${renderOrderedBlocks("contact", {
+              "note": `<p>${escapeHtml(contact?.note || "Reach out using the preferred method below.")}</p>`,
+              "action": `<div class="preview-link-row"><a class="preview-contact-button" href="${escapeHtml(href)}" target="_blank" rel="noreferrer">${escapeHtml(contact?.label || `Contact via ${method}`)}</a></div>`,
+              "value": `<p class="preview-muted">${escapeHtml(value)}</p>`,
+            }, renderCustomFields(contact?.customFields))}
           </article>
         `
         : emptySuggestion("Choose a preferred contact method on the Information page or hide this section.");
       return renderSectionShell("Get in touch", body, true, value ? method : "Open");
     }
-    if (key === "school") return renderCardsSection("School Development", state.school, (item) => `<article class="preview-card"><h3>${escapeHtml(item.title || "School Development")}</h3><p class="preview-muted">${escapeHtml(item.prof || "")}${item.stage ? ` · ${escapeHtml(item.stage)}` : ""}</p>${item.helped ? `<p><strong>Helped with:</strong> ${escapeHtml(item.helped)}</p>` : ""}${item.relevance ? `<p><strong>Relevance:</strong> ${escapeHtml(item.relevance)}</p>` : ""}${item.notes ? `<p>${escapeHtml(item.notes)}</p>` : ""}${renderCustomFields(item.customFields)}</article>`, "Add school development content on the Information page or hide this section.");
-    if (key === "about") return renderTextSection("About / Story", state.about, "Add about content on the Information page or hide this section.");
-    if (key === "looking") return renderTextSection("What I'm Looking For", state.looking, "Add looking-for content on the Information page or hide this section.");
-    if (key === "pitch") return renderTextSection("Pitch", state.pitch, "Add pitch content on the Information page or hide this section.");
+    if (key === "school") return renderCardsSection("School Development", state.school, (item) => `<article class="preview-card"><h3>${escapeHtml(item.title || "School Development")}</h3>${renderOrderedBlocks("school", {"prof-stage": `<p class="preview-muted">${escapeHtml(item.prof || "")}${item.stage ? ` · ${escapeHtml(item.stage)}` : ""}</p>`, "helped": item.helped ? `<p><strong>Helped with:</strong> ${escapeHtml(item.helped)}</p>` : "", "relevance": item.relevance ? `<p><strong>Relevance:</strong> ${escapeHtml(item.relevance)}</p>` : "", "notes": item.notes ? `<p>${escapeHtml(item.notes)}</p>` : ""}, renderCustomFields(item.customFields))}</article>`, "Add school development content on the Information page or hide this section.");
+    if (key === "about") return renderTextSection("about", "About / Story", state.about, "Add about content on the Information page or hide this section.");
+    if (key === "looking") return renderTextSection("looking", "What I'm Looking For", state.looking, "Add looking-for content on the Information page or hide this section.");
+    if (key === "pitch") return renderTextSection("pitch", "Pitch", state.pitch, "Add pitch content on the Information page or hide this section.");
     if (key === "timelineItems") {
       const items = [...visibleItems(state.timelineItems)].sort((a, b) => String(a.date || "9999-12-31").localeCompare(String(b.date || "9999-12-31")));
-      return renderCardsSection("Timeline", items, (item) => `<article class="preview-card"><p class="preview-muted">${escapeHtml(formatDate(item.date) || "")}</p><h3>${escapeHtml(item.title || "Timeline item")}</h3>${item.description ? `<p>${escapeHtml(item.description)}</p>` : ""}${renderCustomFields(item.customFields)}</article>`, "Add timeline entries on the Information page or hide this section.");
+      return renderCardsSection("Timeline", items, (item) => `<article class="preview-card"><h3>${escapeHtml(item.title || "Timeline item")}</h3>${renderOrderedBlocks("timelineItems", {"date": `<p class="preview-muted">${escapeHtml(formatDate(item.date) || "")}</p>`, "description": item.description ? `<p>${escapeHtml(item.description)}</p>` : ""}, renderCustomFields(item.customFields))}</article>`, "Add timeline entries on the Information page or hide this section.");
     }
-    if (key === "recommendations") return renderCardsSection("Recommendations", state.recommendations, (item) => `<article class="preview-card"><h3>${escapeHtml(item.title || item.owner || "Recommendation")}</h3>${item.owner ? `<p class="preview-muted">${escapeHtml(item.owner)}</p>` : ""}${item.body ? `<p>${escapeHtml(item.body)}</p>` : ""}${renderCustomFields(item.customFields)}</article>`, "Add recommendations on the Information page or hide this section.");
-    if (key === "star") return renderCardsSection("STAR Moments", state.star, (item) => `<article class="preview-card"><h3>${escapeHtml(item.title || "STAR Example")}</h3><p><strong>Situation:</strong> ${escapeHtml(item.situation || "—")}</p><p><strong>Task:</strong> ${escapeHtml(item.task || "—")}</p><p><strong>Action:</strong> ${escapeHtml(item.action || "—")}</p><p><strong>Result:</strong> ${escapeHtml(item.result || "—")}</p>${renderCustomFields(item.customFields)}</article>`, "Add STAR moments on the Information page or hide this section.");
+    if (key === "recommendations") return renderCardsSection("Recommendations", state.recommendations, (item) => `<article class="preview-card"><h3>${escapeHtml(item.title || item.owner || "Recommendation")}</h3>${renderOrderedBlocks("recommendations", {"owner": item.owner ? `<p class="preview-muted">${escapeHtml(item.owner)}</p>` : "", "body": item.body ? `<p>${escapeHtml(item.body)}</p>` : ""}, renderCustomFields(item.customFields))}</article>`, "Add recommendations on the Information page or hide this section.");
+    if (key === "star") return renderCardsSection("STAR Moments", state.star, (item) => `<article class="preview-card"><h3>${escapeHtml(item.title || "STAR Example")}</h3>${renderOrderedBlocks("star", {"situation": `<p><strong>Situation:</strong> ${escapeHtml(item.situation || "—")}</p>`, "task": `<p><strong>Task:</strong> ${escapeHtml(item.task || "—")}</p>`, "action": `<p><strong>Action:</strong> ${escapeHtml(item.action || "—")}</p>`, "result": `<p><strong>Result:</strong> ${escapeHtml(item.result || "—")}</p>`}, renderCustomFields(item.customFields))}</article>`, "Add STAR moments on the Information page or hide this section.");
     return "";
   }
 
@@ -722,7 +765,8 @@ export function initCareerPortfolioPreviewPage(config: CareerPortfolioPreviewCon
     }
   }
 
-  function renderPage(state, user) {
+  function renderPage(nextState, user) {
+    state = nextState;
     const root = document.getElementById("career-portfolio-preview-root");
     if (!root) return;
 

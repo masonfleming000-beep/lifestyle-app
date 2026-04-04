@@ -58,6 +58,176 @@ export function initCareerPortfolioPage(config: CareerPortfolioClientConfig) {
     return [{ id: "main", label: "Home", slug: "home" }];
   }
 
+  const SECTION_FIELD_TEMPLATES = {
+    profile: [
+      { key: "headline", label: "Headline" },
+      { key: "description", label: "Description" },
+      { key: "links", label: "Public links" },
+    ],
+    resume: [
+      { key: "file-name", label: "File name" },
+      { key: "actions", label: "Action buttons" },
+      { key: "note", label: "Note" },
+      { key: "preview", label: "Preview" },
+    ],
+    experience: [
+      { key: "company-location", label: "Company and location" },
+      { key: "dates", label: "Dates" },
+      { key: "summary", label: "Summary" },
+      { key: "bullets", label: "Bullets" },
+    ],
+    leadership: [
+      { key: "organization-date", label: "Organization and date" },
+      { key: "summary", label: "Summary" },
+      { key: "bullets", label: "Bullets" },
+    ],
+    organizations: [
+      { key: "role-date", label: "Role and date" },
+      { key: "description", label: "Description" },
+    ],
+    honors: [
+      { key: "value", label: "Value" },
+      { key: "issuer-date", label: "Issuer and date" },
+      { key: "description", label: "Description" },
+    ],
+    licenses: [
+      { key: "issuer-date", label: "Issuer and date" },
+      { key: "credential-id", label: "Credential ID" },
+      { key: "link", label: "Credential link" },
+    ],
+    contact: [
+      { key: "note", label: "Note" },
+      { key: "action", label: "Contact button" },
+      { key: "value", label: "Value" },
+    ],
+    school: [
+      { key: "prof-stage", label: "Professor and stage" },
+      { key: "helped", label: "Helped with" },
+      { key: "relevance", label: "Relevance" },
+      { key: "notes", label: "Notes" },
+    ],
+    about: [{ key: "body", label: "Body" }],
+    looking: [{ key: "body", label: "Body" }],
+    pitch: [{ key: "body", label: "Body" }],
+    timelineItems: [
+      { key: "date", label: "Date" },
+      { key: "description", label: "Description" },
+    ],
+    recommendations: [
+      { key: "owner", label: "Source" },
+      { key: "body", label: "Body" },
+    ],
+    star: [
+      { key: "situation", label: "Situation" },
+      { key: "task", label: "Task" },
+      { key: "action", label: "Action" },
+      { key: "result", label: "Result" },
+    ],
+  };
+  const PROJECT_CARD_DISPLAY_OPTIONS = [
+    { key: "showCoverPhoto", label: "Cover photo" },
+    { key: "showSubtitle", label: "Subtitle" },
+    { key: "showDescription", label: "Description" },
+    { key: "showSkills", label: "Skills" },
+    { key: "showLink", label: "Link" },
+  ];
+
+  function syncFieldLayout(key, existing) {
+    const template = Array.isArray(SECTION_FIELD_TEMPLATES[key]) ? SECTION_FIELD_TEMPLATES[key] : [];
+    const existingMap = new Map(normalizeArray(existing).map((item) => [String(item?.key || ''), item]));
+    return template
+      .map((item, index) => {
+        const prev = existingMap.get(item.key) || {};
+        return {
+          key: item.key,
+          label: item.label,
+          visible: normalizeBoolean(prev?.visible, true),
+          order: Number.isFinite(Number(prev?.order)) ? Number(prev.order) : index,
+        };
+      })
+      .sort((a, b) => Number(a.order || 0) - Number(b.order || 0))
+      .map((item, index) => ({ ...item, order: index }));
+  }
+
+  function normalizeProjectCardDisplay(value) {
+    const raw = value && typeof value === "object" ? value : {};
+    return {
+      showCoverPhoto: normalizeBoolean(raw?.showCoverPhoto, true),
+      showSubtitle: normalizeBoolean(raw?.showSubtitle, true),
+      showDescription: normalizeBoolean(raw?.showDescription, true),
+      showSkills: normalizeBoolean(raw?.showSkills, true),
+      showLink: normalizeBoolean(raw?.showLink, true),
+    };
+  }
+
+  function normalizeFieldType(value, fallback = "text") {
+    const next = String(value || "").trim().toLowerCase();
+    return ["text", "textarea", "number", "date", "list", "link", "image", "video", "file"].includes(next) ? next : fallback;
+  }
+
+  function projectSectionLabelFromKey(key) {
+    const normalizedKey = String(key || "").trim();
+    if (normalizedKey === "cover-photo") return "Cover Photo";
+    if (normalizedKey === "subtitle") return "Subtitle";
+    if (normalizedKey === "description") return "Description";
+    if (normalizedKey === "skills") return "Skills";
+    if (normalizedKey === "project-link") return "Project Link";
+    if (normalizedKey.startsWith("field:")) return normalizedKey.replace(/^field:/, "").replace(/-/g, " ");
+    return normalizedKey.replace(/-/g, " ");
+  }
+
+  function buildProjectPageSectionCandidates(project) {
+    const candidates = [];
+    const addSection = (key, title, type, value) => {
+      const textValue = Array.isArray(value) ? value.filter(Boolean).join("\n") : String(value || "").trim();
+      if (!textValue) return;
+      candidates.push({ key, title, type: normalizeFieldType(type, type), value: textValue });
+    };
+    addSection("cover-photo", "Cover Photo", "image", project?.coverPhotoUrl || project?.image || project?.photoUrl || "");
+    addSection("subtitle", "Subtitle", "text", project?.subtitle || "");
+    addSection("description", "Description", "textarea", project?.description || "");
+    addSection("skills", "Skills", "list", String(project?.skills || "").replace(/,\s*/g, "\n"));
+    addSection("project-link", "Project Link", "link", project?.link || "");
+    normalizeArray(project?.customFields).forEach((field, index) => {
+      const rawValue = Array.isArray(field?.value) ? field.value.filter(Boolean).join("\n") : String(field?.value || "");
+      if (!rawValue.trim()) return;
+      candidates.push({
+        key: `field:${field?.key || index}`,
+        title: field?.label || `Field ${index + 1}`,
+        type: normalizeFieldType(field?.type, "text"),
+        value: rawValue,
+      });
+    });
+    return candidates;
+  }
+
+  function syncProjectPageSections(project) {
+    const candidates = buildProjectPageSectionCandidates(project);
+    const existingMap = new Map(normalizeArray(project?.projectPageSections || project?.pageSections).map((item) => [String(item?.key || ''), item]));
+    return candidates
+      .map((item, index) => {
+        const prev = existingMap.get(item.key) || {};
+        return {
+          id: prev?.id || makeId(`project-section-${item.key || index}`),
+          key: item.key,
+          title: item.title,
+          type: item.type,
+          value: item.value,
+          visible: normalizeBoolean(prev?.visible, true),
+          order: Number.isFinite(Number(prev?.order)) ? Number(prev.order) : index,
+        };
+      })
+      .sort((a, b) => Number(a.order || 0) - Number(b.order || 0))
+      .map((item, index) => ({ ...item, order: index }));
+  }
+
+  function projectSectionPreviewValue(section) {
+    const type = normalizeFieldType(section?.type, "text");
+    if (type === "image") return String(section?.value || "").trim() ? "Image set" : "Empty";
+    if (type === "list") return String(section?.value || "").split("\n").map((item) => item.trim()).filter(Boolean).slice(0, 2).join(", ") || "Empty";
+    return String(section?.value || "").trim().slice(0, 60) || "Empty";
+  }
+
   function defaultSectionLayout() {
     const order = Array.isArray(config.sectionOrder) && config.sectionOrder.length
       ? config.sectionOrder
@@ -107,7 +277,6 @@ export function initCareerPortfolioPage(config: CareerPortfolioClientConfig) {
       externalLinks: normalizeArray(parsed.externalLinks),
       experience: normalizeArray(parsed.experience),
       leadership: normalizeArray(parsed.leadership),
-      projects,
       organizations: normalizeArray(parsed.organizations),
       honors: normalizeArray(parsed.honors || parsed.stats),
       licenses: normalizeArray(parsed.licenses),
@@ -122,6 +291,8 @@ export function initCareerPortfolioPage(config: CareerPortfolioClientConfig) {
       star: normalizeArray(parsed.star),
       portfolioMenuItems: menuItems,
       portfolioSectionLayout: syncedLayout,
+      portfolioFieldLayout: Object.fromEntries(Object.keys(SECTION_FIELD_TEMPLATES).map((key) => [key, syncFieldLayout(key, parsed?.portfolioFieldLayout?.[key])])),
+      projects: projects.map((item) => ({ ...item, cardDisplay: normalizeProjectCardDisplay(item?.cardDisplay), projectPageSections: syncProjectPageSections(item) })),
     };
   }
 
@@ -190,7 +361,11 @@ export function initCareerPortfolioPage(config: CareerPortfolioClientConfig) {
   let pendingSave = false;
 
   function refreshDynamicSections() {
-    data.projects = normalizeArray(data.projects).map((item, index) => normalizeProjectIdentity(item, index));
+    data.projects = normalizeArray(data.projects).map((item, index) => {
+      const identity = normalizeProjectIdentity(item, index);
+      const project = { ...identity, ...item, cardDisplay: normalizeProjectCardDisplay(item?.cardDisplay) };
+      return { ...project, projectPageSections: syncProjectPageSections(project) };
+    });
     data.portfolioSectionLayout = syncPortfolioSectionLayout(data.portfolioSectionLayout, data.projects, {
       titleFor,
       defaultMenuId: data.portfolioMenuItems[0]?.id || "main",
@@ -406,6 +581,103 @@ export function initCareerPortfolioPage(config: CareerPortfolioClientConfig) {
     `;
   }
 
+  function updateSectionFieldLayout(sectionKey, updater) {
+    const current = syncFieldLayout(sectionKey, data.portfolioFieldLayout?.[sectionKey]);
+    const next = typeof updater === "function" ? updater(current) : current;
+    data.portfolioFieldLayout = { ...data.portfolioFieldLayout, [sectionKey]: syncFieldLayout(sectionKey, next) };
+  }
+
+  function updateProject(projectKey, updater) {
+    data.projects = normalizeArray(data.projects).map((item, index) => {
+      const normalized = { ...item, cardDisplay: normalizeProjectCardDisplay(item?.cardDisplay), projectPageSections: syncProjectPageSections(item) };
+      const itemKey = normalized.projectLayoutKey || normalized.projectSlug || `project-${index}`;
+      if (itemKey !== projectKey) return normalized;
+      const updated = typeof updater === "function" ? updater(normalized) : normalized;
+      return { ...updated, cardDisplay: normalizeProjectCardDisplay(updated?.cardDisplay), projectPageSections: syncProjectPageSections(updated) };
+    });
+  }
+
+  function moveSectionField(sectionKey, fieldKey, direction) {
+    updateSectionFieldLayout(sectionKey, (fields) => {
+      const index = fields.findIndex((item) => item.key === fieldKey);
+      const target = index + direction;
+      if (index < 0 || target < 0 || target >= fields.length) return fields;
+      const next = [...fields];
+      const [current] = next.splice(index, 1);
+      next.splice(target, 0, current);
+      return next.map((item, order) => ({ ...item, order }));
+    });
+  }
+
+  function toggleSectionField(sectionKey, fieldKey) {
+    updateSectionFieldLayout(sectionKey, (fields) => fields.map((item, order) => item.key === fieldKey ? { ...item, visible: !normalizeBoolean(item?.visible, true), order } : { ...item, order }));
+  }
+
+  function moveProjectField(projectKey, fieldKey, direction) {
+    updateProject(projectKey, (project) => {
+      const sections = syncProjectPageSections(project);
+      const index = sections.findIndex((item) => item.key === fieldKey);
+      const target = index + direction;
+      if (index < 0 || target < 0 || target >= sections.length) return project;
+      const next = [...sections];
+      const [current] = next.splice(index, 1);
+      next.splice(target, 0, current);
+      return { ...project, projectPageSections: next.map((item, order) => ({ ...item, order })) };
+    });
+  }
+
+  function toggleProjectField(projectKey, fieldKey) {
+    updateProject(projectKey, (project) => ({
+      ...project,
+      projectPageSections: syncProjectPageSections(project).map((item, order) => item.key === fieldKey ? { ...item, visible: !normalizeBoolean(item?.visible, true), order } : { ...item, order }),
+    }));
+  }
+
+  function toggleProjectCardField(projectKey, displayKey) {
+    updateProject(projectKey, (project) => ({
+      ...project,
+      cardDisplay: {
+        ...normalizeProjectCardDisplay(project?.cardDisplay),
+        [displayKey]: !normalizeProjectCardDisplay(project?.cardDisplay)?.[displayKey],
+      },
+    }));
+  }
+
+  function renderFieldControls(section) {
+    if (isProjectLayoutKey(section.key)) {
+      const project = findProjectByLayoutKey(data.projects, section.key);
+      if (!project) return '';
+      const cardDisplay = normalizeProjectCardDisplay(project?.cardDisplay);
+      const pageSections = syncProjectPageSections(project);
+      return `
+        <div class="portfolio-field-manager card">
+          <div class="portfolio-field-group">
+            <p class="project-settings-title"><strong>Quick-link card fields</strong></p>
+            <div class="portfolio-inline-toggle-list">
+              ${PROJECT_CARD_DISPLAY_OPTIONS.map((option) => `<button class="button-secondary career-inline-button career-inline-button-mini" type="button" data-project-card-field="${escapeHtml(section.key)}:${escapeHtml(option.key)}">${cardDisplay[option.key] ? 'Hide' : 'Show'} ${escapeHtml(option.label)}</button>`).join('')}
+            </div>
+          </div>
+          <div class="portfolio-field-group">
+            <p class="project-settings-title"><strong>Project page fields</strong></p>
+            <div class="project-page-section-list">
+              ${pageSections.map((field, index) => `<div class="project-page-section-row"><div><p class="project-page-section-title">${escapeHtml(field.title || projectSectionLabelFromKey(field.key))}</p><p class="project-page-section-value">${escapeHtml(projectSectionPreviewValue(field))}</p></div><div class="project-page-section-actions"><button class="button-secondary career-inline-button career-inline-button-mini" type="button" data-project-field-move="up:${escapeHtml(section.key)}:${escapeHtml(field.key)}" ${index === 0 ? 'disabled' : ''}>Up</button><button class="button-secondary career-inline-button career-inline-button-mini" type="button" data-project-field-move="down:${escapeHtml(section.key)}:${escapeHtml(field.key)}" ${index === pageSections.length - 1 ? 'disabled' : ''}>Down</button><button class="button-secondary career-inline-button career-inline-button-mini" type="button" data-project-field-toggle="${escapeHtml(section.key)}:${escapeHtml(field.key)}">${field.visible !== false ? 'Hide' : 'Show'}</button></div></div>`).join('')}
+            </div>
+          </div>
+        </div>
+      `;
+    }
+    const fields = syncFieldLayout(section.key, data.portfolioFieldLayout?.[section.key]);
+    if (!fields.length) return '';
+    return `
+      <div class="portfolio-field-manager card">
+        <p class="project-settings-title"><strong>Fields inside this section</strong></p>
+        <div class="project-page-section-list">
+          ${fields.map((field, index) => `<div class="project-page-section-row"><div><p class="project-page-section-title">${escapeHtml(field.label)}</p><p class="project-page-section-value">${field.visible !== false ? 'Shown on public page' : 'Hidden on public page'}</p></div><div class="project-page-section-actions"><button class="button-secondary career-inline-button career-inline-button-mini" type="button" data-section-field-move="up:${escapeHtml(section.key)}:${escapeHtml(field.key)}" ${index === 0 ? 'disabled' : ''}>Up</button><button class="button-secondary career-inline-button career-inline-button-mini" type="button" data-section-field-move="down:${escapeHtml(section.key)}:${escapeHtml(field.key)}" ${index === fields.length - 1 ? 'disabled' : ''}>Down</button><button class="button-secondary career-inline-button career-inline-button-mini" type="button" data-section-field-toggle="${escapeHtml(section.key)}:${escapeHtml(field.key)}">${field.visible !== false ? 'Hide' : 'Show'}</button></div></div>`).join('')}
+        </div>
+      </div>
+    `;
+  }
+
   function renderSectionManager() {
     const root = document.getElementById("portfolio-section-manager");
     if (!root) return;
@@ -445,6 +717,7 @@ export function initCareerPortfolioPage(config: CareerPortfolioClientConfig) {
             <div class="portfolio-section-meta card">
               ${sectionMetaRows(section)}
             </div>
+            ${renderFieldControls(section)}
           </div>
         </details>
       `)
@@ -474,6 +747,56 @@ export function initCareerPortfolioPage(config: CareerPortfolioClientConfig) {
         const value = event.currentTarget.getAttribute("data-section-move") || "";
         const [direction, id] = value.split(":");
         moveSection(id, direction === "up" ? -1 : 1);
+        renderAll();
+        await saveState();
+      });
+    });
+
+    root.querySelectorAll("[data-section-field-move]").forEach((button) => {
+      button.addEventListener("click", async (event) => {
+        const value = event.currentTarget.getAttribute("data-section-field-move") || "";
+        const [direction, sectionKey, fieldKey] = value.split(":");
+        moveSectionField(sectionKey, fieldKey, direction === "up" ? -1 : 1);
+        renderAll();
+        await saveState();
+      });
+    });
+
+    root.querySelectorAll("[data-section-field-toggle]").forEach((button) => {
+      button.addEventListener("click", async (event) => {
+        const value = event.currentTarget.getAttribute("data-section-field-toggle") || "";
+        const [sectionKey, fieldKey] = value.split(":");
+        toggleSectionField(sectionKey, fieldKey);
+        renderAll();
+        await saveState();
+      });
+    });
+
+    root.querySelectorAll("[data-project-field-move]").forEach((button) => {
+      button.addEventListener("click", async (event) => {
+        const value = event.currentTarget.getAttribute("data-project-field-move") || "";
+        const [direction, projectKey, fieldKey] = value.split(":");
+        moveProjectField(projectKey, fieldKey, direction === "up" ? -1 : 1);
+        renderAll();
+        await saveState();
+      });
+    });
+
+    root.querySelectorAll("[data-project-field-toggle]").forEach((button) => {
+      button.addEventListener("click", async (event) => {
+        const value = event.currentTarget.getAttribute("data-project-field-toggle") || "";
+        const [projectKey, fieldKey] = value.split(":");
+        toggleProjectField(projectKey, fieldKey);
+        renderAll();
+        await saveState();
+      });
+    });
+
+    root.querySelectorAll("[data-project-card-field]").forEach((button) => {
+      button.addEventListener("click", async (event) => {
+        const value = event.currentTarget.getAttribute("data-project-card-field") || "";
+        const [projectKey, displayKey] = value.split(":");
+        toggleProjectCardField(projectKey, displayKey);
         renderAll();
         await saveState();
       });
