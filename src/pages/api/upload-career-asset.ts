@@ -6,40 +6,26 @@ import { getCurrentUser } from "../../lib/auth";
 
 export const prerender = false;
 
-const MAX_FILE_SIZE_BYTES = 50 * 1024 * 1024;
+const MAX_FILE_SIZE = 50 * 1024 * 1024;
 
-const uploadRules = {
+const ALLOWED_BY_KIND = {
   image: {
-    folder: "career-images",
-    extensions: new Set([".jpg", ".jpeg", ".png", ".webp", ".gif"]),
-    mimeTypes: new Set(["image/jpeg", "image/png", "image/webp", "image/gif"]),
+    dir: "career-images",
+    extensions: new Set([".jpg", ".jpeg", ".png", ".webp", ".gif", ".svg"]),
+    mimePrefixes: ["image/"],
+    exactMimeTypes: new Set(["image/svg+xml"]),
   },
   video: {
-    folder: "career-videos",
-    extensions: new Set([".mp4", ".webm", ".ogg", ".mov"]),
-    mimeTypes: new Set(["video/mp4", "video/webm", "video/ogg", "video/quicktime"]),
+    dir: "career-videos",
+    extensions: new Set([".mp4", ".webm", ".mov", ".m4v", ".ogv"]),
+    mimePrefixes: ["video/"],
+    exactMimeTypes: new Set(["application/octet-stream", "video/quicktime"]),
   },
   file: {
-    folder: "career-files",
-    extensions: new Set([
-      ".pdf",
-      ".doc",
-      ".docx",
-      ".ppt",
-      ".pptx",
-      ".xls",
-      ".xlsx",
-      ".csv",
-      ".txt",
-      ".rtf",
-      ".odt",
-      ".zip",
-      ".rar",
-      ".7z",
-      ".json",
-      ".md",
-    ]),
-    mimeTypes: new Set([
+    dir: "career-files",
+    extensions: new Set([".pdf", ".doc", ".docx", ".ppt", ".pptx", ".xls", ".xlsx", ".txt", ".rtf", ".zip", ".csv", ".svg", ".vsdx", ".drawio", ".md"]),
+    mimePrefixes: [],
+    exactMimeTypes: new Set([
       "application/pdf",
       "application/msword",
       "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
@@ -47,21 +33,19 @@ const uploadRules = {
       "application/vnd.openxmlformats-officedocument.presentationml.presentation",
       "application/vnd.ms-excel",
       "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
-      "text/csv",
       "text/plain",
       "application/rtf",
-      "application/vnd.oasis.opendocument.text",
       "application/zip",
       "application/x-zip-compressed",
-      "application/vnd.rar",
-      "application/x-7z-compressed",
-      "application/json",
+      "text/csv",
+      "image/svg+xml",
+      "application/octet-stream",
       "text/markdown",
     ]),
   },
 } as const;
 
-type UploadKind = keyof typeof uploadRules;
+type UploadKind = keyof typeof ALLOWED_BY_KIND;
 
 function sanitizeBaseName(value: string) {
   return (
@@ -74,9 +58,17 @@ function sanitizeBaseName(value: string) {
   );
 }
 
-function resolveKind(rawValue: FormDataEntryValue | null): UploadKind {
-  const kind = String(rawValue || "file").toLowerCase();
-  return kind === "image" || kind === "video" || kind === "file" ? kind : "file";
+function normalizeKind(value: FormDataEntryValue | null): UploadKind {
+  const next = String(value || "file").toLowerCase();
+  return next === "image" || next === "video" || next === "file" ? next : "file";
+}
+
+function isAllowed(kind: UploadKind, ext: string, mimeType: string) {
+  const config = ALLOWED_BY_KIND[kind];
+  if (!config.extensions.has(ext)) return false;
+  if (!mimeType) return true;
+  if (config.exactMimeTypes.has(mimeType)) return true;
+  return config.mimePrefixes.some((prefix) => mimeType.startsWith(prefix));
 }
 
 export const POST: APIRoute = async ({ request, cookies }) => {
@@ -92,8 +84,7 @@ export const POST: APIRoute = async ({ request, cookies }) => {
 
     const formData = await request.formData();
     const file = formData.get("file");
-    const kind = resolveKind(formData.get("kind"));
-    const rules = uploadRules[kind];
+    const kind = normalizeKind(formData.get("kind"));
 
     if (!(file instanceof File)) {
       return new Response(JSON.stringify({ error: "No file received." }), {
@@ -109,26 +100,19 @@ export const POST: APIRoute = async ({ request, cookies }) => {
       });
     }
 
-    if (file.size > MAX_FILE_SIZE_BYTES) {
+    if (file.size > MAX_FILE_SIZE) {
       return new Response(JSON.stringify({ error: "File too large. Max 50 MB." }), {
         status: 413,
         headers: { "Content-Type": "application/json" },
       });
     }
 
-    const originalName = file.name || "asset";
+    const originalName = file.name || `${kind}-asset`;
     const ext = path.extname(originalName).toLowerCase();
     const mimeType = String(file.type || "").toLowerCase();
 
-    if (!rules.extensions.has(ext)) {
-      return new Response(JSON.stringify({ error: `Unsupported ${kind} file type.` }), {
-        status: 400,
-        headers: { "Content-Type": "application/json" },
-      });
-    }
-
-    if (mimeType && rules.mimeTypes.size && !rules.mimeTypes.has(mimeType)) {
-      return new Response(JSON.stringify({ error: `Unsupported ${kind} MIME type.` }), {
+    if (!isAllowed(kind, ext, mimeType)) {
+      return new Response(JSON.stringify({ error: `Unsupported ${kind} type.` }), {
         status: 400,
         headers: { "Content-Type": "application/json" },
       });
@@ -137,30 +121,28 @@ export const POST: APIRoute = async ({ request, cookies }) => {
     const baseName = sanitizeBaseName(path.basename(originalName, ext));
     const unique = crypto.randomBytes(8).toString("hex");
     const storedFileName = `${baseName}-${user.id}-${unique}${ext}`;
-    const uploadsDir = path.join(process.cwd(), "public", "uploads", rules.folder);
+
+    const uploadsDir = path.join(process.cwd(), "public", "uploads", ALLOWED_BY_KIND[kind].dir);
     await mkdir(uploadsDir, { recursive: true });
 
     const filePath = path.join(uploadsDir, storedFileName);
     const buffer = Buffer.from(await file.arrayBuffer());
     await writeFile(filePath, buffer);
 
-    const fileUrl = `/uploads/${rules.folder}/${storedFileName}`;
+    const fileUrl = `/uploads/${ALLOWED_BY_KIND[kind].dir}/${storedFileName}`;
 
-    return new Response(
-      JSON.stringify({
-        ok: true,
-        kind,
-        fileName: originalName,
-        storedFileName,
-        fileType: mimeType || "application/octet-stream",
-        fileSize: file.size,
-        fileUrl,
-      }),
-      {
-        status: 200,
-        headers: { "Content-Type": "application/json" },
-      }
-    );
+    return new Response(JSON.stringify({
+      ok: true,
+      kind,
+      fileName: originalName,
+      storedFileName,
+      fileType: mimeType || "application/octet-stream",
+      fileSize: file.size,
+      fileUrl,
+    }), {
+      status: 200,
+      headers: { "Content-Type": "application/json" },
+    });
   } catch (error) {
     console.error("upload-career-asset error:", error);
     return new Response(JSON.stringify({ error: "Failed to upload asset." }), {

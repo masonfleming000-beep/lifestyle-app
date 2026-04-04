@@ -224,11 +224,13 @@ export function initCareerInformationPage(config: CareerInformationClientConfig)
       const value = Array.isArray(field?.value)
         ? field.value.filter(Boolean).join("\n")
         : String(field?.value || "");
+      const type = normalizeFieldType(field?.type, preset?.type || "text");
       return {
         id: field?.id || makeId(`field-${key || index}`),
         key: key || `field-${index + 1}`,
         label: rawLabel || preset?.label || `Field ${index + 1}`,
-        type: normalizeFieldType(field?.type, preset?.type || "text"),
+        type,
+        inputMode: isUploadCapableFieldType(type) ? (String(field?.inputMode || "text").toLowerCase() === "upload" ? "upload" : "text") : "text",
         value,
       };
     }).filter((field) => field.label || field.value);
@@ -260,23 +262,55 @@ export function initCareerInformationPage(config: CareerInformationClientConfig)
     if (type === "number") return "Enter a number";
     if (type === "list") return "One item per line";
     if (type === "link") return "Paste one link per line";
-    if (type === "image") return "Paste one image URL per line";
-    if (type === "video") return "Paste one video URL per line";
-    if (type === "file") return "Paste one file URL or file name per line";
+    if (type === "image") return "Paste one image URL per line or upload images";
+    if (type === "video") return "Paste one video URL per line or upload videos";
+    if (type === "file") return "Paste one file URL per line or upload files";
     if (type === "textarea") return "Enter details";
     return "Enter value";
+  }
+
+  function customFieldAccept(type) {
+    if (type === "image") return "image/*,.svg";
+    if (type === "video") return "video/*,.mov,.m4v";
+    if (type === "file") return ".pdf,.doc,.docx,.ppt,.pptx,.xls,.xlsx,.txt,.rtf,.zip,.csv,.svg,.vsdx,.drawio,.md";
+    return "";
+  }
+
+  function isUploadCapableFieldType(type) {
+    return ["image", "video", "file"].includes(normalizeFieldType(type, "text"));
   }
 
   function buildCustomFieldValueControl(field) {
     const type = normalizeFieldType(field?.type, "text");
     const value = escapeHtml(field?.value || "");
     const label = type === "link" || type === "image" || type === "video" || type === "file" ? "Value / URL(s)" : "Value";
+    const uploadMode = isUploadCapableFieldType(type)
+      ? (String(field?.inputMode || "text").toLowerCase() === "upload" ? "upload" : "text")
+      : "text";
+
     if (type === "textarea" || type === "list" || type === "link" || type === "image" || type === "video" || type === "file") {
       return `
-        <label class="edu-label dynamic-form-full">
+        ${isUploadCapableFieldType(type) ? `
+          <label class="edu-label dynamic-form-full">
+            <span>Input mode</span>
+            <select data-role="field-input-mode" class="form-input">
+              <option value="text" ${uploadMode === "text" ? "selected" : ""}>Paste URL(s) / text</option>
+              <option value="upload" ${uploadMode === "upload" ? "selected" : ""}>Upload file(s)</option>
+            </select>
+          </label>
+          <div data-role="field-upload-wrap" style="display:${uploadMode === "upload" ? "block" : "none"};">
+            <label class="edu-label dynamic-form-full">
+              <span>Upload ${type === "image" ? "image(s)" : type === "video" ? "video(s)" : "file(s)"}</span>
+              <input data-role="field-file-input" type="file" class="form-input" accept="${escapeHtml(customFieldAccept(type))}" ${type === "file" ? "multiple" : "multiple"} />
+            </label>
+            <p class="field-hint">Uploads are saved and propagated to Portfolio Preview automatically. Existing saved URLs stay attached unless you remove them from the text box.</p>
+          </div>
+        ` : ""}
+        <label class="edu-label dynamic-form-full" data-role="field-text-wrap" style="display:${isUploadCapableFieldType(type) && uploadMode === "upload" ? "none" : "block"};">
           <span>${label}</span>
           <textarea data-role="field-value" class="form-textarea" placeholder="${escapeHtml(customFieldPlaceholder(type))}">${value}</textarea>
         </label>
+        ${isUploadCapableFieldType(type) ? `<label class="edu-label dynamic-form-full" data-role="field-text-wrap-upload" style="display:${uploadMode === "upload" ? "block" : "none"};"><span>Existing saved URL(s)</span><textarea data-role="field-value" class="form-textarea" placeholder="${escapeHtml(customFieldPlaceholder(type))}">${value}</textarea></label>` : ""}
       `;
     }
     return `
@@ -296,7 +330,7 @@ export function initCareerInformationPage(config: CareerInformationClientConfig)
       value: String(field?.value || ""),
     };
     return `
-      <div class="custom-field-card" data-custom-field-id="${escapeHtml(normalized.id)}" data-field-key="${escapeHtml(normalized.key)}">
+      <div class="custom-field-card" data-custom-field-id="${escapeHtml(normalized.id)}" data-field-key="${escapeHtml(normalized.key)}" data-field-input-mode="${escapeHtml(normalized.inputMode || (isUploadCapableFieldType(normalized.type) ? "text" : "text"))}">
         <div class="custom-field-card-top">
           <label class="edu-label">
             <span>Field name</span>
@@ -703,6 +737,29 @@ export function initCareerInformationPage(config: CareerInformationClientConfig)
     return payload;
   }
 
+
+  async function uploadCareerAsset(file, kind = "file") {
+    const normalizedKind = kind === "image" || kind === "video" || kind === "file" ? kind : "file";
+    const formData = new FormData();
+    formData.append("file", file);
+    formData.append("kind", normalizedKind);
+
+    const res = await fetch("/api/upload-career-asset", {
+      method: "POST",
+      credentials: "include",
+      body: formData,
+    });
+
+    const payload = await res.json().catch(() => null);
+    if (!res.ok) {
+      throw new Error(payload?.error || `Upload failed (${res.status})`);
+    }
+    if (!payload?.fileUrl) {
+      throw new Error("Upload succeeded but no file URL was returned.");
+    }
+    return payload;
+  }
+
   let data = normalizeData(cloneDefaults());
   let hasLoadedInitialState = false;
   let isSaving = false;
@@ -846,7 +903,8 @@ export function initCareerInformationPage(config: CareerInformationClientConfig)
           <label class="edu-label dynamic-form-full"><span>Description</span><textarea id="dynamic-project-description" class="form-textarea" placeholder="What the project is and what it achieved"></textarea></label>
           <label class="edu-label"><span>Skills / stack</span><input id="dynamic-project-skills" class="form-input" placeholder="Astro, React, Figma, Python" /></label>
           <label class="edu-label"><span>Project link</span><input id="dynamic-project-link" class="form-input" placeholder="https://..." /></label>
-          <label class="edu-label dynamic-form-full"><span>Cover photo URL</span><input id="dynamic-project-cover" class="form-input" placeholder="https://.../cover.jpg" /></label>
+          <label class="edu-label"><span>Cover photo upload</span><input id="dynamic-project-coverFile" type="file" class="form-input" accept="image/*,.svg" /></label>
+          <label class="edu-label dynamic-form-full"><span>Cover photo URL</span><input id="dynamic-project-cover" class="form-input" placeholder="https://.../cover.jpg or leave blank if uploading" /></label>
           <fieldset class="project-card-toggle-group dynamic-form-full">
             <legend>Show on portfolio project card</legend>
             <div class="project-card-toggle-grid">
@@ -1061,6 +1119,7 @@ export function initCareerInformationPage(config: CareerInformationClientConfig)
       key: preset.key,
       label: preset.label,
       type: preset.type,
+      inputMode: isUploadCapableFieldType(preset.type) ? "upload" : "text",
       value: "",
     };
   }
@@ -1072,6 +1131,7 @@ export function initCareerInformationPage(config: CareerInformationClientConfig)
       key: makeId(`field-${group}`),
       label: "",
       type: defaultType,
+      inputMode: isUploadCapableFieldType(defaultType) ? "upload" : "text",
       value: "",
     };
   }
@@ -1103,8 +1163,23 @@ export function initCareerInformationPage(config: CareerInformationClientConfig)
   function updateCustomFieldValueWrap(card, type) {
     const wrap = card?.querySelector('[data-role="field-value-wrap"]');
     if (!wrap) return;
-    const previousValue = card.querySelector('[data-role="field-value"]')?.value || "";
-    wrap.innerHTML = buildCustomFieldValueControl({ type, value: previousValue });
+    const valueInputs = card.querySelectorAll('[data-role="field-value"]');
+    const previousValue = valueInputs[valueInputs.length - 1]?.value || valueInputs[0]?.value || "";
+    const inputMode = card.getAttribute('data-field-input-mode') || 'text';
+    wrap.innerHTML = buildCustomFieldValueControl({ type, value: previousValue, inputMode });
+  }
+
+  function syncCustomFieldInputMode(card, mode) {
+    if (!card) return;
+    const nextMode = mode === 'upload' ? 'upload' : 'text';
+    card.setAttribute('data-field-input-mode', nextMode);
+    const uploadWrap = card.querySelector('[data-role="field-upload-wrap"]');
+    const textWraps = card.querySelectorAll('[data-role="field-text-wrap"], [data-role="field-text-wrap-upload"]');
+    if (uploadWrap) uploadWrap.style.display = nextMode === 'upload' ? 'block' : 'none';
+    textWraps.forEach((node) => {
+      const isUploadTextWrap = node.getAttribute('data-role') === 'field-text-wrap-upload';
+      node.style.display = nextMode === 'upload' ? (isUploadTextWrap ? 'block' : 'none') : (isUploadTextWrap ? 'none' : 'block');
+    });
   }
 
   function appendCustomFieldCard(manager, field) {
@@ -1118,23 +1193,44 @@ export function initCareerInformationPage(config: CareerInformationClientConfig)
     cards[cards.length - 1]?.querySelector('[data-role="field-label"]')?.focus();
   }
 
-  function collectCustomFields(group) {
+  async function collectCustomFields(group) {
     const manager = document.querySelector(`[data-custom-field-group="${group}"]`);
     if (!manager) return [];
-    return [...manager.querySelectorAll('.custom-field-card')].map((card, index) => {
+    const fields = [];
+    const cards = [...manager.querySelectorAll('.custom-field-card')];
+    for (const [index, card] of cards.entries()) {
       const label = String(card.querySelector('[data-role="field-label"]')?.value || '').trim();
       const type = normalizeFieldType(card.querySelector('[data-role="field-type"]')?.value, "text");
-      const value = String(card.querySelector('[data-role="field-value"]')?.value || '').trim();
+      const inputMode = isUploadCapableFieldType(type)
+        ? (String(card.querySelector('[data-role="field-input-mode"]')?.value || card.getAttribute('data-field-input-mode') || 'text').toLowerCase() === 'upload' ? 'upload' : 'text')
+        : 'text';
+      const valueInputs = card.querySelectorAll('[data-role="field-value"]');
+      const valueInput = valueInputs[valueInputs.length - 1] || valueInputs[0];
+      let value = normalizeMultilineValue(valueInput?.value || '');
+      if (isUploadCapableFieldType(type) && inputMode === 'upload') {
+        const files = [...(card.querySelector('[data-role="field-file-input"]')?.files || [])];
+        if (files.length) {
+          setSaveStatus(`Uploading ${files.length} ${type}${files.length === 1 ? '' : 's'}...`, 'neutral');
+          const uploadedUrls = [];
+          for (const file of files) {
+            const uploaded = await uploadCareerAsset(file, type === 'image' ? 'image' : type === 'video' ? 'video' : 'file');
+            if (uploaded?.fileUrl) uploadedUrls.push(uploaded.fileUrl);
+          }
+          value = mergeMultilineValues(value, uploadedUrls);
+        }
+      }
       const rawKey = String(card.getAttribute('data-field-key') || '').trim();
       const key = slugify(rawKey || label || `field-${index + 1}`);
-      return {
+      fields.push({
         id: card.getAttribute('data-custom-field-id') || makeId(`field-${key}`),
         key,
         label: label || PROJECT_EXTRA_FIELD_MAP[key]?.label || `Field ${index + 1}`,
         type,
+        inputMode,
         value,
-      };
-    }).filter((field) => field.label || field.value);
+      });
+    }
+    return fields.filter((field) => field.label || field.value);
   }
 
   function bindCustomFieldActions(scope = document) {
@@ -1175,7 +1271,20 @@ export function initCareerInformationPage(config: CareerInformationClientConfig)
       if (select.dataset.bound === 'true') return;
       select.dataset.bound = 'true';
       select.addEventListener('change', () => {
-        updateCustomFieldValueWrap(select.closest('.custom-field-card'), select.value);
+        const card = select.closest('.custom-field-card');
+        if (card && !isUploadCapableFieldType(select.value)) {
+          card.setAttribute('data-field-input-mode', 'text');
+        }
+        updateCustomFieldValueWrap(card, select.value);
+        bindCustomFieldActions(card || scope);
+      });
+    });
+
+    scope.querySelectorAll('[data-role="field-input-mode"]').forEach((select) => {
+      if (select.dataset.bound === 'true') return;
+      select.dataset.bound = 'true';
+      select.addEventListener('change', () => {
+        syncCustomFieldInputMode(select.closest('.custom-field-card'), select.value);
       });
     });
 
@@ -1249,7 +1358,7 @@ export function initCareerInformationPage(config: CareerInformationClientConfig)
           description: getValue("dynamic-profile-description"),
           photoUrl,
           visible: getChecked("dynamic-profile-visible"),
-          customFields: collectCustomFields("profile"),
+          customFields: await collectCustomFields("profile"),
         }];
         await persistAndRefresh();
         renderDynamicForm();
@@ -1268,7 +1377,7 @@ export function initCareerInformationPage(config: CareerInformationClientConfig)
         label: getValue("dynamic-link-label"),
         url,
         visible: getChecked("dynamic-link-visible"),
-        customFields: collectCustomFields("externalLinks"),
+        customFields: await collectCustomFields("externalLinks"),
       });
       await persistAndRefresh();
       renderDynamicForm();
@@ -1287,7 +1396,7 @@ export function initCareerInformationPage(config: CareerInformationClientConfig)
         summary: getValue("dynamic-exp-summary"),
         bullets: splitLines(getValue("dynamic-exp-bullets")),
         visible: getChecked("dynamic-exp-visible"),
-        customFields: collectCustomFields("experience"),
+        customFields: await collectCustomFields("experience"),
       });
       await persistAndRefresh();
       renderDynamicForm();
@@ -1304,41 +1413,53 @@ export function initCareerInformationPage(config: CareerInformationClientConfig)
         summary: getValue("dynamic-leadership-summary"),
         bullets: splitLines(getValue("dynamic-leadership-bullets")),
         visible: getChecked("dynamic-leadership-visible"),
-        customFields: collectCustomFields("leadership"),
+        customFields: await collectCustomFields("leadership"),
       });
       await persistAndRefresh();
       renderDynamicForm();
     });
 
     document.getElementById("dynamic-save-project-btn")?.addEventListener("click", async () => {
-      const title = getValue("dynamic-project-title");
-      if (!title) return;
-      const customFields = collectCustomFields("projects");
-      const project = {
-        id: makeId("project"),
-        title,
-        subtitle: getValue("dynamic-project-subtitle"),
-        description: getValue("dynamic-project-description"),
-        skills: getValue("dynamic-project-skills"),
-        link: getValue("dynamic-project-link"),
-        coverPhotoUrl: getValue("dynamic-project-cover"),
-        projectSlug: slugify(title),
-        visible: getChecked("dynamic-project-visible"),
-        cardDisplay: normalizeProjectCardDisplay({
-          showCoverPhoto: getChecked("dynamic-project-card-showCoverPhoto"),
-          showSubtitle: getChecked("dynamic-project-card-showSubtitle"),
-          showDescription: getChecked("dynamic-project-card-showDescription"),
-          showSkills: getChecked("dynamic-project-card-showSkills"),
-          showLink: getChecked("dynamic-project-card-showLink"),
-        }),
-        customFields,
-      };
-      data.projects.unshift({
-        ...project,
-        projectPageSections: syncProjectPageSections(project),
-      });
-      await persistAndRefresh();
-      renderDynamicForm();
+      try {
+        const title = getValue("dynamic-project-title");
+        if (!title) return;
+        const coverFile = document.getElementById("dynamic-project-coverFile")?.files?.[0];
+        const customFields = await collectCustomFields("projects");
+        let coverPhotoUrl = getValue("dynamic-project-cover");
+        if (coverFile) {
+          setSaveStatus("Uploading project cover...", "neutral");
+          const uploadedCover = await uploadCareerAsset(coverFile, "image");
+          coverPhotoUrl = uploadedCover?.fileUrl || coverPhotoUrl;
+        }
+        const project = {
+          id: makeId("project"),
+          title,
+          subtitle: getValue("dynamic-project-subtitle"),
+          description: getValue("dynamic-project-description"),
+          skills: getValue("dynamic-project-skills"),
+          link: getValue("dynamic-project-link"),
+          coverPhotoUrl,
+          projectSlug: slugify(title),
+          visible: getChecked("dynamic-project-visible"),
+          cardDisplay: normalizeProjectCardDisplay({
+            showCoverPhoto: getChecked("dynamic-project-card-showCoverPhoto"),
+            showSubtitle: getChecked("dynamic-project-card-showSubtitle"),
+            showDescription: getChecked("dynamic-project-card-showDescription"),
+            showSkills: getChecked("dynamic-project-card-showSkills"),
+            showLink: getChecked("dynamic-project-card-showLink"),
+          }),
+          customFields,
+        };
+        data.projects.unshift({
+          ...project,
+          projectPageSections: syncProjectPageSections(project),
+        });
+        await persistAndRefresh();
+        renderDynamicForm();
+      } catch (error) {
+        console.error("Project upload failed:", error);
+        setSaveStatus(error?.message || "Project save failed", "error");
+      }
     });
 
     document.getElementById("dynamic-save-organization-btn")?.addEventListener("click", async () => {
@@ -1351,7 +1472,7 @@ export function initCareerInformationPage(config: CareerInformationClientConfig)
         date: getValue("dynamic-organization-date"),
         description: getValue("dynamic-organization-description"),
         visible: getChecked("dynamic-organization-visible"),
-        customFields: collectCustomFields("organizations"),
+        customFields: await collectCustomFields("organizations"),
       });
       await persistAndRefresh();
       renderDynamicForm();
@@ -1368,7 +1489,7 @@ export function initCareerInformationPage(config: CareerInformationClientConfig)
         date: getValue("dynamic-honor-date"),
         description: getValue("dynamic-honor-description"),
         visible: getChecked("dynamic-honor-visible"),
-        customFields: collectCustomFields("honors"),
+        customFields: await collectCustomFields("honors"),
       });
       await persistAndRefresh();
       renderDynamicForm();
@@ -1385,7 +1506,7 @@ export function initCareerInformationPage(config: CareerInformationClientConfig)
         credentialId: getValue("dynamic-license-credentialId"),
         link: getValue("dynamic-license-link"),
         visible: getChecked("dynamic-license-visible"),
-        customFields: collectCustomFields("licenses"),
+        customFields: await collectCustomFields("licenses"),
       });
       await persistAndRefresh();
       renderDynamicForm();
@@ -1401,7 +1522,7 @@ export function initCareerInformationPage(config: CareerInformationClientConfig)
         label: getValue("dynamic-contact-label"),
         note: getValue("dynamic-contact-note"),
         visible: getChecked("dynamic-contact-visible"),
-        customFields: collectCustomFields("contact"),
+        customFields: await collectCustomFields("contact"),
       }];
       await persistAndRefresh();
     });
@@ -1426,10 +1547,10 @@ export function initCareerInformationPage(config: CareerInformationClientConfig)
             fileUrl: uploaded.fileUrl || "",
             note,
             visible,
-            customFields: collectCustomFields("resume"),
+            customFields: await collectCustomFields("resume"),
           };
         } else {
-          nextResume = { ...nextResume, title, note, visible, customFields: collectCustomFields("resume") };
+          nextResume = { ...nextResume, title, note, visible, customFields: await collectCustomFields("resume") };
         }
         data.resume = [nextResume];
         await persistAndRefresh();
@@ -1452,7 +1573,7 @@ export function initCareerInformationPage(config: CareerInformationClientConfig)
         stage: getValue("dynamic-school-stage"),
         notes: getValue("dynamic-school-notes"),
         visible: getChecked("dynamic-school-visible"),
-        customFields: collectCustomFields("school"),
+        customFields: await collectCustomFields("school"),
       });
       await persistAndRefresh();
       renderDynamicForm();
@@ -1467,7 +1588,7 @@ export function initCareerInformationPage(config: CareerInformationClientConfig)
           title: getValue(`dynamic-${key}-title`) || key,
           body,
           visible: getChecked(`dynamic-${key}-visible`),
-          customFields: collectCustomFields(key),
+          customFields: await collectCustomFields(key),
         });
         await persistAndRefresh();
         renderDynamicForm();
@@ -1483,7 +1604,7 @@ export function initCareerInformationPage(config: CareerInformationClientConfig)
         date: getValue("dynamic-timeline-date"),
         description: getValue("dynamic-timeline-description"),
         visible: getChecked("dynamic-timeline-visible"),
-        customFields: collectCustomFields("timelineItems"),
+        customFields: await collectCustomFields("timelineItems"),
       });
       await persistAndRefresh();
       renderDynamicForm();
@@ -1498,7 +1619,7 @@ export function initCareerInformationPage(config: CareerInformationClientConfig)
         body: getValue("dynamic-rec-body"),
         owner: getValue("dynamic-rec-owner"),
         visible: getChecked("dynamic-rec-visible"),
-        customFields: collectCustomFields("recommendations"),
+        customFields: await collectCustomFields("recommendations"),
       });
       await persistAndRefresh();
       renderDynamicForm();
@@ -1515,7 +1636,7 @@ export function initCareerInformationPage(config: CareerInformationClientConfig)
         action: getValue("dynamic-star-action"),
         result: getValue("dynamic-star-result"),
         visible: getChecked("dynamic-star-visible"),
-        customFields: collectCustomFields("star"),
+        customFields: await collectCustomFields("star"),
       });
       await persistAndRefresh();
       renderDynamicForm();
