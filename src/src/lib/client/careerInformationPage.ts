@@ -773,11 +773,15 @@ export function initCareerInformationPage(config: CareerInformationClientConfig)
         credentials: "include",
         cache: "no-store",
       });
-      if (!res.ok) return null;
+      if (!res.ok) throw new Error(`Load failed (${res.status})`);
       const payload = await res.json();
       return payload?.state ?? null;
     } catch (error) {
       console.error("Failed to load state:", error);
+      try {
+        const backup = window.localStorage?.getItem(`${pageKey}:backup`);
+        if (backup) return JSON.parse(backup);
+      } catch (_backupError) {}
       return null;
     }
   }
@@ -836,67 +840,43 @@ export function initCareerInformationPage(config: CareerInformationClientConfig)
   let hasLoadedInitialState = false;
   let isSaving = false;
   let pendingSave = false;
-  let activeEditor = { group: "", id: "" };
+  let activeEdit = null;
 
-  function sectionMetaByBuilderValue(value) {
-    return sections.find((section) => section.builderValue === value) || null;
+  function currentSectionKey() {
+    return String(document.getElementById("dynamic-section-select")?.value || "").trim();
   }
 
-  function sectionMetaByGroup(group) {
-    return sections.find((section) => section.key === group) || null;
+  function getEditingItem(sectionKey = currentSectionKey()) {
+    if (!activeEdit || activeEdit.section !== sectionKey) return null;
+    return normalizeArray(data[sectionKey]).find((item) => item.id === activeEdit.id) || null;
   }
 
-  function getEditingItem(group) {
-    if (!group || activeEditor.group !== group || !activeEditor.id) return null;
-    return normalizeArray(data[group]).find((item) => item.id === activeEditor.id) || null;
-  }
-
-  function clearEditing(options = {}) {
-    activeEditor = { group: "", id: "" };
-    if (options.render !== false) renderDynamicForm();
-  }
-
-  function startEditing(group, id) {
-    if (!group || !id) return;
-    activeEditor = { group, id };
+  function startEditing(sectionKey, id) {
+    activeEdit = { section: sectionKey, id };
     const select = document.getElementById("dynamic-section-select");
-    const meta = sectionMetaByGroup(group);
-    if (select && meta?.builderValue) select.value = meta.builderValue;
+    if (select) select.value = sectionKey;
     renderDynamicForm();
-    document.querySelector('.dynamic-builder-shell')?.scrollIntoView({ behavior: 'smooth', block: 'start' });
-    setSaveStatus(`Editing ${meta?.title || group}. Save to update this entry.`, "neutral");
+    window.requestAnimationFrame(() => {
+      document.getElementById("dynamic-form-area")?.scrollIntoView({ behavior: "smooth", block: "start" });
+    });
   }
 
-  function upsertEntry(group, payload, options = {}) {
+  function cancelEditing() {
+    activeEdit = null;
+    renderDynamicForm();
+  }
+
+  function upsertCollectionItem(group, nextItem) {
+    const editing = activeEdit && activeEdit.section === group ? activeEdit : null;
     const items = normalizeArray(data[group]);
-    const editingItem = getEditingItem(group);
-    const mode = options.mode === 'single' ? 'single' : 'collection';
-        if (mode === 'single') {
-      const current = editingItem || items[0] || {};
-      data[group] = [{ ...current, ...payload, id: payload?.id || current?.id || makeId(options.prefix || group) }];
-      clearEditing({ render: false });
-      return;
+    if (editing) {
+      data[group] = items.map((item) => item.id === editing.id ? { ...item, ...nextItem, id: editing.id } : item);
+      activeEdit = null;
+      return editing.id;
     }
-
-    const nextItem = { ...editingItem, ...payload, id: payload?.id || editingItem?.id || makeId(options.prefix || group) };
-    data[group] = editingItem
-      ? items.map((item) => item.id === editingItem.id ? nextItem : item)
-      : [nextItem, ...items];
-    clearEditing({ render: false });
-  }
-
-  function buildEditingNotice(group) {
-    const meta = sectionMetaByGroup(group);
-    if (!getEditingItem(group)) return "";
-    return `
-      <div class="editing-notice">
-        <div>
-          <p class="editing-notice-title">Editing saved ${escapeHtml(meta?.title || group)}</p>
-          <p class="editing-notice-text">Update any value, clear fields you want removed, add standard or custom fields, then save.</p>
-        </div>
-        <button type="button" class="button-secondary career-inline-button career-inline-button-mini" id="cancel-edit-btn">Cancel edit</button>
-      </div>
-    `;
+    const id = nextItem?.id || makeId(group.slice(0, -1) || group || "item");
+    data[group] = [{ ...nextItem, id }, ...items];
+    return id;
   }
 
   async function saveState() {
@@ -912,7 +892,11 @@ export function initCareerInformationPage(config: CareerInformationClientConfig)
     setSaveStatus("Saving...", "neutral");
 
     try {
-      await postState(getSavableState(data));
+      const snapshot = getSavableState(data);
+      await postState(snapshot);
+      try {
+        window.localStorage?.setItem(`${pageKey}:backup`, JSON.stringify(snapshot));
+      } catch (_error) {}
       setSaveStatus("Saved", "success");
     } catch (error) {
       console.error("Failed to save state:", error);
@@ -939,14 +923,21 @@ export function initCareerInformationPage(config: CareerInformationClientConfig)
     `;
   }
 
-  function formShell(helper, body, buttonId, buttonText) {
+  function formShell(helper, body, buttonId, buttonText, options = {}) {
+    const editing = Boolean(options?.editing);
+    const cancelId = options?.cancelId || "dynamic-cancel-edit-btn";
     return `
       <div class="dynamic-form-card">
+        ${editing ? `<div class="edit-mode-banner"><span>Editing existing entry</span><button class="button-secondary career-inline-button career-inline-button-mini" id="${cancelId}" type="button">Cancel edit</button></div>` : ""}
         ${helper ? `<p class="section-helper">${escapeHtml(helper)}</p>` : ""}
         ${body}
         ${buttonId ? `<button class="button-primary career-inline-button" id="${buttonId}" type="button">${escapeHtml(buttonText)}</button>` : ""}
       </div>
     `;
+  }
+
+  function withEditMeta(sectionKey) {
+    return { item: getEditingItem(sectionKey) || {}, editing: activeEdit?.section === sectionKey };
   }
 
   function buildProfileForm() {
@@ -970,12 +961,13 @@ export function initCareerInformationPage(config: CareerInformationClientConfig)
     );
   }
 
-  function buildExternalLinksForm(item = getEditingItem("externalLinks") || {}) {
+  function buildExternalLinksForm() {
+    const { item, editing } = withEditMeta("externalLinks");
     return formShell(
       "Add public links that will appear under your profile section.",
       `
         <div class="dynamic-form-grid">
-          <label class="edu-label"><span>Link type</span><select id="dynamic-link-type" class="form-input"><option value="github" ${item.type === "github" ? "selected" : ""}>GitHub</option><option value="linkedin" ${item.type === "linkedin" ? "selected" : ""}>LinkedIn</option><option value="email" ${item.type === "email" ? "selected" : ""}>Email</option><option value="website" ${item.type === "website" || !item.type ? "selected" : ""}>Website</option><option value="facebook" ${item.type === "facebook" ? "selected" : ""}>Facebook</option><option value="instagram" ${item.type === "instagram" ? "selected" : ""}>Instagram</option><option value="other" ${item.type === "other" ? "selected" : ""}>Other</option></select></label>
+          <label class="edu-label"><span>Link type</span><select id="dynamic-link-type" class="form-input"><option value="github" ${item.type === "github" ? "selected" : ""}>GitHub</option><option value="linkedin" ${item.type === "linkedin" ? "selected" : ""}>LinkedIn</option><option value="email" ${item.type === "email" ? "selected" : ""}>Email</option><option value="website" ${!item.type || item.type === "website" ? "selected" : ""}>Website</option><option value="facebook" ${item.type === "facebook" ? "selected" : ""}>Facebook</option><option value="instagram" ${item.type === "instagram" ? "selected" : ""}>Instagram</option><option value="other" ${item.type === "other" ? "selected" : ""}>Other</option></select></label>
           <label class="edu-label"><span>Label (optional)</span><input id="dynamic-link-label" class="form-input" value="${escapeHtml(item.label || "")}" placeholder="Portfolio, personal site, etc." /></label>
           <label class="edu-label dynamic-form-full"><span>URL or email</span><input id="dynamic-link-url" class="form-input" value="${escapeHtml(item.url || "")}" placeholder="https://... or hello@example.com" /></label>
           <label class="check-row dynamic-form-full"><input id="dynamic-link-visible" type="checkbox" ${item.visible !== false ? "checked" : ""} /><span>Show in portfolio</span></label>
@@ -983,11 +975,12 @@ export function initCareerInformationPage(config: CareerInformationClientConfig)
         ${buildCustomFieldsManager("externalLinks", item.customFields)}
       `,
       "dynamic-save-link-btn",
-      "Add External Link"
+      editing ? "Save External Link Changes" : "Add External Link", { editing }
     );
   }
 
-  function buildExperienceForm(item = getEditingItem("experience") || {}) {
+  function buildExperienceForm() {
+    const { item, editing } = withEditMeta("experience");
     return formShell(
       "Use this for work experience cards.",
       `
@@ -998,17 +991,18 @@ export function initCareerInformationPage(config: CareerInformationClientConfig)
           <label class="edu-label"><span>Start date</span><input id="dynamic-exp-startDate" type="date" class="form-input" value="${escapeHtml(item.startDate || "")}" /></label>
           <label class="edu-label"><span>End date</span><input id="dynamic-exp-endDate" type="date" class="form-input" value="${escapeHtml(item.endDate || "")}" /></label>
           <label class="edu-label dynamic-form-full"><span>Summary</span><textarea id="dynamic-exp-summary" class="form-textarea" placeholder="What you did and why it mattered">${escapeHtml(item.summary || "")}</textarea></label>
-          <label class="edu-label dynamic-form-full"><span>Bullets (one per line)</span><textarea id="dynamic-exp-bullets" class="form-textarea" placeholder="Led...&#10;Built...&#10;Improved...">${escapeHtml(Array.isArray(item.bullets) ? item.bullets.join("\n") : String(item.bullets || ""))}</textarea></label>
+          <label class="edu-label dynamic-form-full"><span>Bullets (one per line)</span><textarea id="dynamic-exp-bullets" class="form-textarea" placeholder="Led...&#10;Built...&#10;Improved...">${escapeHtml(Array.isArray(item.bullets) ? item.bullets.join("\n") : "")}</textarea></label>
           <label class="check-row dynamic-form-full"><input id="dynamic-exp-visible" type="checkbox" ${item.visible !== false ? "checked" : ""} /><span>Show in portfolio</span></label>
         </div>
         ${buildCustomFieldsManager("experience", item.customFields)}
       `,
       "dynamic-save-exp-btn",
-      "Save Work Experience"
+      editing ? "Save Work Experience Changes" : "Save Work Experience", { editing }
     );
   }
 
-  function buildLeadershipForm(item = getEditingItem("leadership") || {}) {
+  function buildLeadershipForm() {
+    const { item, editing } = withEditMeta("leadership");
     return formShell(
       "Use this for leadership roles, mentoring, or team leadership experience.",
       `
@@ -1017,17 +1011,18 @@ export function initCareerInformationPage(config: CareerInformationClientConfig)
           <label class="edu-label"><span>Organization</span><input id="dynamic-leadership-organization" class="form-input" value="${escapeHtml(item.organization || "")}" placeholder="Club, company, volunteer group" /></label>
           <label class="edu-label"><span>Date or range</span><input id="dynamic-leadership-date" class="form-input" value="${escapeHtml(item.date || "")}" placeholder="2024 - Present" /></label>
           <label class="edu-label dynamic-form-full"><span>Summary</span><textarea id="dynamic-leadership-summary" class="form-textarea" placeholder="Scope of leadership and outcomes">${escapeHtml(item.summary || "")}</textarea></label>
-          <label class="edu-label dynamic-form-full"><span>Bullets (one per line)</span><textarea id="dynamic-leadership-bullets" class="form-textarea" placeholder="Managed...&#10;Organized...&#10;Mentored...">${escapeHtml(Array.isArray(item.bullets) ? item.bullets.join("\n") : String(item.bullets || ""))}</textarea></label>
+          <label class="edu-label dynamic-form-full"><span>Bullets (one per line)</span><textarea id="dynamic-leadership-bullets" class="form-textarea" placeholder="Managed...&#10;Organized...&#10;Mentored...">${escapeHtml(Array.isArray(item.bullets) ? item.bullets.join("\n") : "")}</textarea></label>
           <label class="check-row dynamic-form-full"><input id="dynamic-leadership-visible" type="checkbox" ${item.visible !== false ? "checked" : ""} /><span>Show in portfolio</span></label>
         </div>
         ${buildCustomFieldsManager("leadership", item.customFields)}
       `,
       "dynamic-save-leadership-btn",
-      "Save Leadership Experience"
+      editing ? "Save Leadership Changes" : "Save Leadership Experience", { editing }
     );
   }
 
-  function buildProjectsForm(item = getEditingItem("projects") || {}) {
+  function buildProjectsForm() {
+    const { item, editing } = withEditMeta("projects");
     return formShell(
       "Use this for featured portfolio projects. The project card can show a subset of the content, while the project page can reveal each section in its own dropdown.",
       `
@@ -1044,7 +1039,7 @@ export function initCareerInformationPage(config: CareerInformationClientConfig)
             <div class="project-card-toggle-grid">
               ${PROJECT_CARD_DISPLAY_OPTIONS.map((option) => `
                 <label class="check-row compact">
-                  <input id="dynamic-project-card-${option.key}" type="checkbox" ${normalizeProjectCardDisplay(item.cardDisplay)?.[option.key] !== false ? "checked" : ""} />
+                  <input id="dynamic-project-card-${option.key}" type="checkbox" checked />
                   <span>${option.label}</span>
                 </label>
               `).join("\n")}
@@ -1058,11 +1053,12 @@ export function initCareerInformationPage(config: CareerInformationClientConfig)
         </div>
       `,
       "dynamic-save-project-btn",
-      "Save Project"
+      editing ? "Save Project Changes" : "Save Project", { editing }
     );
   }
 
-  function buildOrganizationsForm(item = getEditingItem("organizations") || {}) {
+  function buildOrganizationsForm() {
+    const { item, editing } = withEditMeta("organizations");
     return formShell(
       "Use this for clubs, associations, volunteer orgs, and communities.",
       `
@@ -1076,11 +1072,12 @@ export function initCareerInformationPage(config: CareerInformationClientConfig)
         ${buildCustomFieldsManager("organizations", item.customFields)}
       `,
       "dynamic-save-organization-btn",
-      "Save Organization"
+      editing ? "Save Organization Changes" : "Save Organization", { editing }
     );
   }
 
-  function buildHonorsForm(item = getEditingItem("honors") || {}) {
+  function buildHonorsForm() {
+    const { item, editing } = withEditMeta("honors");
     return formShell(
       "Use this for honors, awards, or stat-style highlights.",
       `
@@ -1095,11 +1092,12 @@ export function initCareerInformationPage(config: CareerInformationClientConfig)
         ${buildCustomFieldsManager("honors", item.customFields)}
       `,
       "dynamic-save-honor-btn",
-      "Save Honor or Award"
+      editing ? "Save Honor or Award Changes" : "Save Honor or Award", { editing }
     );
   }
 
-  function buildLicensesForm(item = getEditingItem("licenses") || {}) {
+  function buildLicensesForm() {
+    const { item, editing } = withEditMeta("licenses");
     return formShell(
       "Use this for certifications, licenses, and credential badges.",
       `
@@ -1114,7 +1112,7 @@ export function initCareerInformationPage(config: CareerInformationClientConfig)
         ${buildCustomFieldsManager("licenses", item.customFields)}
       `,
       "dynamic-save-license-btn",
-      "Save License or Certificate"
+      editing ? "Save License Changes" : "Save License or Certificate", { editing }
     );
   }
 
@@ -1155,7 +1153,8 @@ export function initCareerInformationPage(config: CareerInformationClientConfig)
     );
   }
 
-  function buildSchoolForm(item = getEditingItem("school") || {}) {
+  function buildSchoolForm() {
+    const { item, editing } = withEditMeta("school");
     return formShell(
       "Legacy section kept for compatibility with existing saved content.",
       `
@@ -1171,11 +1170,13 @@ export function initCareerInformationPage(config: CareerInformationClientConfig)
         ${buildCustomFieldsManager("school", item.customFields)}
       `,
       "dynamic-save-school-btn",
-      "Save School Development"
+      editing ? "Save School Changes" : "Save School Development", { editing }
     );
   }
 
-  function buildSimpleTextForm(prefix, defaults, item = getEditingItem(prefix) || {}) {
+  function buildSimpleTextForm(prefix, defaults) {
+    const item = getEditingItem(prefix) || {};
+    const editing = activeEdit?.section === prefix;
     return formShell(
       defaults.helper,
       `
@@ -1187,11 +1188,12 @@ export function initCareerInformationPage(config: CareerInformationClientConfig)
         ${buildCustomFieldsManager(prefix, item.customFields)}
       `,
       `dynamic-save-${prefix}-btn`,
-      defaults.buttonText
+      editing ? `Save ${defaults.titlePlaceholder} Changes` : defaults.buttonText, { editing }
     );
   }
 
-  function buildTimelineForm(item = getEditingItem("timelineItems") || {}) {
+  function buildTimelineForm() {
+    const { item, editing } = withEditMeta("timelineItems");
     return formShell(
       "Legacy section kept for compatibility with existing saved content.",
       `
@@ -1204,11 +1206,12 @@ export function initCareerInformationPage(config: CareerInformationClientConfig)
         ${buildCustomFieldsManager("timelineItems", item.customFields)}
       `,
       "dynamic-save-timeline-btn",
-      "Save Timeline Item"
+      editing ? "Save Timeline Changes" : "Save Timeline Item", { editing }
     );
   }
 
-  function buildRecommendationsForm(item = getEditingItem("recommendations") || {}) {
+  function buildRecommendationsForm() {
+    const { item, editing } = withEditMeta("recommendations");
     return formShell(
       "Legacy section kept for compatibility with existing saved content.",
       `
@@ -1221,11 +1224,12 @@ export function initCareerInformationPage(config: CareerInformationClientConfig)
         ${buildCustomFieldsManager("recommendations", item.customFields)}
       `,
       "dynamic-save-rec-btn",
-      "Save Recommendation"
+      editing ? "Save Recommendation Changes" : "Save Recommendation", { editing }
     );
   }
 
-  function buildStarForm(item = getEditingItem("star") || {}) {
+  function buildStarForm() {
+    const { item, editing } = withEditMeta("star");
     return formShell(
       "Legacy section kept for compatibility with existing saved content.",
       `
@@ -1240,7 +1244,7 @@ export function initCareerInformationPage(config: CareerInformationClientConfig)
         ${buildCustomFieldsManager("star", item.customFields)}
       `,
       "dynamic-save-star-btn",
-      "Save STAR Example"
+      editing ? "Save STAR Changes" : "Save STAR Example", { editing }
     );
   }
 
@@ -1444,41 +1448,38 @@ export function initCareerInformationPage(config: CareerInformationClientConfig)
       contact: buildContactForm,
       resume: buildResumeForm,
       school: buildSchoolForm,
-      about: (item) => buildSimpleTextForm("about", {
+      about: () => buildSimpleTextForm("about", {
         helper: "Legacy section kept for compatibility with existing saved content.",
         titlePlaceholder: "About Me",
         bodyPlaceholder: "Tell your story",
         buttonText: "Save About Section",
-      }, item),
-      looking: (item) => buildSimpleTextForm("looking", {
+      }),
+      looking: () => buildSimpleTextForm("looking", {
         helper: "Legacy section kept for compatibility with existing saved content.",
         titlePlaceholder: "What I'm Looking For",
         bodyPlaceholder: "What kinds of opportunities are you seeking?",
         buttonText: "Save Looking For Section",
-      }, item),
-      pitch: (item) => buildSimpleTextForm("pitch", {
+      }),
+      pitch: () => buildSimpleTextForm("pitch", {
         helper: "Legacy section kept for compatibility with existing saved content.",
         titlePlaceholder: "Pitch",
         bodyPlaceholder: "Short pitch",
         buttonText: "Save Pitch",
-      }, item),
+      }),
       timelineItems: buildTimelineForm,
       recommendations: buildRecommendationsForm,
       star: buildStarForm,
     };
 
-    const group = sectionMetaByBuilderValue(select.value)?.key || select.value;
-    const editingItem = getEditingItem(group);
-    area.innerHTML = `${buildEditingNotice(group)}${map[select.value] ? map[select.value](editingItem) : ""}`;
+    area.innerHTML = map[select.value] ? map[select.value]() : "";
     bindCustomFieldActions(area);
     bindDynamicFormActions();
+    document.getElementById("dynamic-cancel-edit-btn")?.addEventListener("click", () => {
+      cancelEditing();
+    });
   }
 
   function bindDynamicFormActions() {
-    document.getElementById("cancel-edit-btn")?.addEventListener("click", () => {
-      clearEditing();
-      setSaveStatus("Edit cancelled", "neutral");
-    });
     document.getElementById("dynamic-save-profile-btn")?.addEventListener("click", async () => {
       try {
         const fileInput = document.getElementById("dynamic-profile-photoFile");
@@ -1490,7 +1491,7 @@ export function initCareerInformationPage(config: CareerInformationClientConfig)
           const uploaded = await uploadProfilePhoto(file);
           photoUrl = uploaded.fileUrl || photoUrl;
         }
-        upsertEntry("profile", {
+        data.profile = [{
           id: data.profile?.[0]?.id || makeId("profile"),
           fullName: getValue("dynamic-profile-fullName"),
           headline: getValue("dynamic-profile-headline"),
@@ -1498,7 +1499,7 @@ export function initCareerInformationPage(config: CareerInformationClientConfig)
           photoUrl,
           visible: getChecked("dynamic-profile-visible"),
           customFields: collectCustomFields("profile"),
-        }, { mode: "single", prefix: "profile" });
+        }];
         await persistAndRefresh();
         renderDynamicForm();
       } catch (error) {
@@ -1510,13 +1511,14 @@ export function initCareerInformationPage(config: CareerInformationClientConfig)
     document.getElementById("dynamic-save-link-btn")?.addEventListener("click", async () => {
       const url = getValue("dynamic-link-url");
       if (!url) return;
-      upsertEntry("externalLinks", {
+      upsertCollectionItem("externalLinks", {
+        id: getEditingItem("externalLinks")?.id || makeId("link"),
         type: getValue("dynamic-link-type") || "website",
         label: getValue("dynamic-link-label"),
         url,
         visible: getChecked("dynamic-link-visible"),
         customFields: collectCustomFields("externalLinks"),
-      }, { prefix: "link" });
+      });
       await persistAndRefresh();
       renderDynamicForm();
     });
@@ -1524,7 +1526,8 @@ export function initCareerInformationPage(config: CareerInformationClientConfig)
     document.getElementById("dynamic-save-exp-btn")?.addEventListener("click", async () => {
       const role = getValue("dynamic-exp-role");
       if (!role) return;
-      upsertEntry("experience", {
+      upsertCollectionItem("experience", {
+        id: getEditingItem("experience")?.id || makeId("experience"),
         role,
         company: getValue("dynamic-exp-company"),
         location: getValue("dynamic-exp-location"),
@@ -1534,7 +1537,7 @@ export function initCareerInformationPage(config: CareerInformationClientConfig)
         bullets: splitLines(getValue("dynamic-exp-bullets")),
         visible: getChecked("dynamic-exp-visible"),
         customFields: collectCustomFields("experience"),
-      }, { prefix: "experience" });
+      });
       await persistAndRefresh();
       renderDynamicForm();
     });
@@ -1542,7 +1545,8 @@ export function initCareerInformationPage(config: CareerInformationClientConfig)
     document.getElementById("dynamic-save-leadership-btn")?.addEventListener("click", async () => {
       const title = getValue("dynamic-leadership-title");
       if (!title) return;
-      upsertEntry("leadership", {
+      upsertCollectionItem("leadership", {
+        id: getEditingItem("leadership")?.id || makeId("leadership"),
         title,
         organization: getValue("dynamic-leadership-organization"),
         date: getValue("dynamic-leadership-date"),
@@ -1550,7 +1554,7 @@ export function initCareerInformationPage(config: CareerInformationClientConfig)
         bullets: splitLines(getValue("dynamic-leadership-bullets")),
         visible: getChecked("dynamic-leadership-visible"),
         customFields: collectCustomFields("leadership"),
-      }, { prefix: "leadership" });
+      });
       await persistAndRefresh();
       renderDynamicForm();
     });
@@ -1559,10 +1563,9 @@ export function initCareerInformationPage(config: CareerInformationClientConfig)
       const title = getValue("dynamic-project-title");
       if (!title) return;
       const customFields = collectCustomFields("projects");
-      const editingProject = getEditingItem("projects");
       const coverFileInput = document.getElementById("dynamic-project-cover-file");
       const coverFile = coverFileInput?.files?.[0];
-      let coverPhotoUrl = editingProject?.coverPhotoUrl || "";
+      let coverPhotoUrl = getEditingItem("projects")?.coverPhotoUrl || "";
 
       try {
         if (coverFile) {
@@ -1572,14 +1575,14 @@ export function initCareerInformationPage(config: CareerInformationClientConfig)
         }
 
         const project = {
-          ...(editingProject || {}),
+          id: getEditingItem("projects")?.id || makeId("project"),
           title,
           subtitle: getValue("dynamic-project-subtitle"),
           description: getValue("dynamic-project-description"),
           skills: getValue("dynamic-project-skills"),
           link: getValue("dynamic-project-link"),
           coverPhotoUrl,
-          projectSlug: slugify(getValue("dynamic-project-title") || editingProject?.projectSlug || title),
+          projectSlug: getEditingItem("projects")?.projectSlug || slugify(title),
           visible: getChecked("dynamic-project-visible"),
           cardDisplay: normalizeProjectCardDisplay({
             showCoverPhoto: getChecked("dynamic-project-card-showCoverPhoto"),
@@ -1590,10 +1593,10 @@ export function initCareerInformationPage(config: CareerInformationClientConfig)
           }),
           customFields,
         };
-        upsertEntry("projects", {
+        upsertCollectionItem("projects", {
           ...project,
           projectPageSections: syncProjectPageSections(project),
-        }, { prefix: "project" });
+        });
         await persistAndRefresh();
         renderDynamicForm();
       } catch (error) {
@@ -1605,14 +1608,15 @@ export function initCareerInformationPage(config: CareerInformationClientConfig)
     document.getElementById("dynamic-save-organization-btn")?.addEventListener("click", async () => {
       const name = getValue("dynamic-organization-name");
       if (!name) return;
-      upsertEntry("organizations", {
+      upsertCollectionItem("organizations", {
+        id: getEditingItem("organizations")?.id || makeId("organization"),
         name,
         role: getValue("dynamic-organization-role"),
         date: getValue("dynamic-organization-date"),
         description: getValue("dynamic-organization-description"),
         visible: getChecked("dynamic-organization-visible"),
         customFields: collectCustomFields("organizations"),
-      }, { prefix: "organization" });
+      });
       await persistAndRefresh();
       renderDynamicForm();
     });
@@ -1620,7 +1624,8 @@ export function initCareerInformationPage(config: CareerInformationClientConfig)
     document.getElementById("dynamic-save-honor-btn")?.addEventListener("click", async () => {
       const title = getValue("dynamic-honor-title");
       if (!title) return;
-      upsertEntry("honors", {
+      upsertCollectionItem("honors", {
+        id: getEditingItem("honors")?.id || makeId("honor"),
         title,
         value: getValue("dynamic-honor-value"),
         issuer: getValue("dynamic-honor-issuer"),
@@ -1628,7 +1633,7 @@ export function initCareerInformationPage(config: CareerInformationClientConfig)
         description: getValue("dynamic-honor-description"),
         visible: getChecked("dynamic-honor-visible"),
         customFields: collectCustomFields("honors"),
-      }, { prefix: "honor" });
+      });
       await persistAndRefresh();
       renderDynamicForm();
     });
@@ -1636,7 +1641,8 @@ export function initCareerInformationPage(config: CareerInformationClientConfig)
     document.getElementById("dynamic-save-license-btn")?.addEventListener("click", async () => {
       const title = getValue("dynamic-license-title");
       if (!title) return;
-      upsertEntry("licenses", {
+      upsertCollectionItem("licenses", {
+        id: getEditingItem("licenses")?.id || makeId("license"),
         title,
         issuer: getValue("dynamic-license-issuer"),
         date: getValue("dynamic-license-date"),
@@ -1644,7 +1650,7 @@ export function initCareerInformationPage(config: CareerInformationClientConfig)
         link: getValue("dynamic-license-link"),
         visible: getChecked("dynamic-license-visible"),
         customFields: collectCustomFields("licenses"),
-      }, { prefix: "license" });
+      });
       await persistAndRefresh();
       renderDynamicForm();
     });
@@ -1652,16 +1658,16 @@ export function initCareerInformationPage(config: CareerInformationClientConfig)
     document.getElementById("dynamic-save-contact-btn")?.addEventListener("click", async () => {
       const value = getValue("dynamic-contact-value");
       if (!value) return;
-      upsertEntry("contact", {
+      data.contact = [{
+        id: data.contact?.[0]?.id || makeId("contact"),
         preferredMethod: getValue("dynamic-contact-method") || "email",
         value,
         label: getValue("dynamic-contact-label"),
         note: getValue("dynamic-contact-note"),
         visible: getChecked("dynamic-contact-visible"),
         customFields: collectCustomFields("contact"),
-      }, { mode: "single", prefix: "contact" });
+      }];
       await persistAndRefresh();
-      renderDynamicForm();
     });
 
     document.getElementById("dynamic-save-resume-btn")?.addEventListener("click", async () => {
@@ -1689,7 +1695,7 @@ export function initCareerInformationPage(config: CareerInformationClientConfig)
         } else {
           nextResume = { ...nextResume, title, note, visible, customFields: collectCustomFields("resume") };
         }
-        upsertEntry("resume", nextResume, { mode: "single", prefix: "resume" });
+        data.resume = [nextResume];
         await persistAndRefresh();
         renderDynamicForm();
       } catch (error) {
@@ -1701,8 +1707,8 @@ export function initCareerInformationPage(config: CareerInformationClientConfig)
     document.getElementById("dynamic-save-school-btn")?.addEventListener("click", async () => {
       const title = getValue("dynamic-school-title");
       if (!title) return;
-      data.school.unshift({
-        id: makeId("school"),
+      upsertCollectionItem("school", {
+        id: getEditingItem("school")?.id || makeId("school"),
         title,
         helped: getValue("dynamic-school-helped"),
         relevance: getValue("dynamic-school-relevance"),
@@ -1720,12 +1726,13 @@ export function initCareerInformationPage(config: CareerInformationClientConfig)
       document.getElementById(`dynamic-save-${key}-btn`)?.addEventListener("click", async () => {
         const body = getValue(`dynamic-${key}-body`);
         if (!body) return;
-        upsertEntry(key, {
+        upsertCollectionItem(key, {
+          id: getEditingItem(key)?.id || makeId(key),
           title: getValue(`dynamic-${key}-title`) || key,
           body,
           visible: getChecked(`dynamic-${key}-visible`),
           customFields: collectCustomFields(key),
-        }, { prefix: key });
+        });
         await persistAndRefresh();
         renderDynamicForm();
       });
@@ -1734,13 +1741,14 @@ export function initCareerInformationPage(config: CareerInformationClientConfig)
     document.getElementById("dynamic-save-timeline-btn")?.addEventListener("click", async () => {
       const title = getValue("dynamic-timeline-title");
       if (!title) return;
-      upsertEntry("timelineItems", {
+      upsertCollectionItem("timelineItems", {
+        id: getEditingItem("timelineItems")?.id || makeId("timeline"),
         title,
         date: getValue("dynamic-timeline-date"),
         description: getValue("dynamic-timeline-description"),
         visible: getChecked("dynamic-timeline-visible"),
         customFields: collectCustomFields("timelineItems"),
-      }, { prefix: "timeline" });
+      });
       await persistAndRefresh();
       renderDynamicForm();
     });
@@ -1748,13 +1756,14 @@ export function initCareerInformationPage(config: CareerInformationClientConfig)
     document.getElementById("dynamic-save-rec-btn")?.addEventListener("click", async () => {
       const title = getValue("dynamic-rec-title");
       if (!title) return;
-      upsertEntry("recommendations", {
+      upsertCollectionItem("recommendations", {
+        id: getEditingItem("recommendations")?.id || makeId("recommendation"),
         title,
         body: getValue("dynamic-rec-body"),
         owner: getValue("dynamic-rec-owner"),
         visible: getChecked("dynamic-rec-visible"),
         customFields: collectCustomFields("recommendations"),
-      }, { prefix: "recommendation" });
+      });
       await persistAndRefresh();
       renderDynamicForm();
     });
@@ -1762,7 +1771,8 @@ export function initCareerInformationPage(config: CareerInformationClientConfig)
     document.getElementById("dynamic-save-star-btn")?.addEventListener("click", async () => {
       const title = getValue("dynamic-star-title");
       if (!title) return;
-      upsertEntry("star", {
+      upsertCollectionItem("star", {
+        id: getEditingItem("star")?.id || makeId("star"),
         title,
         situation: getValue("dynamic-star-situation"),
         task: getValue("dynamic-star-task"),
@@ -1770,7 +1780,7 @@ export function initCareerInformationPage(config: CareerInformationClientConfig)
         result: getValue("dynamic-star-result"),
         visible: getChecked("dynamic-star-visible"),
         customFields: collectCustomFields("star"),
-      }, { prefix: "star" });
+      });
       await persistAndRefresh();
       renderDynamicForm();
     });
@@ -1888,9 +1898,6 @@ export function initCareerInformationPage(config: CareerInformationClientConfig)
 
   async function deleteItem(group, id) {
     data[group] = normalizeArray(data[group]).filter((item) => item.id !== id);
-    if (activeEditor.group === group && activeEditor.id === id) {
-      clearEditing({ render: false });
-    }
     await persistAndRefresh();
   }
 
@@ -1975,10 +1982,44 @@ export function initCareerInformationPage(config: CareerInformationClientConfig)
 
   document.getElementById("clear-all-btn")?.addEventListener("click", async () => {
     data = normalizeData(cloneDefaults());
-    clearEditing({ render: false });
     renderDynamicForm();
     renderSavedEntries();
     await saveState();
+  });
+
+  function flushStateSafely() {
+    if (!hasLoadedInitialState) return;
+    try {
+      const payload = JSON.stringify({ pageKey, state: getSavableState(data) });
+      if (navigator.sendBeacon) {
+        navigator.sendBeacon("/api/state", new Blob([payload], { type: "application/json" }));
+      } else {
+        fetch("/api/state", {
+          method: "POST",
+          credentials: "include",
+          headers: { "Content-Type": "application/json" },
+          body: payload,
+          keepalive: true,
+        }).catch(() => null);
+      }
+    } catch (_error) {}
+  }
+
+  window.addEventListener("beforeunload", (event) => {
+    if (!isSaving && !pendingSave) return;
+    flushStateSafely();
+    event.preventDefault();
+    event.returnValue = "";
+  });
+
+  document.addEventListener("visibilitychange", () => {
+    if (document.visibilityState === "hidden" && (isSaving || pendingSave)) {
+      flushStateSafely();
+    }
+  });
+
+  window.addEventListener("pagehide", () => {
+    if (isSaving || pendingSave) flushStateSafely();
   });
 
   async function init() {
