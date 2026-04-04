@@ -244,6 +244,10 @@ export function initWorkPage(config: WorkConfig) {
     });
   }
 
+  function getCompletedMeetings() {
+    return sortMeetings(meetings.filter((meeting) => meeting.completed)).reverse();
+  }
+
   function getUpcomingMeetings() {
     const now = new Date();
     return sortMeetings(meetings.filter((meeting) => {

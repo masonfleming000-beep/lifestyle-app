@@ -348,3 +348,40 @@ export function ensureCollectionsRoot<T extends EditableCollectionsPageState>(st
 
   return state;
 }
+
+
+export async function loadPageState<T = unknown>(pageKey: string): Promise<T | null> {
+  const response = await fetchPageState<T>(pageKey);
+  return response?.state ?? null;
+}
+
+export function createQueuedPageSaver<State>(client: {
+  pageKey: string;
+  hasLoadedInitialState: boolean;
+  getState: () => State;
+}) {
+  let isSaving = false;
+  let pending = false;
+
+  async function save(options: { keepalive?: boolean } = {}) {
+    if (!client.hasLoadedInitialState) return;
+
+    if (isSaving) {
+      pending = true;
+      return;
+    }
+
+    isSaving = true;
+    try {
+      await postPageState(client.pageKey, client.getState(), options);
+    } finally {
+      isSaving = false;
+      if (pending) {
+        pending = false;
+        await save(options);
+      }
+    }
+  }
+
+  return save;
+}

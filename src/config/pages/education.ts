@@ -54,6 +54,8 @@ export const educationPageConfig: RendererPageConfig = {
         fields: [
           { id: 'assignment-name', name: 'assignmentName', label: 'Assignment name', placeholder: 'Homework 4', required: true, className: 'edu-label', inputClassName: 'text-input' },
           { id: 'assignment-due', name: 'assignmentDue', type: 'date', label: 'Due date', required: true, className: 'edu-label', inputClassName: 'text-input' },
+          { id: 'assignment-start-time', name: 'assignmentStartTime', type: 'time', label: 'Start time (optional)', className: 'edu-label', inputClassName: 'text-input' },
+          { id: 'assignment-due-time', name: 'assignmentDueTime', type: 'time', label: 'Due time (optional)', className: 'edu-label', inputClassName: 'text-input' },
           {
             id: 'assignment-class', name: 'assignmentClass', type: 'select', label: 'Class', required: true, className: 'edu-label', inputClassName: 'text-input',
             options: [{ value: '', label: 'Select a class' }],
@@ -124,6 +126,8 @@ export const educationClientConfig = {
       formId: 'assignment-form',
       nameInputId: 'assignment-name',
       dueInputId: 'assignment-due',
+      startTimeInputId: 'assignment-start-time',
+      dueTimeInputId: 'assignment-due-time',
       classSelectId: 'assignment-class',
       weightInputId: 'assignment-weight',
       dueThisWeekId: 'due-this-week',

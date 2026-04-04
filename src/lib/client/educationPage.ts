@@ -5,6 +5,8 @@ type Assignment = {
   id: string;
   name: string;
   dueDate: string;
+  startTime?: string | null;
+  dueTime?: string | null;
   classId: string;
   weight?: number | null;
   completed?: boolean;
@@ -34,6 +36,8 @@ type EducationConfig = {
       formId: string;
       nameInputId: string;
       dueInputId: string;
+      startTimeInputId: string;
+      dueTimeInputId: string;
       classSelectId: string;
       weightInputId: string;
       dueThisWeekId: string;
@@ -62,6 +66,8 @@ export function initEducationPage(config: EducationConfig) {
   const assignmentForm = document.getElementById(config.sections.assignments.formId) as HTMLFormElement | null;
   const assignmentNameInput = document.getElementById(config.sections.assignments.nameInputId) as HTMLInputElement | null;
   const assignmentDueInput = document.getElementById(config.sections.assignments.dueInputId) as HTMLInputElement | null;
+  const assignmentStartTimeInput = document.getElementById(config.sections.assignments.startTimeInputId) as HTMLInputElement | null;
+  const assignmentDueTimeInput = document.getElementById(config.sections.assignments.dueTimeInputId) as HTMLInputElement | null;
   const assignmentWeightInput = document.getElementById(config.sections.assignments.weightInputId) as HTMLInputElement | null;
   const dueThisWeekEl = document.getElementById(config.sections.assignments.dueThisWeekId) as HTMLElement | null;
   const allUpcomingEl = document.getElementById(config.sections.assignments.allUpcomingId) as HTMLElement | null;
@@ -136,6 +142,36 @@ export function initEducationPage(config: EducationConfig) {
     return date.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' });
   }
 
+  function parseTimeValue(value?: string | null) {
+    if (!value) return null;
+    const [hours, minutes] = value.split(':');
+    const hour = Number(hours);
+    const minute = Number(minutes);
+    if (!Number.isFinite(hour) || !Number.isFinite(minute)) return null;
+    return hour * 60 + minute;
+  }
+
+  function formatTime(value?: string | null) {
+    if (!value) return '';
+    const [hours, minutes] = value.split(':');
+    const date = new Date();
+    date.setHours(Number(hours || 0), Number(minutes || 0), 0, 0);
+    return date.toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit' });
+  }
+
+  function getAssignmentSortValue(item: Assignment) {
+    const dateValue = parseDate(item.dueDate)?.getTime() ?? Number.MAX_SAFE_INTEGER;
+    const timeValue = parseTimeValue(item.startTime) ?? parseTimeValue(item.dueTime) ?? Number.MAX_SAFE_INTEGER;
+    return dateValue * 1440 + timeValue;
+  }
+
+  function buildAssignmentTimeMeta(item: Assignment) {
+    return [
+      item.startTime ? `Starts ${formatTime(item.startTime)}` : '',
+      item.dueTime ? `Due ${formatTime(item.dueTime)}` : '',
+    ].filter(Boolean);
+  }
+
   function escapeHtml(value: unknown) {
     return String(value ?? '')
       .replaceAll('&', '&amp;')
@@ -146,11 +182,7 @@ export function initEducationPage(config: EducationConfig) {
   }
 
   function sortAssignments(items: Assignment[]) {
-    return [...items].sort((a, b) => {
-      const aTime = parseDate(a.dueDate)?.getTime() ?? Number.MAX_SAFE_INTEGER;
-      const bTime = parseDate(b.dueDate)?.getTime() ?? Number.MAX_SAFE_INTEGER;
-      return aTime - bTime;
-    });
+    return [...items].sort((a, b) => getAssignmentSortValue(a) - getAssignmentSortValue(b) || a.name.localeCompare(b.name));
   }
 
   function getClassById(classId: string) {
@@ -234,6 +266,7 @@ export function initEducationPage(config: EducationConfig) {
           <div class="assignment-meta">
             <span>${escapeHtml(dueText)}</span>
             <span>${escapeHtml(formatDate(item.dueDate))}</span>
+            ${buildAssignmentTimeMeta(item).map((label) => `<span>${escapeHtml(label)}</span>`).join('')}
             ${item.weight ? `<span>${escapeHtml(item.weight)}% of grade</span>` : ''}
           </div>
         </div>
@@ -319,10 +352,22 @@ export function initEducationPage(config: EducationConfig) {
     event.preventDefault();
     const name = assignmentNameInput?.value.trim() || '';
     const dueDate = assignmentDueInput?.value || '';
+    const startTime = assignmentStartTimeInput?.value || '';
+    const dueTime = assignmentDueTimeInput?.value || '';
     const classId = assignmentClassSelect?.value || '';
     const weightRaw = assignmentWeightInput?.value.trim() || '';
     if (!name || !dueDate || !classId) return;
-    assignments.push({ id: makeId(), name, dueDate, classId, weight: weightRaw ? Number(weightRaw) : null, completed: false, createdAt: new Date().toISOString() });
+    assignments.push({
+      id: makeId(),
+      name,
+      dueDate,
+      startTime: startTime || null,
+      dueTime: dueTime || null,
+      classId,
+      weight: weightRaw ? Number(weightRaw) : null,
+      completed: false,
+      createdAt: new Date().toISOString(),
+    });
     assignmentForm.reset();
     renderAssignmentBuckets();
     await saveState();
@@ -341,7 +386,12 @@ export function initEducationPage(config: EducationConfig) {
     const saved = normalizeState(await loadPageState(config.pageKey));
     removedDefaults = { classes: uniqueStrings(saved.removedDefaults?.classes || []) };
     classes = mergeDefaultClasses((saved.classes || []).map((item) => ({ id: item.id, name: item.name, color: item.color || config.defaultColor })), removedDefaults.classes);
-    assignments = (saved.assignments || []).map((item) => ({ ...item, completed: Boolean(item.completed) }));
+    assignments = (saved.assignments || []).map((item) => ({
+      ...item,
+      startTime: item.startTime || null,
+      dueTime: item.dueTime || null,
+      completed: Boolean(item.completed),
+    }));
 
     hasLoadedInitialState = true;
     renderAll();

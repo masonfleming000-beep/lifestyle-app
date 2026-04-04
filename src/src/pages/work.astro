@@ -225,7 +225,7 @@ const defaultWorkData = JSON.stringify({
 
       <details class="card education-panel completed-panel">
         <summary class="completed-summary">
-          <span>Completed Tasks</span>
+          <span>Completed Items</span>
           <span id="completed-count" class="completed-count">0</span>
         </summary>
         <div id="completed-list" class="education-list completed-list"></div>
@@ -500,6 +500,10 @@ const defaultWorkData = JSON.stringify({
     });
   }
 
+  function getCompletedMeetings() {
+    return sortMeetings(meetings.filter((meeting) => meeting.completed)).reverse();
+  }
+
   function getUpcomingMeetings() {
     const now = new Date();
     return sortMeetings(
@@ -710,6 +714,11 @@ const defaultWorkData = JSON.stringify({
     card.className = "assignment-card work-meeting-card";
 
     card.innerHTML = `
+      <label class="assignment-check-wrap">
+        <input type="checkbox" class="assignment-check" ${meeting.completed ? "checked" : ""} />
+        <span></span>
+      </label>
+
       <div class="assignment-main">
         <div class="assignment-topline">
           <h3 class="assignment-title">${escapeHtml(meeting.title)}</h3>
@@ -733,11 +742,25 @@ const defaultWorkData = JSON.stringify({
       <button type="button" class="delete-mini-button meeting-delete">Delete</button>
     `;
 
+    const checkbox = card.querySelector(".assignment-check");
     const deleteButton = card.querySelector(".meeting-delete");
+
+    checkbox.addEventListener("change", async () => {
+      meetings = meetings.map((item) =>
+        item.id === meeting.id
+          ? {
+              ...item,
+              completed: checkbox.checked,
+            }
+          : item
+      );
+      renderAll();
+      await saveState();
+    });
 
     deleteButton.addEventListener("click", async () => {
       meetings = meetings.filter((item) => item.id !== meeting.id);
-      renderMeetings();
+      renderAll();
       await saveState();
     });
 
@@ -749,6 +772,7 @@ const defaultWorkData = JSON.stringify({
     const dueThisWeek = getDueThisWeekTasks();
     const upcoming = getUpcomingTasks();
     const completed = getCompletedTasks();
+    const completedMeetings = getCompletedMeetings();
 
     if (dueTodayEl) dueTodayEl.innerHTML = "";
     dueThisWeekEl.innerHTML = "";
@@ -775,13 +799,14 @@ const defaultWorkData = JSON.stringify({
       upcoming.forEach((task) => allUpcomingEl.appendChild(createTaskCard(task)));
     }
 
-    if (!completed.length) {
-      completedListEl.innerHTML = '<p class="empty-state">No completed tasks yet.</p>';
+    if (!completed.length && !completedMeetings.length) {
+      completedListEl.innerHTML = '<p class="empty-state">No completed items yet.</p>';
     } else {
       completed.forEach((task) => completedListEl.appendChild(createTaskCard(task)));
+      completedMeetings.forEach((meeting) => completedListEl.appendChild(createMeetingCard(meeting)));
     }
 
-    completedCountEl.textContent = String(completed.length);
+    completedCountEl.textContent = String(completed.length + completedMeetings.length);
   }
 
   function renderMeetings() {
@@ -856,6 +881,7 @@ const defaultWorkData = JSON.stringify({
       projectId: item.projectId || "",
       location: item.location || "",
       notes: item.notes || "",
+      completed: !!item.completed,
       createdAt: item.createdAt || new Date().toISOString(),
     }));
 
@@ -920,6 +946,7 @@ const defaultWorkData = JSON.stringify({
       projectId,
       location,
       notes,
+      completed: false,
       createdAt: new Date().toISOString(),
     });
 
