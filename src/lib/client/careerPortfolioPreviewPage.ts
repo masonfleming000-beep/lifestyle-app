@@ -334,30 +334,54 @@ export function initCareerPortfolioPreviewPage(config: CareerPortfolioPreviewCon
     return String(item?.fileType || "").toLowerCase().includes("pdf") || String(item?.fileName || "").toLowerCase().endsWith(".pdf");
   }
 
+  function prettyFileNameFromValue(value, fallback = "File") {
+    const text = String(value || "").trim();
+    if (!text) return fallback;
+    if (!isProbablyUrl(text)) return text;
+    try {
+      const url = text.startsWith("/") ? new URL(text, window.location.origin) : new URL(text);
+      return decodeURIComponent(url.pathname.split("/").filter(Boolean).pop() || fallback);
+    } catch {
+      return decodeURIComponent(text.split("/").filter(Boolean).pop() || fallback);
+    }
+  }
+
+  function isVideoValue(value) {
+    const text = String(value || "").trim().toLowerCase();
+    return /\.(mp4|webm|ogg|mov|m4v|avi)(?:$|[?#])/i.test(text) || text.includes('/uploads/career-assets/videos/');
+  }
+
+  function renderPreviewLinks(type, values, label) {
+    return `<div class="preview-link-row">${values.filter(Boolean).map((value, index) => {
+      if (type === 'video' && isProbablyUrl(value) && isVideoValue(value)) {
+        return `<video class="preview-inline-video" src="${escapeHtml(value)}" controls preload="metadata"></video>`;
+      }
+      if (isProbablyUrl(value)) {
+        const text = type === 'file'
+          ? prettyFileNameFromValue(value, label || 'File')
+          : `${label || type}${values.length > 1 ? ` ${index + 1}` : ''}`;
+        return `<a class="preview-pill-link" href="${escapeHtml(value)}" target="_blank" rel="noreferrer">${escapeHtml(text)}</a>`;
+      }
+      return `<span class="preview-muted">${escapeHtml(value)}</span>`;
+    }).join("")}</div>`;
+  }
+
   function renderCustomFieldValue(field) {
     const type = normalizeFieldType(field?.type, "text");
     const values = splitCustomFieldValue(field?.value);
     if (type === "image") {
       const media = values.length ? values : [field?.value || ""];
       return `
-        <div class="preview-link-row">
+        <div class="preview-link-row preview-inline-media-row">
           ${media.filter(Boolean).map((value) => isProbablyUrl(value)
-            ? `<img src="${escapeHtml(value)}" alt="${escapeHtml(field?.label || "Image")}" style="width:100%;max-width:22rem;border-radius:1rem;border:1px solid rgba(15,23,42,0.08);object-fit:cover;" />`
+            ? `<img src="${escapeHtml(value)}" alt="${escapeHtml(field?.label || "Image")}" class="preview-inline-image" />`
             : `<p>${escapeHtml(value)}</p>`).join("")}
         </div>
       `;
     }
-    if (type === "video") {
+    if (["link", "video", "file"].includes(type)) {
       const links = values.length ? values : [field?.value || ""];
-      return `<div class="preview-link-row" style="flex-direction:column;align-items:flex-start;">${links.filter(Boolean).map((value, index) => isProbablyUrl(value)
-        ? `<div style="width:100%;max-width:26rem;"><video controls preload="metadata" src="${escapeHtml(value)}" style="width:100%;border-radius:1rem;border:1px solid rgba(15,23,42,0.08);"></video><div class="preview-link-row" style="margin-top:0.5rem;"><a class="preview-pill-link" href="${escapeHtml(value)}" target="_blank" rel="noreferrer">${escapeHtml(field?.label || type)} ${links.length > 1 ? index + 1 : ""}</a></div></div>`
-        : `<span class="preview-muted">${escapeHtml(value)}</span>`).join("")}</div>`;
-    }
-    if (["link", "file"].includes(type)) {
-      const links = values.length ? values : [field?.value || ""];
-      return `<div class="preview-link-row">${links.filter(Boolean).map((value, index) => isProbablyUrl(value)
-        ? `<a class="preview-pill-link" href="${escapeHtml(value)}" target="_blank" rel="noreferrer">${escapeHtml(field?.label || type)} ${links.length > 1 ? index + 1 : ""}</a>`
-        : `<span class="preview-muted">${escapeHtml(value)}</span>`).join("")}</div>`;
+      return renderPreviewLinks(type, links, field?.label || type);
     }
     if (type === "list") {
       return values.length ? `<ul class="preview-bullet-list">${values.map((value) => `<li>${escapeHtml(value)}</li>`).join("")}</ul>` : "";
@@ -580,27 +604,14 @@ export function initCareerPortfolioPreviewPage(config: CareerPortfolioPreviewCon
       );
     }
 
-    if (type === "video") {
+    if (["link", "video", "file"].includes(type)) {
       const links = values.length ? values : [section?.value || ""];
-      return renderSectionShell(
-        section?.title || "Video",
-        `<div class="preview-link-row" style="flex-direction:column;align-items:flex-start;">${links.filter(Boolean).map((value, index) => isProbablyUrl(value)
-          ? `<div style="width:100%;max-width:30rem;"><video controls preload="metadata" src="${escapeHtml(value)}" style="width:100%;border-radius:1rem;border:1px solid rgba(15,23,42,0.08);"></video><div class="preview-link-row" style="margin-top:0.5rem;"><a class="preview-pill-link" href="${escapeHtml(value)}" target="_blank" rel="noreferrer">${escapeHtml(section?.title || "Video")} ${links.length > 1 ? index + 1 : ""}</a></div></div>`
-          : `<span>${escapeHtml(value)}</span>`).join("")}</div>`,
-        true,
-        `${links.filter(Boolean).length} video${links.filter(Boolean).length === 1 ? "" : "s"}`
-      );
-    }
-
-    if (["link", "file"].includes(type)) {
-      const links = values.length ? values : [section?.value || ""];
+      const count = links.filter(Boolean).length;
       return renderSectionShell(
         section?.title || "Links",
-        `<div class="preview-link-row">${links.filter(Boolean).map((value, index) => isProbablyUrl(value)
-          ? `<a class="preview-pill-link" href="${escapeHtml(value)}" target="_blank" rel="noreferrer">${escapeHtml(section?.title || "Link")} ${links.length > 1 ? index + 1 : ""}</a>`
-          : `<span>${escapeHtml(value)}</span>`).join("")}</div>`,
+        renderPreviewLinks(type, links, section?.title || type),
         true,
-        `${links.filter(Boolean).length} link${links.filter(Boolean).length === 1 ? "" : "s"}`
+        `${count} item${count === 1 ? "" : "s"}`
       );
     }
 

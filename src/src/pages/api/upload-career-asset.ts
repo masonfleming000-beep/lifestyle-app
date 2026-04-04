@@ -6,46 +6,30 @@ import { getCurrentUser } from "../../lib/auth";
 
 export const prerender = false;
 
-const MAX_FILE_SIZE = 50 * 1024 * 1024;
-
-const ALLOWED_BY_KIND = {
+const CONFIG = {
   image: {
-    dir: "career-images",
+    folder: "images",
+    maxSize: 10 * 1024 * 1024,
     extensions: new Set([".jpg", ".jpeg", ".png", ".webp", ".gif", ".svg"]),
-    mimePrefixes: ["image/"],
-    exactMimeTypes: new Set(["image/svg+xml"]),
+    mimeTypes: new Set(["image/jpeg", "image/png", "image/webp", "image/gif", "image/svg+xml"]),
   },
   video: {
-    dir: "career-videos",
-    extensions: new Set([".mp4", ".webm", ".mov", ".m4v", ".ogv"]),
-    mimePrefixes: ["video/"],
-    exactMimeTypes: new Set(["application/octet-stream", "video/quicktime"]),
+    folder: "videos",
+    maxSize: 80 * 1024 * 1024,
+    extensions: new Set([".mp4", ".webm", ".ogg", ".mov", ".m4v", ".avi"]),
+    mimeTypes: new Set(["video/mp4", "video/webm", "video/ogg", "video/quicktime", "video/x-msvideo", "video/x-m4v"]),
   },
   file: {
-    dir: "career-files",
-    extensions: new Set([".pdf", ".doc", ".docx", ".ppt", ".pptx", ".xls", ".xlsx", ".txt", ".rtf", ".zip", ".csv", ".svg", ".vsdx", ".drawio", ".md"]),
-    mimePrefixes: [],
-    exactMimeTypes: new Set([
-      "application/pdf",
-      "application/msword",
-      "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
-      "application/vnd.ms-powerpoint",
-      "application/vnd.openxmlformats-officedocument.presentationml.presentation",
-      "application/vnd.ms-excel",
-      "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
-      "text/plain",
-      "application/rtf",
-      "application/zip",
-      "application/x-zip-compressed",
-      "text/csv",
-      "image/svg+xml",
-      "application/octet-stream",
-      "text/markdown",
+    folder: "files",
+    maxSize: 25 * 1024 * 1024,
+    extensions: new Set([
+      ".pdf", ".doc", ".docx", ".ppt", ".pptx", ".xls", ".xlsx", ".csv", ".txt", ".rtf", ".odt", ".ods", ".odp", ".zip", ".fig", ".sketch", ".drawio", ".vsdx", ".json", ".md", ".ai", ".psd", ".xd", ".epub", ".pages", ".key",
+    ]),
+    mimeTypes: new Set([
+      "application/pdf", "application/msword", "application/vnd.openxmlformats-officedocument.wordprocessingml.document", "application/vnd.ms-powerpoint", "application/vnd.openxmlformats-officedocument.presentationml.presentation", "application/vnd.ms-excel", "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet", "text/csv", "text/plain", "application/rtf", "application/vnd.oasis.opendocument.text", "application/vnd.oasis.opendocument.spreadsheet", "application/vnd.oasis.opendocument.presentation", "application/zip", "application/json", "text/markdown", "application/illustrator", "image/vnd.adobe.photoshop", "application/octet-stream",
     ]),
   },
 } as const;
-
-type UploadKind = keyof typeof ALLOWED_BY_KIND;
 
 function sanitizeBaseName(value: string) {
   return (
@@ -58,23 +42,9 @@ function sanitizeBaseName(value: string) {
   );
 }
 
-function normalizeKind(value: FormDataEntryValue | null): UploadKind {
-  const next = String(value || "file").toLowerCase();
-  return next === "image" || next === "video" || next === "file" ? next : "file";
-}
-
-function isAllowed(kind: UploadKind, ext: string, mimeType: string) {
-  const config = ALLOWED_BY_KIND[kind];
-  if (!config.extensions.has(ext)) return false;
-  if (!mimeType) return true;
-  if (config.exactMimeTypes.has(mimeType)) return true;
-  return config.mimePrefixes.some((prefix) => mimeType.startsWith(prefix));
-}
-
 export const POST: APIRoute = async ({ request, cookies }) => {
   try {
     const user = await getCurrentUser(cookies);
-
     if (!user) {
       return new Response(JSON.stringify({ error: "Unauthorized." }), {
         status: 401,
@@ -84,7 +54,9 @@ export const POST: APIRoute = async ({ request, cookies }) => {
 
     const formData = await request.formData();
     const file = formData.get("file");
-    const kind = normalizeKind(formData.get("kind"));
+    const kindValue = String(formData.get("kind") || "file").toLowerCase();
+    const kind = kindValue === "image" || kindValue === "video" ? kindValue : "file";
+    const config = CONFIG[kind];
 
     if (!(file instanceof File)) {
       return new Response(JSON.stringify({ error: "No file received." }), {
@@ -100,8 +72,8 @@ export const POST: APIRoute = async ({ request, cookies }) => {
       });
     }
 
-    if (file.size > MAX_FILE_SIZE) {
-      return new Response(JSON.stringify({ error: "File too large. Max 50 MB." }), {
+    if (file.size > config.maxSize) {
+      return new Response(JSON.stringify({ error: `File too large. Max ${Math.round(config.maxSize / 1024 / 1024)} MB.` }), {
         status: 413,
         headers: { "Content-Type": "application/json" },
       });
@@ -109,9 +81,16 @@ export const POST: APIRoute = async ({ request, cookies }) => {
 
     const originalName = file.name || `${kind}-asset`;
     const ext = path.extname(originalName).toLowerCase();
-    const mimeType = String(file.type || "").toLowerCase();
+    const mimeType = String(file.type || "application/octet-stream").toLowerCase();
 
-    if (!isAllowed(kind, ext, mimeType)) {
+    if (!config.extensions.has(ext) && !(kind === "file" && mimeType === "application/octet-stream")) {
+      return new Response(JSON.stringify({ error: "Unsupported file type." }), {
+        status: 400,
+        headers: { "Content-Type": "application/json" },
+      });
+    }
+
+    if (kind !== "file" && !config.mimeTypes.has(mimeType)) {
       return new Response(JSON.stringify({ error: `Unsupported ${kind} type.` }), {
         status: 400,
         headers: { "Content-Type": "application/json" },
@@ -121,24 +100,19 @@ export const POST: APIRoute = async ({ request, cookies }) => {
     const baseName = sanitizeBaseName(path.basename(originalName, ext));
     const unique = crypto.randomBytes(8).toString("hex");
     const storedFileName = `${baseName}-${user.id}-${unique}${ext}`;
-
-    const uploadsDir = path.join(process.cwd(), "public", "uploads", ALLOWED_BY_KIND[kind].dir);
+    const uploadsDir = path.join(process.cwd(), "public", "uploads", "career-assets", config.folder);
     await mkdir(uploadsDir, { recursive: true });
-
     const filePath = path.join(uploadsDir, storedFileName);
-    const buffer = Buffer.from(await file.arrayBuffer());
-    await writeFile(filePath, buffer);
-
-    const fileUrl = `/uploads/${ALLOWED_BY_KIND[kind].dir}/${storedFileName}`;
+    await writeFile(filePath, Buffer.from(await file.arrayBuffer()));
 
     return new Response(JSON.stringify({
       ok: true,
       kind,
       fileName: originalName,
       storedFileName,
-      fileType: mimeType || "application/octet-stream",
+      fileType: mimeType,
       fileSize: file.size,
-      fileUrl,
+      fileUrl: `/uploads/career-assets/${config.folder}/${storedFileName}`,
     }), {
       status: 200,
       headers: { "Content-Type": "application/json" },

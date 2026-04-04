@@ -32,7 +32,6 @@ const PREVIEW_DOMAIN_ALLOWED_PREFIXES = [
   "/api/upload-avatar",
   "/api/upload-resume",
   "/api/upload-career-asset",
-  "/api/state",
   "/images/",
   "/uploads/",
   "/_astro/",
@@ -67,7 +66,8 @@ function isTempPublicPortfolioHost(request: Request) {
   const configuredHostname = tempPublicPortfolioHostname();
   if (!configuredHostname) return false;
 
-  return request.headers.get("host")?.split(":")[0]?.toLowerCase() === configuredHostname;
+  const requestHost = request.headers.get("x-forwarded-host") || request.headers.get("host") || "";
+  return requestHost.split(":")[0]?.toLowerCase() === configuredHostname;
 }
 
 function isAllowedPreviewDomainPath(pathname: string) {

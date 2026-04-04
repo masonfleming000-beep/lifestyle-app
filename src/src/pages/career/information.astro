@@ -20,7 +20,7 @@ import {
   <PageHero
     kicker="Career"
     title="Information Builder"
-    description="Add and organize your private career information here. Each section gets its own form layout, and only items marked visible will appear in the portfolio."
+    description="Add and organize your private career information here. This now includes profile basics, external links, leadership, organizations, honors, licenses, and contact preferences, alongside the existing sections."
   >
     <PageActions>
       {careerInformationHeroActions.map((action) => (
@@ -34,7 +34,7 @@ import {
       <SurfaceCard className="career-panel-card">
         <SectionHeader
           title="Add New Entry"
-          subtitle="Pick a section first. The form changes based on what you're adding."
+          subtitle="Pick a section first. The form changes based on what you're adding, including the new profile and portfolio sections."
         >
           <div id="save-status" class="save-status neutral">Loading...</div>
         </SectionHeader>
@@ -56,7 +56,7 @@ import {
       <SurfaceCard className="career-panel-card">
         <SectionHeader
           title="Saved Entries"
-          subtitle="Everything stays private here until marked visible for portfolio."
+          subtitle="Everything stays private here until marked visible for portfolio preview."
         />
 
         <div class="saved-sections">
@@ -164,8 +164,8 @@ import {
       gap: 1rem;
       padding: 1rem;
       border-radius: 1rem;
-      border: 1px solid rgba(0, 0, 0, 0.08);
-      background: white;
+      border: 1px solid var(--border-soft);
+      background: var(--card-surface-color);
       margin-bottom: 0.85rem;
     }
 
@@ -179,6 +179,165 @@ import {
       gap: 0.55rem;
       flex-wrap: wrap;
       justify-content: flex-end;
+    }
+
+
+    .custom-field-manager {
+      display: grid;
+      gap: 0.9rem;
+      margin-top: 0.5rem;
+      padding-top: 0.25rem;
+      border-top: 1px solid var(--border-soft);
+    }
+
+    .custom-field-toolbar {
+      display: flex;
+      justify-content: space-between;
+      align-items: flex-start;
+      gap: 0.85rem;
+      flex-wrap: wrap;
+    }
+
+    .custom-field-toolbar-actions {
+      display: flex;
+      gap: 0.65rem;
+      flex-wrap: wrap;
+      align-items: center;
+    }
+
+    .custom-field-picker {
+      min-width: 13rem;
+    }
+
+    .custom-field-list {
+      display: grid;
+      gap: 0.85rem;
+    }
+
+    .custom-field-card {
+      border: 1px solid var(--border-soft);
+      border-radius: 1rem;
+      padding: 0.9rem;
+      background: rgba(148, 163, 184, 0.06);
+    }
+
+    .custom-field-card-top {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(12rem, 1fr));
+      gap: 0.85rem;
+      align-items: end;
+    }
+
+    .custom-field-remove-wrap {
+      display: flex;
+      justify-content: flex-end;
+      align-items: end;
+      padding-bottom: 0.95rem;
+    }
+
+    .custom-field-empty,
+    .custom-field-helper {
+      margin: 0;
+    }
+
+    .custom-field-output {
+      display: grid;
+      gap: 0.85rem;
+      margin-top: 1rem;
+      padding-top: 0.85rem;
+      border-top: 1px solid var(--border-soft);
+    }
+
+    .custom-field-output-item p {
+      margin: 0.2rem 0;
+    }
+
+    .custom-field-media-grid {
+      display: flex;
+      gap: 0.65rem;
+      flex-wrap: wrap;
+      margin-top: 0.35rem;
+    }
+
+    .custom-field-media {
+      width: min(100%, 14rem);
+      border-radius: 0.9rem;
+      border: 1px solid var(--border-soft);
+      object-fit: cover;
+    }
+
+    .custom-field-upload-shell,
+    .custom-field-upload-actions {
+      display: grid;
+      gap: 0.85rem;
+    }
+
+    .custom-field-upload-action-row {
+      display: flex;
+      gap: 0.75rem;
+      flex-wrap: wrap;
+      align-items: center;
+    }
+
+    .custom-field-hidden-value {
+      position: absolute;
+      opacity: 0;
+      pointer-events: none;
+      width: 0;
+      height: 0;
+      padding: 0;
+      margin: 0;
+      border: 0;
+    }
+
+    .custom-field-upload-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+      gap: 0.85rem;
+    }
+
+    .custom-field-upload-grid-files {
+      grid-template-columns: 1fr;
+    }
+
+    .custom-field-upload-item {
+      border: 1px solid var(--border-soft);
+      border-radius: 1rem;
+      padding: 0.85rem;
+      background: var(--card-surface-color);
+      display: grid;
+      gap: 0.75rem;
+    }
+
+    .custom-field-upload-item--media {
+      align-content: start;
+    }
+
+    .custom-field-upload-media {
+      width: 100%;
+      aspect-ratio: 16 / 10;
+      object-fit: cover;
+      border-radius: 0.9rem;
+      border: 1px solid var(--border-soft);
+      background: var(--embed-surface-color);
+      display: block;
+    }
+
+    .custom-field-upload-item-actions {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 0.55rem;
+      align-items: center;
+    }
+
+    .custom-field-upload-name {
+      margin: 0;
+      font-weight: 600;
+      word-break: break-word;
+    }
+
+    .custom-field-upload-empty {
+      margin: 0;
     }
 
     .selector-state {
@@ -204,9 +363,9 @@ import {
     }
 
     .saved-dropdown {
-      border: 1px solid rgba(47, 93, 98, 0.12);
+      border: 1px solid var(--border-soft);
       border-radius: 1rem;
-      background: rgba(47, 93, 98, 0.04);
+      background: var(--dropdown-card-surface-color);
       overflow: hidden;
     }
 
@@ -237,8 +396,8 @@ import {
     .dynamic-form-card {
       padding: 1rem;
       border-radius: 1rem;
-      background: rgba(47, 93, 98, 0.04);
-      border: 1px solid rgba(47, 93, 98, 0.1);
+      background: var(--card-surface-color);
+      border: 1px solid var(--border-soft);
     }
 
     .dynamic-form-grid {
@@ -258,6 +417,37 @@ import {
     .section-helper {
       margin: 0 0 0.8rem;
       color: #6b7280;
+    }
+
+    .field-hint {
+      margin: 0;
+      color: #6b7280;
+      font-size: 0.95rem;
+    }
+
+    .portfolio-inline-preview {
+      display: grid;
+      gap: 0.55rem;
+      padding: 0.85rem;
+      border-radius: 1rem;
+      border: 1px solid var(--border-soft);
+      background: var(--dropdown-card-surface-color);
+    }
+
+    .portfolio-inline-photo-frame {
+      width: 124px;
+      aspect-ratio: 1;
+      overflow: hidden;
+      border-radius: 1rem;
+      border: 1px solid var(--border-soft);
+      background: var(--embed-surface-color);
+    }
+
+    .portfolio-inline-photo {
+      width: 100%;
+      height: 100%;
+      object-fit: cover;
+      display: block;
     }
 
     .empty-state {
@@ -311,7 +501,7 @@ import {
       border: 1px solid rgba(47, 93, 98, 0.12);
       border-radius: 1rem;
       overflow: hidden;
-      background: #f8fafc;
+      background: var(--embed-surface-color);
     }
 
     .resume-preview-frame {
@@ -319,7 +509,96 @@ import {
       min-height: 640px;
       border: 0;
       display: block;
-      background: white;
+      background: var(--card-surface-color);
+    }
+
+    .project-card-toggle-group {
+      margin: 0;
+      border: 1px solid var(--border-soft);
+      border-radius: 1rem;
+      padding: 0.9rem 1rem;
+      display: grid;
+      gap: 0.85rem;
+    }
+
+    .project-card-toggle-group legend {
+      padding: 0 0.35rem;
+      font-weight: 700;
+    }
+
+    .project-card-toggle-grid,
+    .project-card-display-list,
+    .project-page-section-actions {
+      display: flex;
+      gap: 0.65rem;
+      flex-wrap: wrap;
+      align-items: center;
+    }
+
+    .check-row.compact {
+      margin: 0;
+      font-weight: 500;
+    }
+
+    .project-form-note,
+    .project-settings-block {
+      margin-top: 1rem;
+      padding: 0.95rem 1rem;
+      border: 1px solid var(--border-soft);
+      border-radius: 1rem;
+      background: var(--embed-surface-color);
+      display: grid;
+      gap: 1rem;
+    }
+
+    .project-form-note p,
+    .project-settings-title,
+    .project-page-section-title,
+    .project-page-section-value {
+      margin: 0;
+    }
+
+    .project-cover-preview-wrap {
+      width: min(100%, 24rem);
+      border-radius: 1rem;
+      overflow: hidden;
+      border: 1px solid var(--border-soft);
+      margin-bottom: 0.85rem;
+      background: var(--embed-surface-color);
+    }
+
+    .project-cover-preview {
+      display: block;
+      width: 100%;
+      aspect-ratio: 16 / 9;
+      object-fit: cover;
+    }
+
+    .project-page-section-list {
+      display: grid;
+      gap: 0.75rem;
+    }
+
+    .project-page-section-row {
+      display: flex;
+      justify-content: space-between;
+      gap: 1rem;
+      align-items: center;
+      padding: 0.85rem 0.9rem;
+      border: 1px solid var(--border-soft);
+      border-radius: 0.9rem;
+      background: var(--card-surface-color);
+    }
+
+    .project-page-section-title {
+      font-weight: 700;
+      color: var(--text-main);
+    }
+
+    .project-page-section-value {
+      color: var(--text-muted);
+      font-size: 0.94rem;
+      margin-top: 0.2rem;
     }
 
     @media (max-width: 900px) {
