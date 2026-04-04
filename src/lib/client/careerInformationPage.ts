@@ -260,18 +260,113 @@ export function initCareerInformationPage(config: CareerInformationClientConfig)
     if (type === "number") return "Enter a number";
     if (type === "list") return "One item per line";
     if (type === "link") return "Paste one link per line";
-    if (type === "image") return "Paste one image URL per line";
-    if (type === "video") return "Paste one video URL per line";
-    if (type === "file") return "Paste one file URL or file name per line";
+    if (type === "image") return "Upload image files";
+    if (type === "video") return "Upload video files";
+    if (type === "file") return "Upload files";
     if (type === "textarea") return "Enter details";
     return "Enter value";
   }
 
+  function customFieldUploadAccept(type) {
+    if (type === "image") return "image/png,image/jpeg,image/webp,image/gif";
+    if (type === "video") return "video/mp4,video/webm,video/ogg,video/quicktime,.mp4,.webm,.ogg,.mov";
+    if (type === "file") return ".pdf,.doc,.docx,.ppt,.pptx,.xls,.xlsx,.csv,.txt,.rtf,.odt,.zip,.rar,.7z,.json,.md,application/pdf,application/msword,application/vnd.openxmlformats-officedocument.wordprocessingml.document,application/vnd.ms-powerpoint,application/vnd.openxmlformats-officedocument.presentationml.presentation,application/vnd.ms-excel,application/vnd.openxmlformats-officedocument.spreadsheetml.sheet,text/plain,text/csv,application/rtf,application/vnd.oasis.opendocument.text,application/zip,application/x-zip-compressed,application/json,text/markdown";
+    return "";
+  }
+
+  function customFieldUploadButtonLabel(type) {
+    if (type === "image") return "Upload image";
+    if (type === "video") return "Upload video";
+    if (type === "file") return "Upload file";
+    return "Upload";
+  }
+
+  function fileNameFromValue(value) {
+    const text = String(value || "").trim();
+    if (!text) return "File";
+    if (!isProbablyUrl(text)) return text;
+    try {
+      const url = new URL(text, window.location.origin);
+      const last = url.pathname.split("/").filter(Boolean).pop() || "file";
+      return decodeURIComponent(last);
+    } catch (_error) {
+      const cleaned = text.split("?")[0].split("#")[0];
+      return cleaned.split("/").filter(Boolean).pop() || "file";
+    }
+  }
+
+  function buildCustomFieldUploadItems(type, rawValue, label) {
+    const values = splitCustomFieldValue(rawValue || "");
+    if (!values.length) {
+      return '<p class="field-hint custom-field-upload-empty">No uploads added yet.</p>';
+    }
+
+    return `
+      <div class="custom-field-upload-list custom-field-upload-list-${escapeHtml(type)}">
+        ${values.map((value, index) => {
+          const safeValue = escapeHtml(value);
+          const safeLabel = escapeHtml(label || customFieldUploadButtonLabel(type));
+          if (type === "image") {
+            return `
+              <div class="custom-field-upload-item custom-field-upload-item-image">
+                ${isProbablyUrl(value)
+                  ? `<img class="custom-field-upload-preview custom-field-upload-preview-image" src="${safeValue}" alt="${safeLabel}" />`
+                  : `<p>${safeValue}</p>`}
+                <button type="button" class="button-secondary career-inline-button career-inline-button-mini" data-action="remove-custom-field-asset" data-asset-index="${index}">Remove</button>
+              </div>
+            `;
+          }
+          if (type === "video") {
+            return `
+              <div class="custom-field-upload-item custom-field-upload-item-video">
+                ${isProbablyUrl(value)
+                  ? `<video class="custom-field-upload-preview custom-field-upload-preview-video" src="${safeValue}" controls preload="metadata"></video>`
+                  : `<p>${safeValue}</p>`}
+                <div class="custom-field-upload-meta-row">
+                  <span class="field-hint">${escapeHtml(fileNameFromValue(value))}</span>
+                  <button type="button" class="button-secondary career-inline-button career-inline-button-mini" data-action="remove-custom-field-asset" data-asset-index="${index}">Remove</button>
+                </div>
+              </div>
+            `;
+          }
+          return `
+            <div class="custom-field-upload-item custom-field-upload-item-file">
+              <div>
+                <p class="custom-field-upload-file-name">${escapeHtml(fileNameFromValue(value))}</p>
+                ${isProbablyUrl(value) ? `<a class="button-secondary career-inline-button career-inline-button-mini" href="${safeValue}" target="_blank" rel="noreferrer">Open</a>` : ""}
+              </div>
+              <button type="button" class="button-secondary career-inline-button career-inline-button-mini" data-action="remove-custom-field-asset" data-asset-index="${index}">Remove</button>
+            </div>
+          `;
+        }).join("\n")}
+      </div>
+    `;
+  }
+
   function buildCustomFieldValueControl(field) {
     const type = normalizeFieldType(field?.type, "text");
-    const value = escapeHtml(field?.value || "");
-    const label = type === "link" || type === "image" || type === "video" || type === "file" ? "Value / URL(s)" : "Value";
-    if (type === "textarea" || type === "list" || type === "link" || type === "image" || type === "video" || type === "file") {
+    const rawValue = String(field?.value || "");
+    const value = escapeHtml(rawValue);
+    const label = type === "link" || type === "image" || type === "video" || type === "file" ? "Value" : "Value";
+
+    if (type === "image" || type === "video" || type === "file") {
+      return `
+        <div class="custom-field-upload-wrap dynamic-form-full">
+          <label class="edu-label dynamic-form-full">
+            <span>${escapeHtml(customFieldUploadButtonLabel(type))} (one or more)</span>
+            <input data-role="field-upload-input" type="file" class="form-input" accept="${escapeHtml(customFieldUploadAccept(type))}" multiple />
+          </label>
+          <div class="custom-field-upload-toolbar">
+            <button type="button" class="button-secondary career-inline-button career-inline-button-mini" data-action="upload-custom-field-files">${escapeHtml(customFieldUploadButtonLabel(type))}</button>
+            <span class="field-hint">Uploaded ${escapeHtml(type)} assets will be saved into this field and shown in portfolio preview.</span>
+          </div>
+          <textarea data-role="field-value" class="custom-field-hidden-value" aria-hidden="true" tabindex="-1">${value}</textarea>
+          ${buildCustomFieldUploadItems(type, rawValue, field?.label || type)}
+        </div>
+      `;
+    }
+
+    if (type === "textarea" || type === "list" || type === "link") {
       return `
         <label class="edu-label dynamic-form-full">
           <span>${label}</span>
@@ -367,7 +462,27 @@ export function initCareerInformationPage(config: CareerInformationClientConfig)
         </div>
       `;
     }
-    if (type === "link" || type === "video" || type === "file") {
+    if (type === "video") {
+      const media = values.length ? values : [field?.value || ""];
+      return `
+        <div class="custom-field-media-grid">
+          ${media.filter(Boolean).map((value) => isProbablyUrl(value)
+            ? `<video class="custom-field-media custom-field-video" src="${escapeHtml(value)}" controls preload="metadata"></video>`
+            : `<p>${escapeHtml(value)}</p>`).join("\n")}
+        </div>
+      `;
+    }
+    if (type === "file") {
+      const links = values.length ? values : [field?.value || ""];
+      return `
+        <div class="custom-field-media-grid custom-field-file-grid">
+          ${links.filter(Boolean).map((value, index) => isProbablyUrl(value)
+            ? `<div class="custom-field-file-card"><p class="custom-field-upload-file-name">${escapeHtml(fileNameFromValue(value))}</p><a class="button-secondary career-inline-button career-inline-button-mini" href="${escapeHtml(value)}" target="_blank" rel="noreferrer">${escapeHtml(field?.label || type)} ${links.length > 1 ? index + 1 : ""}</a></div>`
+            : `<span>${escapeHtml(value)}</span>`).join("\n")}
+        </div>
+      `;
+    }
+    if (type === "link") {
       const links = values.length ? values : [field?.value || ""];
       return `
         <div class="resume-link-row">
@@ -703,6 +818,20 @@ export function initCareerInformationPage(config: CareerInformationClientConfig)
     return payload;
   }
 
+  async function uploadCareerAsset(file, kind = "file") {
+    const formData = new FormData();
+    formData.append("file", file);
+    formData.append("kind", kind);
+    const res = await fetch("/api/upload-career-asset", {
+      method: "POST",
+      credentials: "include",
+      body: formData,
+    });
+    const payload = await res.json().catch(() => null);
+    if (!res.ok) throw new Error(payload?.error || `Upload failed (${res.status})`);
+    return payload;
+  }
+
   let data = normalizeData(cloneDefaults());
   let hasLoadedInitialState = false;
   let isSaving = false;
@@ -846,7 +975,8 @@ export function initCareerInformationPage(config: CareerInformationClientConfig)
           <label class="edu-label dynamic-form-full"><span>Description</span><textarea id="dynamic-project-description" class="form-textarea" placeholder="What the project is and what it achieved"></textarea></label>
           <label class="edu-label"><span>Skills / stack</span><input id="dynamic-project-skills" class="form-input" placeholder="Astro, React, Figma, Python" /></label>
           <label class="edu-label"><span>Project link</span><input id="dynamic-project-link" class="form-input" placeholder="https://..." /></label>
-          <label class="edu-label dynamic-form-full"><span>Cover photo URL</span><input id="dynamic-project-cover" class="form-input" placeholder="https://.../cover.jpg" /></label>
+          <label class="edu-label dynamic-form-full"><span>Cover photo upload</span><input id="dynamic-project-cover-file" class="form-input" type="file" accept="image/png,image/jpeg,image/webp,image/gif" /></label>
+          <p class="field-hint dynamic-form-full">Upload a cover image here so the project quick link and project page can frame it automatically.</p>
           <fieldset class="project-card-toggle-group dynamic-form-full">
             <legend>Show on portfolio project card</legend>
             <div class="project-card-toggle-grid">
@@ -1100,11 +1230,17 @@ export function initCareerInformationPage(config: CareerInformationClientConfig)
     picker.disabled = !options.length;
   }
 
-  function updateCustomFieldValueWrap(card, type) {
+  function updateCustomFieldValueWrap(card, type, nextValue) {
     const wrap = card?.querySelector('[data-role="field-value-wrap"]');
     if (!wrap) return;
     const previousValue = card.querySelector('[data-role="field-value"]')?.value || "";
-    wrap.innerHTML = buildCustomFieldValueControl({ type, value: previousValue });
+    const label = card.querySelector('[data-role="field-label"]')?.value || "";
+    wrap.innerHTML = buildCustomFieldValueControl({
+      type,
+      value: typeof nextValue === "string" ? nextValue : previousValue,
+      label,
+    });
+    bindCustomFieldActions(card);
   }
 
   function appendCustomFieldCard(manager, field) {
@@ -1168,6 +1304,50 @@ export function initCareerInformationPage(config: CareerInformationClientConfig)
         button.closest('.custom-field-card')?.remove();
         refreshCustomFieldEmptyState(manager);
         refreshProjectFieldPicker(manager);
+      });
+    });
+
+    scope.querySelectorAll('[data-action="upload-custom-field-files"]').forEach((button) => {
+      if (button.dataset.bound === 'true') return;
+      button.dataset.bound = 'true';
+      button.addEventListener('click', async () => {
+        const card = button.closest('.custom-field-card');
+        const type = normalizeFieldType(card?.querySelector('[data-role="field-type"]')?.value, 'file');
+        const input = card?.querySelector('[data-role="field-upload-input"]');
+        const files = Array.from(input?.files || []);
+        if (!files.length) {
+          setSaveStatus(`Choose a ${type} file first.`, 'error');
+          return;
+        }
+
+        try {
+          setSaveStatus(`Uploading ${files.length} ${type}${files.length === 1 ? '' : ' files'}...`, 'neutral');
+          const existing = splitCustomFieldValue(card?.querySelector('[data-role="field-value"]')?.value || '');
+          const uploadedUrls = [];
+          for (const file of files) {
+            const uploaded = await uploadCareerAsset(file, type);
+            if (uploaded?.fileUrl) uploadedUrls.push(uploaded.fileUrl);
+          }
+          updateCustomFieldValueWrap(card, type, [...existing, ...uploadedUrls].filter(Boolean).join('\n'));
+          setSaveStatus(`${uploadedUrls.length} ${type}${uploadedUrls.length === 1 ? '' : ' files'} uploaded`, 'success');
+        } catch (error) {
+          console.error(`Custom ${type} upload failed:`, error);
+          setSaveStatus(error?.message || `Failed to upload ${type}`, 'error');
+        }
+      });
+    });
+
+    scope.querySelectorAll('[data-action="remove-custom-field-asset"]').forEach((button) => {
+      if (button.dataset.bound === 'true') return;
+      button.dataset.bound = 'true';
+      button.addEventListener('click', () => {
+        const card = button.closest('.custom-field-card');
+        const type = normalizeFieldType(card?.querySelector('[data-role="field-type"]')?.value, 'file');
+        const index = Number(button.getAttribute('data-asset-index') || -1);
+        const current = splitCustomFieldValue(card?.querySelector('[data-role="field-value"]')?.value || '');
+        if (index < 0 || index >= current.length) return;
+        current.splice(index, 1);
+        updateCustomFieldValueWrap(card, type, current.join('\n'));
       });
     });
 
@@ -1314,31 +1494,46 @@ export function initCareerInformationPage(config: CareerInformationClientConfig)
       const title = getValue("dynamic-project-title");
       if (!title) return;
       const customFields = collectCustomFields("projects");
-      const project = {
-        id: makeId("project"),
-        title,
-        subtitle: getValue("dynamic-project-subtitle"),
-        description: getValue("dynamic-project-description"),
-        skills: getValue("dynamic-project-skills"),
-        link: getValue("dynamic-project-link"),
-        coverPhotoUrl: getValue("dynamic-project-cover"),
-        projectSlug: slugify(title),
-        visible: getChecked("dynamic-project-visible"),
-        cardDisplay: normalizeProjectCardDisplay({
-          showCoverPhoto: getChecked("dynamic-project-card-showCoverPhoto"),
-          showSubtitle: getChecked("dynamic-project-card-showSubtitle"),
-          showDescription: getChecked("dynamic-project-card-showDescription"),
-          showSkills: getChecked("dynamic-project-card-showSkills"),
-          showLink: getChecked("dynamic-project-card-showLink"),
-        }),
-        customFields,
-      };
-      data.projects.unshift({
-        ...project,
-        projectPageSections: syncProjectPageSections(project),
-      });
-      await persistAndRefresh();
-      renderDynamicForm();
+      const coverFileInput = document.getElementById("dynamic-project-cover-file");
+      const coverFile = coverFileInput?.files?.[0];
+      let coverPhotoUrl = "";
+
+      try {
+        if (coverFile) {
+          setSaveStatus("Uploading project cover...", "neutral");
+          const uploadedCover = await uploadCareerAsset(coverFile, "image");
+          coverPhotoUrl = uploadedCover?.fileUrl || "";
+        }
+
+        const project = {
+          id: makeId("project"),
+          title,
+          subtitle: getValue("dynamic-project-subtitle"),
+          description: getValue("dynamic-project-description"),
+          skills: getValue("dynamic-project-skills"),
+          link: getValue("dynamic-project-link"),
+          coverPhotoUrl,
+          projectSlug: slugify(title),
+          visible: getChecked("dynamic-project-visible"),
+          cardDisplay: normalizeProjectCardDisplay({
+            showCoverPhoto: getChecked("dynamic-project-card-showCoverPhoto"),
+            showSubtitle: getChecked("dynamic-project-card-showSubtitle"),
+            showDescription: getChecked("dynamic-project-card-showDescription"),
+            showSkills: getChecked("dynamic-project-card-showSkills"),
+            showLink: getChecked("dynamic-project-card-showLink"),
+          }),
+          customFields,
+        };
+        data.projects.unshift({
+          ...project,
+          projectPageSections: syncProjectPageSections(project),
+        });
+        await persistAndRefresh();
+        renderDynamicForm();
+      } catch (error) {
+        console.error("Project cover upload failed:", error);
+        setSaveStatus(error?.message || "Project cover upload failed", "error");
+      }
     });
 
     document.getElementById("dynamic-save-organization-btn")?.addEventListener("click", async () => {

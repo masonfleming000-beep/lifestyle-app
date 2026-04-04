@@ -334,20 +334,81 @@ export function initCareerPortfolioPreviewPage(config: CareerPortfolioPreviewCon
     return String(item?.fileType || "").toLowerCase().includes("pdf") || String(item?.fileName || "").toLowerCase().endsWith(".pdf");
   }
 
+  function isPdfUrl(value) {
+    return /\.pdf(?:$|[?#])/i.test(String(value || ""));
+  }
+
+  function fileNameFromValue(value) {
+    const text = String(value || "").trim();
+    if (!text) return "File";
+    if (!isProbablyUrl(text)) return text;
+    try {
+      const url = new URL(text, window.location.origin);
+      const last = url.pathname.split("/").filter(Boolean).pop() || "file";
+      return decodeURIComponent(last);
+    } catch (_error) {
+      const cleaned = text.split("?")[0].split("#")[0];
+      return cleaned.split("/").filter(Boolean).pop() || "file";
+    }
+  }
+
+  function renderCenteredMediaFrames(type, values, label) {
+    const items = values.filter(Boolean);
+    if (!items.length) return "";
+
+    return `
+      <div class="preview-centered-media-stack preview-centered-media-stack-${escapeHtml(type)}">
+        ${items.map((value, index) => {
+          const safeValue = escapeHtml(value);
+          const safeLabel = escapeHtml(label || type);
+          if (type === "image") {
+            return isProbablyUrl(value)
+              ? `<div class="preview-media-frame preview-media-image-frame"><img class="preview-media-image" src="${safeValue}" alt="${safeLabel} ${index + 1}" /></div>`
+              : `<p>${safeValue}</p>`;
+          }
+          if (type === "video") {
+            return isProbablyUrl(value)
+              ? `<div class="preview-media-frame preview-media-video-frame"><video class="preview-media-video" src="${safeValue}" controls preload="metadata"></video></div>`
+              : `<p>${safeValue}</p>`;
+          }
+          if (type === "file") {
+            const fileName = escapeHtml(fileNameFromValue(value));
+            if (!isProbablyUrl(value)) return `<p>${safeValue}</p>`;
+            return `
+              <div class="preview-media-frame preview-file-frame">
+                ${isPdfUrl(value) ? `<iframe class="preview-file-embed" src="${safeValue}" title="${fileName}"></iframe>` : ""}
+                <div class="preview-file-body">
+                  <p class="preview-file-name">${fileName}</p>
+                  <div class="preview-link-row preview-file-actions">
+                    <a class="preview-pill-link" href="${safeValue}" target="_blank" rel="noreferrer">Open</a>
+                    <a class="preview-pill-link" href="${safeValue}" download>Download</a>
+                  </div>
+                </div>
+              </div>
+            `;
+          }
+          return "";
+        }).join("")}
+      </div>
+    `;
+  }
+
   function renderCustomFieldValue(field) {
     const type = normalizeFieldType(field?.type, "text");
     const values = splitCustomFieldValue(field?.value);
     if (type === "image") {
       const media = values.length ? values : [field?.value || ""];
-      return `
-        <div class="preview-link-row">
-          ${media.filter(Boolean).map((value) => isProbablyUrl(value)
-            ? `<img src="${escapeHtml(value)}" alt="${escapeHtml(field?.label || "Image")}" style="width:100%;max-width:22rem;border-radius:1rem;border:1px solid rgba(15,23,42,0.08);object-fit:cover;" />`
-            : `<p>${escapeHtml(value)}</p>`).join("")}
-        </div>
-      `;
+      return renderCenteredMediaFrames("image", media, field?.label || "Image");
     }
-    if (["link", "video", "file"].includes(type)) {
+    if (type === "video") {
+      const media = values.length ? values : [field?.value || ""];
+      return renderCenteredMediaFrames("video", media, field?.label || "Video");
+    }
+    if (type === "file") {
+      const links = values.length ? values : [field?.value || ""];
+      return renderCenteredMediaFrames("file", links, field?.label || "File");
+    }
+    if (type === "link") {
       const links = values.length ? values : [field?.value || ""];
       return `<div class="preview-link-row">${links.filter(Boolean).map((value, index) => isProbablyUrl(value)
         ? `<a class="preview-pill-link" href="${escapeHtml(value)}" target="_blank" rel="noreferrer">${escapeHtml(field?.label || type)} ${links.length > 1 ? index + 1 : ""}</a>`
@@ -566,15 +627,33 @@ export function initCareerPortfolioPreviewPage(config: CareerPortfolioPreviewCon
       const media = values.length ? values : [section?.value || ""];
       return renderSectionShell(
         section?.title || "Media",
-        `<div class="preview-project-media-grid">${media.filter(Boolean).map((value) => isProbablyUrl(value)
-          ? `<img class="preview-project-detail-image" src="${escapeHtml(value)}" alt="${escapeHtml(section?.title || "Project image")}" />`
-          : `<p>${escapeHtml(value)}</p>`).join("")}</div>`,
+        renderCenteredMediaFrames("image", media, section?.title || "Project image"),
         true,
         "Media"
       );
     }
 
-    if (["link", "video", "file"].includes(type)) {
+    if (type === "video") {
+      const media = values.length ? values : [section?.value || ""];
+      return renderSectionShell(
+        section?.title || "Videos",
+        renderCenteredMediaFrames("video", media, section?.title || "Project video"),
+        true,
+        `${media.filter(Boolean).length} video${media.filter(Boolean).length === 1 ? "" : "s"}`
+      );
+    }
+
+    if (type === "file") {
+      const links = values.length ? values : [section?.value || ""];
+      return renderSectionShell(
+        section?.title || "Files",
+        renderCenteredMediaFrames("file", links, section?.title || "Project file"),
+        true,
+        `${links.filter(Boolean).length} file${links.filter(Boolean).length === 1 ? "" : "s"}`
+      );
+    }
+
+    if (type === "link") {
       const links = values.length ? values : [section?.value || ""];
       return renderSectionShell(
         section?.title || "Links",

@@ -264,6 +264,95 @@ import {
       border-radius: 0.9rem;
       border: 1px solid var(--border-soft);
       object-fit: cover;
+      background: var(--embed-surface-color);
+    }
+
+    .custom-field-video {
+      aspect-ratio: 16 / 9;
+    }
+
+    .custom-field-file-grid {
+      align-items: stretch;
+    }
+
+    .custom-field-file-card,
+    .custom-field-upload-item-file {
+      display: flex;
+      justify-content: space-between;
+      gap: 0.85rem;
+      align-items: center;
+      width: min(100%, 22rem);
+      padding: 0.9rem 1rem;
+      border-radius: 1rem;
+      border: 1px solid var(--border-soft);
+      background: var(--card-surface-color);
+    }
+
+    .custom-field-upload-wrap {
+      display: grid;
+      gap: 0.75rem;
+    }
+
+    .custom-field-upload-toolbar {
+      display: flex;
+      gap: 0.75rem;
+      flex-wrap: wrap;
+      align-items: center;
+    }
+
+    .custom-field-hidden-value {
+      display: none;
+    }
+
+    .custom-field-upload-list {
+      display: grid;
+      gap: 0.8rem;
+    }
+
+    .custom-field-upload-item {
+      border: 1px solid var(--border-soft);
+      border-radius: 1rem;
+      background: var(--dropdown-card-surface-color);
+      padding: 0.85rem;
+      display: grid;
+      gap: 0.75rem;
+    }
+
+    .custom-field-upload-item-image,
+    .custom-field-upload-item-video {
+      justify-items: start;
+    }
+
+    .custom-field-upload-preview {
+      width: min(100%, 18rem);
+      display: block;
+      border-radius: 0.95rem;
+      border: 1px solid var(--border-soft);
+      background: var(--embed-surface-color);
+    }
+
+    .custom-field-upload-preview-image,
+    .custom-field-upload-preview-video {
+      aspect-ratio: 16 / 9;
+      object-fit: cover;
+    }
+
+    .custom-field-upload-preview-image {
+      aspect-ratio: 1;
+    }
+
+    .custom-field-upload-meta-row {
+      display: flex;
+      gap: 0.75rem;
+      flex-wrap: wrap;
+      align-items: center;
+      justify-content: space-between;
+    }
+
+    .custom-field-upload-file-name {
+      margin: 0 0 0.35rem;
+      font-weight: 700;
+      word-break: break-word;
     }
 
     .selector-state {
