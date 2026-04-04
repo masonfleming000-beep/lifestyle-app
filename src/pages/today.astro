@@ -236,15 +236,10 @@ import { todayClientConfig } from "../config/pages/today";
     }
 
     .today-task-card {
-      display: grid;
-      grid-template-columns: auto 1fr auto;
-      gap: 0.9rem;
+      grid-template-columns: auto minmax(0, 1fr) auto;
       align-items: start;
-      padding: 0.95rem 1rem;
-      border-radius: 18px;
-      background: var(--card-surface-color);
-      border: 1px solid var(--border-soft);
-      box-shadow: var(--shadow-soft, none);
+      gap: 0.95rem;
+      padding: 1rem 1.05rem;
     }
 
     .today-task-card.is-done .today-task-title,
@@ -253,16 +248,25 @@ import { todayClientConfig } from "../config/pages/today";
       opacity: 0.6;
     }
 
+    .today-check-wrap {
+      margin-top: 0.08rem;
+    }
+
     .today-check {
-      width: 1.2rem;
-      height: 1.2rem;
-      margin-top: 0.25rem;
+      margin-top: 0.12rem;
     }
 
     .today-task-content {
       display: grid;
       gap: 0.45rem;
       min-width: 0;
+    }
+
+    .today-task-topline {
+      display: flex;
+      align-items: flex-start;
+      gap: 0.45rem;
+      flex-wrap: wrap;
     }
 
     .today-task-title,
@@ -272,6 +276,12 @@ import { todayClientConfig } from "../config/pages/today";
       line-height: 1.45;
       color: var(--text-main);
       word-break: break-word;
+    }
+
+    .today-task-topline .today-task-title,
+    .today-task-topline .today-routine-text {
+      flex: 1 1 220px;
+      min-width: 0;
     }
 
     .today-task-meta {
@@ -292,6 +302,13 @@ import { todayClientConfig } from "../config/pages/today";
       background: color-mix(in srgb, var(--card-surface-color) 82%, transparent);
       border: 1px solid var(--border-soft);
       color: var(--text-muted);
+      line-height: 1.2;
+    }
+
+    .today-pill-emphasis {
+      color: var(--text-main);
+      border-color: color-mix(in srgb, var(--text-main) 16%, transparent);
+      background: color-mix(in srgb, var(--text-main) 8%, transparent);
     }
 
     .today-pill-source-work {
@@ -315,28 +332,46 @@ import { todayClientConfig } from "../config/pages/today";
     .today-task-actions {
       display: flex;
       flex-direction: column;
+      align-items: flex-end;
       gap: 0.45rem;
-      align-items: stretch;
+      min-width: 9.5rem;
     }
 
     .today-mini-btn,
     .today-delete-btn {
       min-height: 38px;
-      padding: 0.5rem 0.8rem;
-      font-size: 0.85rem;
-      border-radius: 12px;
+      width: 100%;
+      padding: 0.5rem 0.85rem;
+      font-size: 0.84rem;
+      text-align: center;
     }
 
     .today-mini-btn[disabled] {
       opacity: 0.45;
       cursor: not-allowed;
+      transform: none;
+    }
+    
+    .today-calendar-container {
+      width: 100%;
+      display: block;
     }
 
-    .today-calendar-container iframe {
+    :global(.today-calendar-frame) {
       width: 100%;
-      min-height: 420px;
-      border: 0;
+      max-width: 100%;
       border-radius: 18px;
+      overflow: hidden;
+      background: var(--embed-surface-color);
+      border: 1px solid var(--border-soft);
+      box-shadow: var(--shadow-soft, none);
+    }
+
+    :global(.today-calendar-frame iframe) {
+      display: block;
+      width: 100% !important;
+      height: 540px !important;
+      border: 0;
       background: var(--embed-surface-color);
     }
 
@@ -347,15 +382,29 @@ import { todayClientConfig } from "../config/pages/today";
       }
     }
 
-    @media (max-width: 640px) {
+    @media (max-width: 720px) {
       .today-task-card {
-        grid-template-columns: auto 1fr;
+        grid-template-columns: auto minmax(0, 1fr);
       }
 
       .today-task-actions {
         grid-column: 2;
-        justify-self: start;
-        width: 100%;
+        flex-direction: row;
+        flex-wrap: wrap;
+        justify-content: flex-start;
+        align-items: stretch;
+        min-width: 0;
+      }
+
+      .today-mini-btn,
+      .today-delete-btn {
+        width: auto;
+      }
+    }
+
+    @media (max-width: 640px) {
+      .today-calendar-frame iframe {
+        min-height: 440px;
       }
     }
   </style>

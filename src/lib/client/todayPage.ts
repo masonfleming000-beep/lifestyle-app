@@ -287,47 +287,54 @@ function renderTaskList(items: DerivedChecklistItem[], section: TodayPlacement, 
   return `
     <ul class="today-list">
       ${items.map((item, index) => `
-        <li class="today-task-card${item.done ? " is-done" : ""}">
-          <input
-            type="checkbox"
-            class="today-check"
-            data-role="toggle"
-            data-kind="${item.origin.kind}"
-            data-id="${escapeHtml(item.origin.id)}"
-            ${item.done ? "checked" : ""}
-          />
-
-          <div class="today-task-content">
-            <p class="today-task-title">${escapeHtml(item.title)}</p>
-            <div class="today-task-meta">
-              <span class="today-pill today-pill-source-${item.sourceTone}">${escapeHtml(item.sourceLabel)}</span>
-              <span class="today-pill">${escapeHtml(item.sourceTypeLabel)}</span>
-              ${item.timeLabel ? `<span class="today-pill">${escapeHtml(item.timeLabel)}</span>` : ""}
-              ${item.meta.map((meta) => `<span class="today-pill">${escapeHtml(meta)}</span>`).join("")}
-            </div>
-          </div>
-
-          <div class="today-task-actions">
-            ${section === "ordered"
-              ? `
-                <button type="button" class="today-mini-btn" data-role="move-up" data-key="${escapeHtml(item.itemKey)}" ${index === 0 ? "disabled" : ""}>Up</button>
-                <button type="button" class="today-mini-btn" data-role="move-down" data-key="${escapeHtml(item.itemKey)}" ${index === items.length - 1 ? "disabled" : ""}>Down</button>
-                <button type="button" class="today-mini-btn" data-role="move-section" data-key="${escapeHtml(item.itemKey)}" data-target-section="nonOrdered">Move to flexible</button>
-              `
-              : `
-                <button type="button" class="today-mini-btn" data-role="move-section" data-key="${escapeHtml(item.itemKey)}" data-target-section="ordered">Move to ordered</button>
-              `}
-            ${item.deletable ? `
-              <button
-                type="button"
-                class="danger-btn today-delete-btn"
-                data-role="delete-local-task"
+        <li>
+          <article class="assignment-card today-task-card${item.done ? " is-done" : ""}">
+            <label class="assignment-check-wrap today-check-wrap">
+              <input
+                type="checkbox"
+                class="assignment-check today-check"
+                data-role="toggle"
+                data-kind="${item.origin.kind}"
                 data-id="${escapeHtml(item.origin.id)}"
-              >
-                Delete
-              </button>
-            ` : ""}
-          </div>
+                ${item.done ? "checked" : ""}
+              />
+              <span></span>
+            </label>
+
+            <div class="assignment-main today-task-content">
+              <div class="assignment-topline today-task-topline">
+                <h3 class="assignment-title today-task-title">${escapeHtml(item.title)}</h3>
+                <span class="assignment-class-tag today-pill today-pill-source-${item.sourceTone}">${escapeHtml(item.sourceLabel)}</span>
+                <span class="today-pill">${escapeHtml(item.sourceTypeLabel)}</span>
+                ${item.timeLabel ? `<span class="today-pill today-pill-emphasis">${escapeHtml(item.timeLabel)}</span>` : ""}
+              </div>
+              <div class="assignment-meta today-task-meta">
+                ${item.meta.map((meta) => `<span>${escapeHtml(meta)}</span>`).join("") || '<span>Today item</span>'}
+              </div>
+            </div>
+
+            <div class="today-task-actions">
+              ${section === "ordered"
+                ? `
+                  <button type="button" class="button-secondary today-mini-btn" data-role="move-up" data-key="${escapeHtml(item.itemKey)}" ${index === 0 ? "disabled" : ""}>Move up</button>
+                  <button type="button" class="button-secondary today-mini-btn" data-role="move-down" data-key="${escapeHtml(item.itemKey)}" ${index === items.length - 1 ? "disabled" : ""}>Move down</button>
+                  <button type="button" class="button-secondary today-mini-btn" data-role="move-section" data-key="${escapeHtml(item.itemKey)}" data-target-section="nonOrdered">Move to flexible</button>
+                `
+                : `
+                  <button type="button" class="button-secondary today-mini-btn" data-role="move-section" data-key="${escapeHtml(item.itemKey)}" data-target-section="ordered">Move to ordered</button>
+                `}
+              ${item.deletable ? `
+                <button
+                  type="button"
+                  class="delete-mini-button today-delete-btn"
+                  data-role="delete-local-task"
+                  data-id="${escapeHtml(item.origin.id)}"
+                >
+                  Delete
+                </button>
+              ` : ""}
+            </div>
+          </article>
         </li>
       `).join("")}
     </ul>
@@ -340,29 +347,37 @@ function renderRoutineList(items: TodayRoutineItem[], routineKey: RoutineKey, em
   return `
     <ul class="today-list">
       ${items.map((item) => `
-        <li class="today-task-card${item.done ? " is-done" : ""}">
-          <input
-            type="checkbox"
-            class="today-check"
-            data-role="toggle-routine"
-            data-routine="${routineKey}"
-            data-id="${escapeHtml(item.id)}"
-            ${item.done ? "checked" : ""}
-          />
+        <li>
+          <article class="assignment-card today-task-card${item.done ? " is-done" : ""}">
+            <label class="assignment-check-wrap today-check-wrap">
+              <input
+                type="checkbox"
+                class="assignment-check today-check"
+                data-role="toggle-routine"
+                data-routine="${routineKey}"
+                data-id="${escapeHtml(item.id)}"
+                ${item.done ? "checked" : ""}
+              />
+              <span></span>
+            </label>
 
-          <div class="today-task-content">
-            <p class="today-routine-text">${escapeHtml(item.text)}</p>
-          </div>
+            <div class="assignment-main today-task-content">
+              <div class="assignment-topline today-task-topline">
+                <h3 class="assignment-title today-routine-text">${escapeHtml(item.text)}</h3>
+                <span class="today-pill">${routineKey === "morning" ? "Morning" : "Night"}</span>
+              </div>
+            </div>
 
-          <button
-            type="button"
-            class="danger-btn today-delete-btn"
-            data-role="delete-routine"
-            data-routine="${routineKey}"
-            data-id="${escapeHtml(item.id)}"
-          >
-            Delete
-          </button>
+            <button
+              type="button"
+              class="delete-mini-button today-delete-btn"
+              data-role="delete-routine"
+              data-routine="${routineKey}"
+              data-id="${escapeHtml(item.id)}"
+            >
+              Delete
+            </button>
+          </article>
         </li>
       `).join("")}
     </ul>
@@ -649,7 +664,7 @@ export function initTodayPage(config: TodayClientConfig) {
     const { calendarEmbed } = getState();
     calendarInput.value = calendarEmbed || "";
     calendarContainer.innerHTML = calendarEmbed
-      ? `<iframe src="${escapeHtml(calendarEmbed)}" loading="lazy" referrerpolicy="no-referrer-when-downgrade"></iframe>`
+      ? `<div class="today-calendar-frame"><iframe src="${escapeHtml(calendarEmbed)}" loading="lazy" referrerpolicy="no-referrer-when-downgrade"></iframe></div>`
       : emptyState("No calendar added yet.");
   }
 
