@@ -1,50 +1,44 @@
 import type { APIRoute } from "astro";
-import { mkdir, writeFile } from "node:fs/promises";
-import path from "node:path";
-import crypto from "node:crypto";
 import { getCurrentUser } from "../../lib/auth";
+import { storeUploadedFile } from "../../lib/uploadAssets";
 
 export const prerender = false;
 
-const CONFIG = {
+const assetRules = {
   image: {
-    folder: "images",
-    maxSize: 10 * 1024 * 1024,
-    extensions: new Set([".jpg", ".jpeg", ".png", ".webp", ".gif", ".svg"]),
-    mimeTypes: new Set(["image/jpeg", "image/png", "image/webp", "image/gif", "image/svg+xml"]),
+    maxFileSize: 10 * 1024 * 1024,
+    allowedExtensions: new Set([".jpg", ".jpeg", ".png", ".webp", ".gif", ".svg"]),
+    allowedMimeTypes: new Set(["image/jpeg", "image/png", "image/webp", "image/gif", "image/svg+xml"]),
+    defaultBaseName: "career-image",
+    targetDir: "uploads/career-assets/images",
+    userScoped: true,
+    errorLabel: "image",
   },
   video: {
-    folder: "videos",
-    maxSize: 80 * 1024 * 1024,
-    extensions: new Set([".mp4", ".webm", ".ogg", ".mov", ".m4v", ".avi"]),
-    mimeTypes: new Set(["video/mp4", "video/webm", "video/ogg", "video/quicktime", "video/x-msvideo", "video/x-m4v"]),
+    maxFileSize: 50 * 1024 * 1024,
+    allowedExtensions: new Set([".mp4", ".mov", ".webm", ".m4v", ".ogg"]),
+    allowedMimeTypes: new Set(["video/mp4", "video/quicktime", "video/webm", "video/x-m4v", "video/ogg"]),
+    defaultBaseName: "career-video",
+    targetDir: "uploads/career-assets/videos",
+    userScoped: true,
+    errorLabel: "video",
   },
   file: {
-    folder: "files",
-    maxSize: 25 * 1024 * 1024,
-    extensions: new Set([
-      ".pdf", ".doc", ".docx", ".ppt", ".pptx", ".xls", ".xlsx", ".csv", ".txt", ".rtf", ".odt", ".ods", ".odp", ".zip", ".fig", ".sketch", ".drawio", ".vsdx", ".json", ".md", ".ai", ".psd", ".xd", ".epub", ".pages", ".key",
+    maxFileSize: 25 * 1024 * 1024,
+    allowedExtensions: new Set([
+      ".pdf", ".doc", ".docx", ".ppt", ".pptx", ".xls", ".xlsx", ".csv", ".txt", ".rtf", ".zip", ".fig", ".vsdx", ".drawio", ".odt", ".ods", ".odp",
     ]),
-    mimeTypes: new Set([
-      "application/pdf", "application/msword", "application/vnd.openxmlformats-officedocument.wordprocessingml.document", "application/vnd.ms-powerpoint", "application/vnd.openxmlformats-officedocument.presentationml.presentation", "application/vnd.ms-excel", "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet", "text/csv", "text/plain", "application/rtf", "application/vnd.oasis.opendocument.text", "application/vnd.oasis.opendocument.spreadsheet", "application/vnd.oasis.opendocument.presentation", "application/zip", "application/json", "text/markdown", "application/illustrator", "image/vnd.adobe.photoshop", "application/octet-stream",
-    ]),
+    defaultBaseName: "career-file",
+    targetDir: "uploads/career-assets/files",
+    userScoped: true,
+    errorLabel: "file",
   },
 } as const;
-
-function sanitizeBaseName(value: string) {
-  return (
-    value
-      .toLowerCase()
-      .trim()
-      .replace(/[^a-z0-9._-]+/g, "-")
-      .replace(/-+/g, "-")
-      .replace(/^-|-$/g, "") || "asset"
-  );
-}
 
 export const POST: APIRoute = async ({ request, cookies }) => {
   try {
     const user = await getCurrentUser(cookies);
+
     if (!user) {
       return new Response(JSON.stringify({ error: "Unauthorized." }), {
         status: 401,
@@ -54,73 +48,22 @@ export const POST: APIRoute = async ({ request, cookies }) => {
 
     const formData = await request.formData();
     const file = formData.get("file");
-    const kindValue = String(formData.get("kind") || "file").toLowerCase();
-    const kind = kindValue === "image" || kindValue === "video" ? kindValue : "file";
-    const config = CONFIG[kind];
+    const kind = String(formData.get("kind") || "file").trim().toLowerCase();
+    const rule = assetRules[kind as keyof typeof assetRules] || assetRules.file;
+    const payload = await storeUploadedFile(file as File, rule, String(user.id || "user"));
 
-    if (!(file instanceof File)) {
-      return new Response(JSON.stringify({ error: "No file received." }), {
-        status: 400,
-        headers: { "Content-Type": "application/json" },
-      });
-    }
-
-    if (file.size <= 0) {
-      return new Response(JSON.stringify({ error: "Empty file." }), {
-        status: 400,
-        headers: { "Content-Type": "application/json" },
-      });
-    }
-
-    if (file.size > config.maxSize) {
-      return new Response(JSON.stringify({ error: `File too large. Max ${Math.round(config.maxSize / 1024 / 1024)} MB.` }), {
-        status: 413,
-        headers: { "Content-Type": "application/json" },
-      });
-    }
-
-    const originalName = file.name || `${kind}-asset`;
-    const ext = path.extname(originalName).toLowerCase();
-    const mimeType = String(file.type || "application/octet-stream").toLowerCase();
-
-    if (!config.extensions.has(ext) && !(kind === "file" && mimeType === "application/octet-stream")) {
-      return new Response(JSON.stringify({ error: "Unsupported file type." }), {
-        status: 400,
-        headers: { "Content-Type": "application/json" },
-      });
-    }
-
-    if (kind !== "file" && !config.mimeTypes.has(mimeType)) {
-      return new Response(JSON.stringify({ error: `Unsupported ${kind} type.` }), {
-        status: 400,
-        headers: { "Content-Type": "application/json" },
-      });
-    }
-
-    const baseName = sanitizeBaseName(path.basename(originalName, ext));
-    const unique = crypto.randomBytes(8).toString("hex");
-    const storedFileName = `${baseName}-${user.id}-${unique}${ext}`;
-    const uploadsDir = path.join(process.cwd(), "public", "uploads", "career-assets", config.folder);
-    await mkdir(uploadsDir, { recursive: true });
-    const filePath = path.join(uploadsDir, storedFileName);
-    await writeFile(filePath, Buffer.from(await file.arrayBuffer()));
-
-    return new Response(JSON.stringify({
-      ok: true,
-      kind,
-      fileName: originalName,
-      storedFileName,
-      fileType: mimeType,
-      fileSize: file.size,
-      fileUrl: `/uploads/career-assets/${config.folder}/${storedFileName}`,
-    }), {
+    return new Response(JSON.stringify({ ...payload, kind }), {
       status: 200,
       headers: { "Content-Type": "application/json" },
     });
   } catch (error) {
     console.error("upload-career-asset error:", error);
-    return new Response(JSON.stringify({ error: "Failed to upload asset." }), {
-      status: 500,
+
+    const message = error instanceof Error ? error.message : "Failed to upload career asset.";
+    const status = message === "Unauthorized." ? 401 : message.startsWith("Unsupported") || message.startsWith("No file") || message.startsWith("Empty") ? 400 : message.startsWith("File too large") ? 413 : 500;
+
+    return new Response(JSON.stringify({ error: message }), {
+      status,
       headers: { "Content-Type": "application/json" },
     });
   }

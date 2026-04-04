@@ -17,6 +17,7 @@ const PUBLIC_PREFIXES = [
   "/api/career/portfolio-public",
   "/portfolio/",
   "/images/",
+  "/uploads/",
   "/_astro/",
 ];
 
@@ -29,9 +30,6 @@ const PREVIEW_DOMAIN_ALLOWED_PATHS = new Set([
 const PREVIEW_DOMAIN_ALLOWED_PREFIXES = [
   "/portfolio/",
   "/api/career/portfolio-public",
-  "/api/upload-avatar",
-  "/api/upload-resume",
-  "/api/upload-career-asset",
   "/images/",
   "/uploads/",
   "/_astro/",
@@ -66,8 +64,7 @@ function isTempPublicPortfolioHost(request: Request) {
   const configuredHostname = tempPublicPortfolioHostname();
   if (!configuredHostname) return false;
 
-  const requestHost = request.headers.get("x-forwarded-host") || request.headers.get("host") || "";
-  return requestHost.split(":")[0]?.toLowerCase() === configuredHostname;
+  return request.headers.get("host")?.split(":")[0]?.toLowerCase() === configuredHostname;
 }
 
 function isAllowedPreviewDomainPath(pathname: string) {

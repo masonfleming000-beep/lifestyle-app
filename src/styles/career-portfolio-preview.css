@@ -104,26 +104,6 @@
   align-items: center;
 }
 
-.preview-inline-media-row {
-  align-items: stretch;
-}
-
-.preview-inline-image,
-.preview-inline-video {
-  width: 100%;
-  max-width: 22rem;
-  border-radius: 1rem;
-  border: 1px solid rgba(15,23,42,0.08);
-  object-fit: cover;
-  display: block;
-  background: var(--card-surface-color);
-}
-
-.preview-inline-video {
-  aspect-ratio: 16 / 10;
-}
-
-
 .preview-nav-link,
 .preview-pill-link,
 .preview-contact-button {

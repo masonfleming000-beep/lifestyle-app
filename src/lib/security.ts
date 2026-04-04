@@ -4,7 +4,6 @@ const rateLimitStore = new Map<string, { count: number; resetAt: number }>();
 
 const APP_URL = import.meta.env.PUBLIC_APP_URL || import.meta.env.APP_URL || "";
 const HOST = import.meta.env.HOST || "";
-const TEMP_PUBLIC_PORTFOLIO_URL = import.meta.env.TEMP_PUBLIC_PORTFOLIO_URL || "";
 const INVITE_ONLY = String(import.meta.env.INVITE_ONLY || "true").toLowerCase() === "true";
 const ALLOWED_SIGNUP_EMAILS = new Set(
   String(import.meta.env.ALLOWED_SIGNUP_EMAILS || "")
@@ -62,32 +61,26 @@ export function isTrustedOrigin(request: Request) {
   const allowedOrigins = new Set<string>();
 
   const addOrigin = (value: string) => {
-    const trimmed = String(value || "").trim();
-    if (!trimmed) return;
-
     try {
-      const normalized =
-        trimmed.startsWith("http://") || trimmed.startsWith("https://")
-          ? trimmed
-          : `https://${trimmed}`;
-      allowedOrigins.add(new URL(normalized).origin);
+      if (value) allowedOrigins.add(new URL(value).origin);
     } catch {}
   };
 
   addOrigin(requestUrl.origin);
-  addOrigin(APP_URL);
-  addOrigin(HOST);
-  addOrigin(TEMP_PUBLIC_PORTFOLIO_URL);
 
-  const forwardedHost = request.headers.get("x-forwarded-host") || request.headers.get("host") || "";
   const forwardedProto = request.headers.get("x-forwarded-proto") || requestUrl.protocol.replace(":", "") || "https";
+  const forwardedHost = request.headers.get("x-forwarded-host") || request.headers.get("host") || "";
   if (forwardedHost) {
-    addOrigin(`${forwardedProto}://${forwardedHost}`);
+    addOrigin(`${forwardedProto}://${forwardedHost.split(",")[0]?.trim()}`);
   }
 
-  const vercelUrl = request.headers.get("x-vercel-deployment-url") || request.headers.get("x-vercel-forwarded-host") || "";
-  if (vercelUrl) {
-    addOrigin(`https://${vercelUrl}`);
+  if (APP_URL) {
+    addOrigin(APP_URL);
+  }
+
+  if (HOST) {
+    const hostValue = HOST.startsWith("http://") || HOST.startsWith("https://") ? HOST : `${forwardedProto || "https"}://${HOST}`;
+    addOrigin(hostValue);
   }
 
   const extraOrigins = String(import.meta.env.ALLOWED_ORIGINS || "")
