@@ -22,6 +22,112 @@ const RESERVED_PAGE_KEYS = new Set([
   "workouts",
 ]);
 
+function firstHeaderValue(value: string | null) {
+  return String(value || "")
+    .split(",")
+    .map((part) => part.trim())
+    .find(Boolean) || "";
+}
+
+function addOriginFromUrl(allowedOrigins: Set<string>, value: string | null | undefined) {
+  if (!value) return;
+
+  try {
+    allowedOrigins.add(new URL(value).origin);
+  } catch {}
+}
+
+function addOriginFromHost(
+  allowedOrigins: Set<string>,
+  hostValue: string | null | undefined,
+  protoValue: string | null | undefined
+) {
+  const host = firstHeaderValue(hostValue);
+  if (!host) return;
+
+  const proto = firstHeaderValue(protoValue).replace(/:$/, "") || "https";
+  if (!/^[a-z][a-z0-9+.-]*$/i.test(proto)) return;
+
+  addOriginFromUrl(allowedOrigins, `${proto}://${host}`);
+}
+
+function addForwardedOrigin(allowedOrigins: Set<string>, forwardedValue: string | null) {
+  const value = String(forwardedValue || "");
+  if (!value) return;
+
+  const parts = value.split(";").map((part) => part.trim());
+  let host = "";
+  let proto = "";
+
+  for (const part of parts) {
+    const [rawKey, rawValue] = part.split("=");
+    const key = rawKey?.trim().toLowerCase();
+    const cleanedValue = rawValue?.trim().replace(/^"|"$/g, "") || "";
+
+    if (key === "host" && cleanedValue) host = cleanedValue;
+    if (key === "proto" && cleanedValue) proto = cleanedValue;
+  }
+
+  addOriginFromHost(allowedOrigins, host, proto);
+}
+
+function getAllowedOrigins(request: Request) {
+  const requestUrl = new URL(request.url);
+  const allowedOrigins = new Set<string>();
+
+  allowedOrigins.add(requestUrl.origin);
+  addOriginFromUrl(allowedOrigins, APP_URL);
+
+  if (HOST) {
+    const hostValue =
+      HOST.startsWith("http://") || HOST.startsWith("https://") ? HOST : `https://${HOST}`;
+    addOriginFromUrl(allowedOrigins, hostValue);
+  }
+
+  const forwardedProto =
+    firstHeaderValue(request.headers.get("x-forwarded-proto")) ||
+    requestUrl.protocol.replace(/:$/, "") ||
+    "https";
+
+  addOriginFromHost(
+    allowedOrigins,
+    request.headers.get("x-forwarded-host"),
+    forwardedProto
+  );
+  addOriginFromHost(allowedOrigins, request.headers.get("host"), forwardedProto);
+  addForwardedOrigin(allowedOrigins, request.headers.get("forwarded"));
+
+  const extraOrigins = String(import.meta.env.ALLOWED_ORIGINS || "")
+    .split(",")
+    .map((value) => value.trim())
+    .filter(Boolean);
+
+  for (const value of extraOrigins) {
+    addOriginFromUrl(allowedOrigins, value);
+  }
+
+  return allowedOrigins;
+}
+
+function matchesAllowedOrigin(origin: string, allowedOrigins: Set<string>) {
+  if (allowedOrigins.has(origin)) return true;
+
+  try {
+    const originUrl = new URL(origin);
+    const originHost = originUrl.host.toLowerCase();
+
+    for (const allowedOrigin of allowedOrigins) {
+      try {
+        if (new URL(allowedOrigin).host.toLowerCase() === originHost) {
+          return true;
+        }
+      } catch {}
+    }
+  } catch {}
+
+  return false;
+}
+
 export function normalizeEmail(email: string) {
   return email.trim().toLowerCase();
 }
@@ -57,39 +163,11 @@ export function isTrustedOrigin(request: Request) {
   const originHeader = request.headers.get("origin");
   if (!originHeader) return true;
 
-  const requestUrl = new URL(request.url);
-  const allowedOrigins = new Set<string>();
-
-  allowedOrigins.add(requestUrl.origin);
-
-  if (APP_URL) {
-    try {
-      allowedOrigins.add(new URL(APP_URL).origin);
-    } catch {}
-  }
-
-  if (HOST) {
-    const hostValue =
-      HOST.startsWith("http://") || HOST.startsWith("https://") ? HOST : `https://${HOST}`;
-    try {
-      allowedOrigins.add(new URL(hostValue).origin);
-    } catch {}
-  }
-
-  const extraOrigins = String(import.meta.env.ALLOWED_ORIGINS || "")
-    .split(",")
-    .map((value) => value.trim())
-    .filter(Boolean);
-
-  for (const value of extraOrigins) {
-    try {
-      allowedOrigins.add(new URL(value).origin);
-    } catch {}
-  }
+  const allowedOrigins = getAllowedOrigins(request);
 
   try {
     const origin = new URL(originHeader).origin;
-    return allowedOrigins.has(origin);
+    return matchesAllowedOrigin(origin, allowedOrigins);
   } catch {
     return false;
   }
