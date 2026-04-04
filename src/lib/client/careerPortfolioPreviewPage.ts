@@ -347,13 +347,7 @@ export function initCareerPortfolioPreviewPage(config: CareerPortfolioPreviewCon
         </div>
       `;
     }
-    if (type === "video") {
-      const links = values.length ? values : [field?.value || ""];
-      return `<div class="preview-link-row">${links.filter(Boolean).map((value, index) => isProbablyUrl(value)
-        ? `<div class="preview-inline-media"><video class="preview-inline-video" src="${escapeHtml(value)}" controls preload="metadata" style="width:min(100%,32rem);border-radius:1rem;border:1px solid rgba(15,23,42,0.12);"></video><a class="preview-pill-link" href="${escapeHtml(value)}" target="_blank" rel="noreferrer">${escapeHtml(field?.label || type)} ${links.length > 1 ? index + 1 : ""}</a></div>`
-        : `<span class="preview-muted">${escapeHtml(value)}</span>`).join("")}</div>`;
-    }
-    if (["link", "file"].includes(type)) {
+    if (["link", "video", "file"].includes(type)) {
       const links = values.length ? values : [field?.value || ""];
       return `<div class="preview-link-row">${links.filter(Boolean).map((value, index) => isProbablyUrl(value)
         ? `<a class="preview-pill-link" href="${escapeHtml(value)}" target="_blank" rel="noreferrer">${escapeHtml(field?.label || type)} ${links.length > 1 ? index + 1 : ""}</a>`
@@ -580,19 +574,7 @@ export function initCareerPortfolioPreviewPage(config: CareerPortfolioPreviewCon
       );
     }
 
-    if (type === "video") {
-      const links = values.length ? values : [section?.value || ""];
-      return renderSectionShell(
-        section?.title || "Video",
-        `<div class="preview-link-row">${links.filter(Boolean).map((value, index) => isProbablyUrl(value)
-          ? `<div class="preview-inline-media"><video class="preview-inline-video" src="${escapeHtml(value)}" controls preload="metadata" style="width:min(100%,32rem);border-radius:1rem;border:1px solid rgba(15,23,42,0.12);"></video><a class="preview-pill-link" href="${escapeHtml(value)}" target="_blank" rel="noreferrer">${escapeHtml(section?.title || "Video")} ${links.length > 1 ? index + 1 : ""}</a></div>`
-          : `<span>${escapeHtml(value)}</span>`).join("")}</div>`,
-        true,
-        `${links.filter(Boolean).length} video${links.filter(Boolean).length === 1 ? "" : "s"}`
-      );
-    }
-
-    if (["link", "file"].includes(type)) {
+    if (["link", "video", "file"].includes(type)) {
       const links = values.length ? values : [section?.value || ""];
       return renderSectionShell(
         section?.title || "Links",

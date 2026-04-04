@@ -17,7 +17,6 @@ const PUBLIC_PREFIXES = [
   "/api/career/portfolio-public",
   "/portfolio/",
   "/images/",
-  "/uploads/",
   "/_astro/",
 ];
 
@@ -31,7 +30,6 @@ const PREVIEW_DOMAIN_ALLOWED_PREFIXES = [
   "/portfolio/",
   "/api/career/portfolio-public",
   "/images/",
-  "/uploads/",
   "/_astro/",
 ];
 

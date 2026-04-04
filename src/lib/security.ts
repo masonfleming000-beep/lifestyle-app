@@ -60,27 +60,20 @@ export function isTrustedOrigin(request: Request) {
   const requestUrl = new URL(request.url);
   const allowedOrigins = new Set<string>();
 
-  const addOrigin = (value: string) => {
-    try {
-      if (value) allowedOrigins.add(new URL(value).origin);
-    } catch {}
-  };
-
-  addOrigin(requestUrl.origin);
-
-  const forwardedProto = request.headers.get("x-forwarded-proto") || requestUrl.protocol.replace(":", "") || "https";
-  const forwardedHost = request.headers.get("x-forwarded-host") || request.headers.get("host") || "";
-  if (forwardedHost) {
-    addOrigin(`${forwardedProto}://${forwardedHost.split(",")[0]?.trim()}`);
-  }
+  allowedOrigins.add(requestUrl.origin);
 
   if (APP_URL) {
-    addOrigin(APP_URL);
+    try {
+      allowedOrigins.add(new URL(APP_URL).origin);
+    } catch {}
   }
 
   if (HOST) {
-    const hostValue = HOST.startsWith("http://") || HOST.startsWith("https://") ? HOST : `${forwardedProto || "https"}://${HOST}`;
-    addOrigin(hostValue);
+    const hostValue =
+      HOST.startsWith("http://") || HOST.startsWith("https://") ? HOST : `https://${HOST}`;
+    try {
+      allowedOrigins.add(new URL(hostValue).origin);
+    } catch {}
   }
 
   const extraOrigins = String(import.meta.env.ALLOWED_ORIGINS || "")
@@ -89,7 +82,9 @@ export function isTrustedOrigin(request: Request) {
     .filter(Boolean);
 
   for (const value of extraOrigins) {
-    addOrigin(value);
+    try {
+      allowedOrigins.add(new URL(value).origin);
+    } catch {}
   }
 
   try {
