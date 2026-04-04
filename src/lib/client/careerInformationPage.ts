@@ -836,6 +836,68 @@ export function initCareerInformationPage(config: CareerInformationClientConfig)
   let hasLoadedInitialState = false;
   let isSaving = false;
   let pendingSave = false;
+  let activeEditor = { group: "", id: "" };
+
+  function sectionMetaByBuilderValue(value) {
+    return sections.find((section) => section.builderValue === value) || null;
+  }
+
+  function sectionMetaByGroup(group) {
+    return sections.find((section) => section.key === group) || null;
+  }
+
+  function getEditingItem(group) {
+    if (!group || activeEditor.group !== group || !activeEditor.id) return null;
+    return normalizeArray(data[group]).find((item) => item.id === activeEditor.id) || null;
+  }
+
+  function clearEditing(options = {}) {
+    activeEditor = { group: "", id: "" };
+    if (options.render !== false) renderDynamicForm();
+  }
+
+  function startEditing(group, id) {
+    if (!group || !id) return;
+    activeEditor = { group, id };
+    const select = document.getElementById("dynamic-section-select");
+    const meta = sectionMetaByGroup(group);
+    if (select && meta?.builderValue) select.value = meta.builderValue;
+    renderDynamicForm();
+    document.querySelector('.dynamic-builder-shell')?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+    setSaveStatus(`Editing ${meta?.title || group}. Save to update this entry.`, "neutral");
+  }
+
+  function upsertEntry(group, payload, options = {}) {
+    const items = normalizeArray(data[group]);
+    const editingItem = getEditingItem(group);
+    const mode = options.mode === 'single' ? 'single' : 'collection';
+        if (mode === 'single') {
+      const current = editingItem || items[0] || {};
+      data[group] = [{ ...current, ...payload, id: payload?.id || current?.id || makeId(options.prefix || group) }];
+      clearEditing({ render: false });
+      return;
+    }
+
+    const nextItem = { ...editingItem, ...payload, id: payload?.id || editingItem?.id || makeId(options.prefix || group) };
+    data[group] = editingItem
+      ? items.map((item) => item.id === editingItem.id ? nextItem : item)
+      : [nextItem, ...items];
+    clearEditing({ render: false });
+  }
+
+  function buildEditingNotice(group) {
+    const meta = sectionMetaByGroup(group);
+    if (!getEditingItem(group)) return "";
+    return `
+      <div class="editing-notice">
+        <div>
+          <p class="editing-notice-title">Editing saved ${escapeHtml(meta?.title || group)}</p>
+          <p class="editing-notice-text">Update any value, clear fields you want removed, add standard or custom fields, then save.</p>
+        </div>
+        <button type="button" class="button-secondary career-inline-button career-inline-button-mini" id="cancel-edit-btn">Cancel edit</button>
+      </div>
+    `;
+  }
 
   async function saveState() {
     if (!hasLoadedInitialState) return;
@@ -908,73 +970,73 @@ export function initCareerInformationPage(config: CareerInformationClientConfig)
     );
   }
 
-  function buildExternalLinksForm() {
+  function buildExternalLinksForm(item = getEditingItem("externalLinks") || {}) {
     return formShell(
       "Add public links that will appear under your profile section.",
       `
         <div class="dynamic-form-grid">
-          <label class="edu-label"><span>Link type</span><select id="dynamic-link-type" class="form-input"><option value="github">GitHub</option><option value="linkedin">LinkedIn</option><option value="email">Email</option><option value="website">Website</option><option value="facebook">Facebook</option><option value="instagram">Instagram</option><option value="other">Other</option></select></label>
-          <label class="edu-label"><span>Label (optional)</span><input id="dynamic-link-label" class="form-input" placeholder="Portfolio, personal site, etc." /></label>
-          <label class="edu-label dynamic-form-full"><span>URL or email</span><input id="dynamic-link-url" class="form-input" placeholder="https://... or hello@example.com" /></label>
-          <label class="check-row dynamic-form-full"><input id="dynamic-link-visible" type="checkbox" checked /><span>Show in portfolio</span></label>
+          <label class="edu-label"><span>Link type</span><select id="dynamic-link-type" class="form-input"><option value="github" ${item.type === "github" ? "selected" : ""}>GitHub</option><option value="linkedin" ${item.type === "linkedin" ? "selected" : ""}>LinkedIn</option><option value="email" ${item.type === "email" ? "selected" : ""}>Email</option><option value="website" ${item.type === "website" || !item.type ? "selected" : ""}>Website</option><option value="facebook" ${item.type === "facebook" ? "selected" : ""}>Facebook</option><option value="instagram" ${item.type === "instagram" ? "selected" : ""}>Instagram</option><option value="other" ${item.type === "other" ? "selected" : ""}>Other</option></select></label>
+          <label class="edu-label"><span>Label (optional)</span><input id="dynamic-link-label" class="form-input" value="${escapeHtml(item.label || "")}" placeholder="Portfolio, personal site, etc." /></label>
+          <label class="edu-label dynamic-form-full"><span>URL or email</span><input id="dynamic-link-url" class="form-input" value="${escapeHtml(item.url || "")}" placeholder="https://... or hello@example.com" /></label>
+          <label class="check-row dynamic-form-full"><input id="dynamic-link-visible" type="checkbox" ${item.visible !== false ? "checked" : ""} /><span>Show in portfolio</span></label>
         </div>
-        ${buildCustomFieldsManager("externalLinks")}
+        ${buildCustomFieldsManager("externalLinks", item.customFields)}
       `,
       "dynamic-save-link-btn",
       "Add External Link"
     );
   }
 
-  function buildExperienceForm() {
+  function buildExperienceForm(item = getEditingItem("experience") || {}) {
     return formShell(
       "Use this for work experience cards.",
       `
         <div class="dynamic-form-grid">
-          <label class="edu-label"><span>Role</span><input id="dynamic-exp-role" class="form-input" placeholder="Software Engineer Intern" /></label>
-          <label class="edu-label"><span>Company</span><input id="dynamic-exp-company" class="form-input" placeholder="Company name" /></label>
-          <label class="edu-label"><span>Location</span><input id="dynamic-exp-location" class="form-input" placeholder="City, State or Remote" /></label>
-          <label class="edu-label"><span>Start date</span><input id="dynamic-exp-startDate" type="date" class="form-input" /></label>
-          <label class="edu-label"><span>End date</span><input id="dynamic-exp-endDate" type="date" class="form-input" /></label>
-          <label class="edu-label dynamic-form-full"><span>Summary</span><textarea id="dynamic-exp-summary" class="form-textarea" placeholder="What you did and why it mattered"></textarea></label>
-          <label class="edu-label dynamic-form-full"><span>Bullets (one per line)</span><textarea id="dynamic-exp-bullets" class="form-textarea" placeholder="Led...&#10;Built...&#10;Improved..."></textarea></label>
-          <label class="check-row dynamic-form-full"><input id="dynamic-exp-visible" type="checkbox" checked /><span>Show in portfolio</span></label>
+          <label class="edu-label"><span>Role</span><input id="dynamic-exp-role" class="form-input" value="${escapeHtml(item.role || "")}" placeholder="Software Engineer Intern" /></label>
+          <label class="edu-label"><span>Company</span><input id="dynamic-exp-company" class="form-input" value="${escapeHtml(item.company || "")}" placeholder="Company name" /></label>
+          <label class="edu-label"><span>Location</span><input id="dynamic-exp-location" class="form-input" value="${escapeHtml(item.location || "")}" placeholder="City, State or Remote" /></label>
+          <label class="edu-label"><span>Start date</span><input id="dynamic-exp-startDate" type="date" class="form-input" value="${escapeHtml(item.startDate || "")}" /></label>
+          <label class="edu-label"><span>End date</span><input id="dynamic-exp-endDate" type="date" class="form-input" value="${escapeHtml(item.endDate || "")}" /></label>
+          <label class="edu-label dynamic-form-full"><span>Summary</span><textarea id="dynamic-exp-summary" class="form-textarea" placeholder="What you did and why it mattered">${escapeHtml(item.summary || "")}</textarea></label>
+          <label class="edu-label dynamic-form-full"><span>Bullets (one per line)</span><textarea id="dynamic-exp-bullets" class="form-textarea" placeholder="Led...&#10;Built...&#10;Improved...">${escapeHtml(Array.isArray(item.bullets) ? item.bullets.join("\n") : String(item.bullets || ""))}</textarea></label>
+          <label class="check-row dynamic-form-full"><input id="dynamic-exp-visible" type="checkbox" ${item.visible !== false ? "checked" : ""} /><span>Show in portfolio</span></label>
         </div>
-        ${buildCustomFieldsManager("experience")}
+        ${buildCustomFieldsManager("experience", item.customFields)}
       `,
       "dynamic-save-exp-btn",
       "Save Work Experience"
     );
   }
 
-  function buildLeadershipForm() {
+  function buildLeadershipForm(item = getEditingItem("leadership") || {}) {
     return formShell(
       "Use this for leadership roles, mentoring, or team leadership experience.",
       `
         <div class="dynamic-form-grid">
-          <label class="edu-label"><span>Title</span><input id="dynamic-leadership-title" class="form-input" placeholder="President, Team Lead, Mentor" /></label>
-          <label class="edu-label"><span>Organization</span><input id="dynamic-leadership-organization" class="form-input" placeholder="Club, company, volunteer group" /></label>
-          <label class="edu-label"><span>Date or range</span><input id="dynamic-leadership-date" class="form-input" placeholder="2024 - Present" /></label>
-          <label class="edu-label dynamic-form-full"><span>Summary</span><textarea id="dynamic-leadership-summary" class="form-textarea" placeholder="Scope of leadership and outcomes"></textarea></label>
-          <label class="edu-label dynamic-form-full"><span>Bullets (one per line)</span><textarea id="dynamic-leadership-bullets" class="form-textarea" placeholder="Managed...&#10;Organized...&#10;Mentored..."></textarea></label>
-          <label class="check-row dynamic-form-full"><input id="dynamic-leadership-visible" type="checkbox" checked /><span>Show in portfolio</span></label>
+          <label class="edu-label"><span>Title</span><input id="dynamic-leadership-title" class="form-input" value="${escapeHtml(item.title || "")}" placeholder="President, Team Lead, Mentor" /></label>
+          <label class="edu-label"><span>Organization</span><input id="dynamic-leadership-organization" class="form-input" value="${escapeHtml(item.organization || "")}" placeholder="Club, company, volunteer group" /></label>
+          <label class="edu-label"><span>Date or range</span><input id="dynamic-leadership-date" class="form-input" value="${escapeHtml(item.date || "")}" placeholder="2024 - Present" /></label>
+          <label class="edu-label dynamic-form-full"><span>Summary</span><textarea id="dynamic-leadership-summary" class="form-textarea" placeholder="Scope of leadership and outcomes">${escapeHtml(item.summary || "")}</textarea></label>
+          <label class="edu-label dynamic-form-full"><span>Bullets (one per line)</span><textarea id="dynamic-leadership-bullets" class="form-textarea" placeholder="Managed...&#10;Organized...&#10;Mentored...">${escapeHtml(Array.isArray(item.bullets) ? item.bullets.join("\n") : String(item.bullets || ""))}</textarea></label>
+          <label class="check-row dynamic-form-full"><input id="dynamic-leadership-visible" type="checkbox" ${item.visible !== false ? "checked" : ""} /><span>Show in portfolio</span></label>
         </div>
-        ${buildCustomFieldsManager("leadership")}
+        ${buildCustomFieldsManager("leadership", item.customFields)}
       `,
       "dynamic-save-leadership-btn",
       "Save Leadership Experience"
     );
   }
 
-  function buildProjectsForm() {
+  function buildProjectsForm(item = getEditingItem("projects") || {}) {
     return formShell(
       "Use this for featured portfolio projects. The project card can show a subset of the content, while the project page can reveal each section in its own dropdown.",
       `
         <div class="dynamic-form-grid">
-          <label class="edu-label"><span>Project title</span><input id="dynamic-project-title" class="form-input" placeholder="Project name" /></label>
-          <label class="edu-label"><span>Subtitle / stage</span><input id="dynamic-project-subtitle" class="form-input" placeholder="Capstone · Shipped · Ongoing" /></label>
-          <label class="edu-label dynamic-form-full"><span>Description</span><textarea id="dynamic-project-description" class="form-textarea" placeholder="What the project is and what it achieved"></textarea></label>
-          <label class="edu-label"><span>Skills / stack</span><input id="dynamic-project-skills" class="form-input" placeholder="Astro, React, Figma, Python" /></label>
-          <label class="edu-label"><span>Project link</span><input id="dynamic-project-link" class="form-input" placeholder="https://..." /></label>
+          <label class="edu-label"><span>Project title</span><input id="dynamic-project-title" class="form-input" value="${escapeHtml(item.title || "")}" placeholder="Project name" /></label>
+          <label class="edu-label"><span>Subtitle / stage</span><input id="dynamic-project-subtitle" class="form-input" value="${escapeHtml(item.subtitle || "")}" placeholder="Capstone · Shipped · Ongoing" /></label>
+          <label class="edu-label dynamic-form-full"><span>Description</span><textarea id="dynamic-project-description" class="form-textarea" placeholder="What the project is and what it achieved">${escapeHtml(item.description || "")}</textarea></label>
+          <label class="edu-label"><span>Skills / stack</span><input id="dynamic-project-skills" class="form-input" value="${escapeHtml(item.skills || "")}" placeholder="Astro, React, Figma, Python" /></label>
+          <label class="edu-label"><span>Project link</span><input id="dynamic-project-link" class="form-input" value="${escapeHtml(item.link || "")}" placeholder="https://..." /></label>
           <label class="edu-label dynamic-form-full"><span>Cover photo upload</span><input id="dynamic-project-cover-file" class="form-input" type="file" accept="image/png,image/jpeg,image/webp,image/gif" /></label>
           <p class="field-hint dynamic-form-full">Upload a cover image here so the project quick link and project page can frame it automatically.</p>
           <fieldset class="project-card-toggle-group dynamic-form-full">
@@ -982,15 +1044,15 @@ export function initCareerInformationPage(config: CareerInformationClientConfig)
             <div class="project-card-toggle-grid">
               ${PROJECT_CARD_DISPLAY_OPTIONS.map((option) => `
                 <label class="check-row compact">
-                  <input id="dynamic-project-card-${option.key}" type="checkbox" checked />
+                  <input id="dynamic-project-card-${option.key}" type="checkbox" ${normalizeProjectCardDisplay(item.cardDisplay)?.[option.key] !== false ? "checked" : ""} />
                   <span>${option.label}</span>
                 </label>
               `).join("\n")}
             </div>
           </fieldset>
-          <label class="check-row dynamic-form-full"><input id="dynamic-project-visible" type="checkbox" checked /><span>Show in portfolio</span></label>
+          <label class="check-row dynamic-form-full"><input id="dynamic-project-visible" type="checkbox" ${item.visible !== false ? "checked" : ""} /><span>Show in portfolio</span></label>
         </div>
-        ${buildCustomFieldsManager("projects")}
+        ${buildCustomFieldsManager("projects", item.customFields)}
         <div class="project-form-note">
           <p><strong>After saving:</strong> each project gets its own portfolio section, a dedicated project page, and a saved section manager below where you can move project-page sections up or down or hide them.</p>
         </div>
@@ -1000,56 +1062,56 @@ export function initCareerInformationPage(config: CareerInformationClientConfig)
     );
   }
 
-  function buildOrganizationsForm() {
+  function buildOrganizationsForm(item = getEditingItem("organizations") || {}) {
     return formShell(
       "Use this for clubs, associations, volunteer orgs, and communities.",
       `
         <div class="dynamic-form-grid">
-          <label class="edu-label"><span>Organization</span><input id="dynamic-organization-name" class="form-input" placeholder="Organization name" /></label>
-          <label class="edu-label"><span>Role</span><input id="dynamic-organization-role" class="form-input" placeholder="Member, Volunteer, Board" /></label>
-          <label class="edu-label"><span>Date or range</span><input id="dynamic-organization-date" class="form-input" placeholder="2023 - Present" /></label>
-          <label class="edu-label dynamic-form-full"><span>Description</span><textarea id="dynamic-organization-description" class="form-textarea" placeholder="How you're involved"></textarea></label>
-          <label class="check-row dynamic-form-full"><input id="dynamic-organization-visible" type="checkbox" checked /><span>Show in portfolio</span></label>
+          <label class="edu-label"><span>Organization</span><input id="dynamic-organization-name" class="form-input" value="${escapeHtml(item.name || "")}" placeholder="Organization name" /></label>
+          <label class="edu-label"><span>Role</span><input id="dynamic-organization-role" class="form-input" value="${escapeHtml(item.role || "")}" placeholder="Member, Volunteer, Board" /></label>
+          <label class="edu-label"><span>Date or range</span><input id="dynamic-organization-date" class="form-input" value="${escapeHtml(item.date || "")}" placeholder="2023 - Present" /></label>
+          <label class="edu-label dynamic-form-full"><span>Description</span><textarea id="dynamic-organization-description" class="form-textarea" placeholder="How you're involved">${escapeHtml(item.description || "")}</textarea></label>
+          <label class="check-row dynamic-form-full"><input id="dynamic-organization-visible" type="checkbox" ${item.visible !== false ? "checked" : ""} /><span>Show in portfolio</span></label>
         </div>
-        ${buildCustomFieldsManager("organizations")}
+        ${buildCustomFieldsManager("organizations", item.customFields)}
       `,
       "dynamic-save-organization-btn",
       "Save Organization"
     );
   }
 
-  function buildHonorsForm() {
+  function buildHonorsForm(item = getEditingItem("honors") || {}) {
     return formShell(
       "Use this for honors, awards, or stat-style highlights.",
       `
         <div class="dynamic-form-grid">
-          <label class="edu-label"><span>Title</span><input id="dynamic-honor-title" class="form-input" placeholder="Dean's List, Scholarship, Competition Win" /></label>
-          <label class="edu-label"><span>Value / stat</span><input id="dynamic-honor-value" class="form-input" placeholder="#1, 3.9 GPA, Top 10%, $5k award" /></label>
-          <label class="edu-label"><span>Issuer</span><input id="dynamic-honor-issuer" class="form-input" placeholder="University, company, organization" /></label>
-          <label class="edu-label"><span>Date</span><input id="dynamic-honor-date" class="form-input" placeholder="May 2025" /></label>
-          <label class="edu-label dynamic-form-full"><span>Description</span><textarea id="dynamic-honor-description" class="form-textarea" placeholder="Optional extra context"></textarea></label>
-          <label class="check-row dynamic-form-full"><input id="dynamic-honor-visible" type="checkbox" checked /><span>Show in portfolio</span></label>
+          <label class="edu-label"><span>Title</span><input id="dynamic-honor-title" class="form-input" value="${escapeHtml(item.title || "")}" placeholder="Dean's List, Scholarship, Competition Win" /></label>
+          <label class="edu-label"><span>Value / stat</span><input id="dynamic-honor-value" class="form-input" value="${escapeHtml(item.value || "")}" placeholder="#1, 3.9 GPA, Top 10%, $5k award" /></label>
+          <label class="edu-label"><span>Issuer</span><input id="dynamic-honor-issuer" class="form-input" value="${escapeHtml(item.issuer || "")}" placeholder="University, company, organization" /></label>
+          <label class="edu-label"><span>Date</span><input id="dynamic-honor-date" class="form-input" value="${escapeHtml(item.date || "")}" placeholder="May 2025" /></label>
+          <label class="edu-label dynamic-form-full"><span>Description</span><textarea id="dynamic-honor-description" class="form-textarea" placeholder="Optional extra context">${escapeHtml(item.description || "")}</textarea></label>
+          <label class="check-row dynamic-form-full"><input id="dynamic-honor-visible" type="checkbox" ${item.visible !== false ? "checked" : ""} /><span>Show in portfolio</span></label>
         </div>
-        ${buildCustomFieldsManager("honors")}
+        ${buildCustomFieldsManager("honors", item.customFields)}
       `,
       "dynamic-save-honor-btn",
       "Save Honor or Award"
     );
   }
 
-  function buildLicensesForm() {
+  function buildLicensesForm(item = getEditingItem("licenses") || {}) {
     return formShell(
       "Use this for certifications, licenses, and credential badges.",
       `
         <div class="dynamic-form-grid">
-          <label class="edu-label"><span>Title</span><input id="dynamic-license-title" class="form-input" placeholder="AWS Certified Cloud Practitioner" /></label>
-          <label class="edu-label"><span>Issuer</span><input id="dynamic-license-issuer" class="form-input" placeholder="Issuer" /></label>
-          <label class="edu-label"><span>Date</span><input id="dynamic-license-date" class="form-input" placeholder="Apr 2025" /></label>
-          <label class="edu-label"><span>Credential ID</span><input id="dynamic-license-credentialId" class="form-input" placeholder="Optional credential ID" /></label>
-          <label class="edu-label dynamic-form-full"><span>Credential link</span><input id="dynamic-license-link" class="form-input" placeholder="https://..." /></label>
-          <label class="check-row dynamic-form-full"><input id="dynamic-license-visible" type="checkbox" checked /><span>Show in portfolio</span></label>
+          <label class="edu-label"><span>Title</span><input id="dynamic-license-title" class="form-input" value="${escapeHtml(item.title || "")}" placeholder="AWS Certified Cloud Practitioner" /></label>
+          <label class="edu-label"><span>Issuer</span><input id="dynamic-license-issuer" class="form-input" value="${escapeHtml(item.issuer || "")}" placeholder="Issuer" /></label>
+          <label class="edu-label"><span>Date</span><input id="dynamic-license-date" class="form-input" value="${escapeHtml(item.date || "")}" placeholder="Apr 2025" /></label>
+          <label class="edu-label"><span>Credential ID</span><input id="dynamic-license-credentialId" class="form-input" value="${escapeHtml(item.credentialId || "")}" placeholder="Optional credential ID" /></label>
+          <label class="edu-label dynamic-form-full"><span>Credential link</span><input id="dynamic-license-link" class="form-input" value="${escapeHtml(item.link || "")}" placeholder="https://..." /></label>
+          <label class="check-row dynamic-form-full"><input id="dynamic-license-visible" type="checkbox" ${item.visible !== false ? "checked" : ""} /><span>Show in portfolio</span></label>
         </div>
-        ${buildCustomFieldsManager("licenses")}
+        ${buildCustomFieldsManager("licenses", item.customFields)}
       `,
       "dynamic-save-license-btn",
       "Save License or Certificate"
@@ -1093,89 +1155,89 @@ export function initCareerInformationPage(config: CareerInformationClientConfig)
     );
   }
 
-  function buildSchoolForm() {
+  function buildSchoolForm(item = getEditingItem("school") || {}) {
     return formShell(
       "Legacy section kept for compatibility with existing saved content.",
       `
         <div class="dynamic-form-grid">
-          <label class="edu-label"><span>Title</span><input id="dynamic-school-title" class="form-input" placeholder="Class, lab, or academic initiative" /></label>
-          <label class="edu-label"><span>Professor / lead</span><input id="dynamic-school-prof" class="form-input" placeholder="Professor or lead" /></label>
-          <label class="edu-label"><span>Stage</span><input id="dynamic-school-stage" class="form-input" placeholder="Completed, ongoing, etc." /></label>
-          <label class="edu-label dynamic-form-full"><span>Helped with</span><textarea id="dynamic-school-helped" class="form-textarea" placeholder="What you contributed"></textarea></label>
-          <label class="edu-label dynamic-form-full"><span>Relevance</span><textarea id="dynamic-school-relevance" class="form-textarea" placeholder="Why this matters"></textarea></label>
-          <label class="edu-label dynamic-form-full"><span>Notes</span><textarea id="dynamic-school-notes" class="form-textarea" placeholder="Extra context"></textarea></label>
-          <label class="check-row dynamic-form-full"><input id="dynamic-school-visible" type="checkbox" checked /><span>Show in portfolio</span></label>
+          <label class="edu-label"><span>Title</span><input id="dynamic-school-title" class="form-input" value="${escapeHtml(item.title || "")}" placeholder="Class, lab, or academic initiative" /></label>
+          <label class="edu-label"><span>Professor / lead</span><input id="dynamic-school-prof" class="form-input" value="${escapeHtml(item.prof || "")}" placeholder="Professor or lead" /></label>
+          <label class="edu-label"><span>Stage</span><input id="dynamic-school-stage" class="form-input" value="${escapeHtml(item.stage || "")}" placeholder="Completed, ongoing, etc." /></label>
+          <label class="edu-label dynamic-form-full"><span>Helped with</span><textarea id="dynamic-school-helped" class="form-textarea" placeholder="What you contributed">${escapeHtml(item.helped || "")}</textarea></label>
+          <label class="edu-label dynamic-form-full"><span>Relevance</span><textarea id="dynamic-school-relevance" class="form-textarea" placeholder="Why this matters">${escapeHtml(item.relevance || "")}</textarea></label>
+          <label class="edu-label dynamic-form-full"><span>Notes</span><textarea id="dynamic-school-notes" class="form-textarea" placeholder="Extra context">${escapeHtml(item.notes || "")}</textarea></label>
+          <label class="check-row dynamic-form-full"><input id="dynamic-school-visible" type="checkbox" ${item.visible !== false ? "checked" : ""} /><span>Show in portfolio</span></label>
         </div>
-        ${buildCustomFieldsManager("school")}
+        ${buildCustomFieldsManager("school", item.customFields)}
       `,
       "dynamic-save-school-btn",
       "Save School Development"
     );
   }
 
-  function buildSimpleTextForm(prefix, defaults) {
+  function buildSimpleTextForm(prefix, defaults, item = getEditingItem(prefix) || {}) {
     return formShell(
       defaults.helper,
       `
         <div class="dynamic-form-grid one">
-          <label class="edu-label"><span>Title</span><input id="dynamic-${prefix}-title" class="form-input" placeholder="${escapeHtml(defaults.titlePlaceholder)}" /></label>
-          <label class="edu-label"><span>Body</span><textarea id="dynamic-${prefix}-body" class="form-textarea" placeholder="${escapeHtml(defaults.bodyPlaceholder)}"></textarea></label>
-          <label class="check-row"><input id="dynamic-${prefix}-visible" type="checkbox" checked /><span>Show in portfolio</span></label>
+          <label class="edu-label"><span>Title</span><input id="dynamic-${prefix}-title" class="form-input" value="${escapeHtml(item.title || "")}" placeholder="${escapeHtml(defaults.titlePlaceholder)}" /></label>
+          <label class="edu-label"><span>Body</span><textarea id="dynamic-${prefix}-body" class="form-textarea" placeholder="${escapeHtml(defaults.bodyPlaceholder)}">${escapeHtml(item.body || "")}</textarea></label>
+          <label class="check-row"><input id="dynamic-${prefix}-visible" type="checkbox" ${item.visible !== false ? "checked" : ""} /><span>Show in portfolio</span></label>
         </div>
-        ${buildCustomFieldsManager(prefix)}
+        ${buildCustomFieldsManager(prefix, item.customFields)}
       `,
       `dynamic-save-${prefix}-btn`,
       defaults.buttonText
     );
   }
 
-  function buildTimelineForm() {
+  function buildTimelineForm(item = getEditingItem("timelineItems") || {}) {
     return formShell(
       "Legacy section kept for compatibility with existing saved content.",
       `
         <div class="dynamic-form-grid">
-          <label class="edu-label"><span>Milestone title</span><input id="dynamic-timeline-title" class="form-input" placeholder="Started new role" /></label>
-          <label class="edu-label"><span>Date</span><input id="dynamic-timeline-date" type="date" class="form-input" /></label>
-          <label class="edu-label dynamic-form-full"><span>Description</span><textarea id="dynamic-timeline-description" class="form-textarea" placeholder="What happened"></textarea></label>
-          <label class="check-row dynamic-form-full"><input id="dynamic-timeline-visible" type="checkbox" checked /><span>Show in portfolio</span></label>
+          <label class="edu-label"><span>Milestone title</span><input id="dynamic-timeline-title" class="form-input" value="${escapeHtml(item.title || "")}" placeholder="Started new role" /></label>
+          <label class="edu-label"><span>Date</span><input id="dynamic-timeline-date" type="date" class="form-input" value="${escapeHtml(item.date || "")}" /></label>
+          <label class="edu-label dynamic-form-full"><span>Description</span><textarea id="dynamic-timeline-description" class="form-textarea" placeholder="What happened">${escapeHtml(item.description || "")}</textarea></label>
+          <label class="check-row dynamic-form-full"><input id="dynamic-timeline-visible" type="checkbox" ${item.visible !== false ? "checked" : ""} /><span>Show in portfolio</span></label>
         </div>
-        ${buildCustomFieldsManager("timelineItems")}
+        ${buildCustomFieldsManager("timelineItems", item.customFields)}
       `,
       "dynamic-save-timeline-btn",
       "Save Timeline Item"
     );
   }
 
-  function buildRecommendationsForm() {
+  function buildRecommendationsForm(item = getEditingItem("recommendations") || {}) {
     return formShell(
       "Legacy section kept for compatibility with existing saved content.",
       `
         <div class="dynamic-form-grid one">
-          <label class="edu-label"><span>Name / source</span><input id="dynamic-rec-title" class="form-input" placeholder="Manager, professor, teammate" /></label>
-          <label class="edu-label"><span>Recommendation</span><textarea id="dynamic-rec-body" class="form-textarea" placeholder="Recommendation text"></textarea></label>
-          <label class="edu-label"><span>Role / context</span><input id="dynamic-rec-owner" class="form-input" placeholder="Manager, professor, mentor" /></label>
-          <label class="check-row"><input id="dynamic-rec-visible" type="checkbox" checked /><span>Show in portfolio</span></label>
+          <label class="edu-label"><span>Name / source</span><input id="dynamic-rec-title" class="form-input" value="${escapeHtml(item.title || "")}" placeholder="Manager, professor, teammate" /></label>
+          <label class="edu-label"><span>Recommendation</span><textarea id="dynamic-rec-body" class="form-textarea" placeholder="Recommendation text">${escapeHtml(item.body || "")}</textarea></label>
+          <label class="edu-label"><span>Role / context</span><input id="dynamic-rec-owner" class="form-input" value="${escapeHtml(item.owner || "")}" placeholder="Manager, professor, mentor" /></label>
+          <label class="check-row"><input id="dynamic-rec-visible" type="checkbox" ${item.visible !== false ? "checked" : ""} /><span>Show in portfolio</span></label>
         </div>
-        ${buildCustomFieldsManager("recommendations")}
+        ${buildCustomFieldsManager("recommendations", item.customFields)}
       `,
       "dynamic-save-rec-btn",
       "Save Recommendation"
     );
   }
 
-  function buildStarForm() {
+  function buildStarForm(item = getEditingItem("star") || {}) {
     return formShell(
       "Legacy section kept for compatibility with existing saved content.",
       `
         <div class="dynamic-form-grid one">
-          <label class="edu-label"><span>STAR title</span><input id="dynamic-star-title" class="form-input" placeholder="Resolving a production issue" /></label>
-          <label class="edu-label"><span>Situation</span><textarea id="dynamic-star-situation" class="form-textarea"></textarea></label>
-          <label class="edu-label"><span>Task</span><textarea id="dynamic-star-task" class="form-textarea"></textarea></label>
-          <label class="edu-label"><span>Action</span><textarea id="dynamic-star-action" class="form-textarea"></textarea></label>
-          <label class="edu-label"><span>Result</span><textarea id="dynamic-star-result" class="form-textarea"></textarea></label>
-          <label class="check-row"><input id="dynamic-star-visible" type="checkbox" checked /><span>Show in portfolio</span></label>
+          <label class="edu-label"><span>STAR title</span><input id="dynamic-star-title" class="form-input" value="${escapeHtml(item.title || "")}" placeholder="Resolving a production issue" /></label>
+          <label class="edu-label"><span>Situation</span><textarea id="dynamic-star-situation" class="form-textarea">${escapeHtml(item.situation || "")}</textarea></label>
+          <label class="edu-label"><span>Task</span><textarea id="dynamic-star-task" class="form-textarea">${escapeHtml(item.task || "")}</textarea></label>
+          <label class="edu-label"><span>Action</span><textarea id="dynamic-star-action" class="form-textarea">${escapeHtml(item.action || "")}</textarea></label>
+          <label class="edu-label"><span>Result</span><textarea id="dynamic-star-result" class="form-textarea">${escapeHtml(item.result || "")}</textarea></label>
+          <label class="check-row"><input id="dynamic-star-visible" type="checkbox" ${item.visible !== false ? "checked" : ""} /><span>Show in portfolio</span></label>
         </div>
-        ${buildCustomFieldsManager("star")}
+        ${buildCustomFieldsManager("star", item.customFields)}
       `,
       "dynamic-save-star-btn",
       "Save STAR Example"
@@ -1382,35 +1444,41 @@ export function initCareerInformationPage(config: CareerInformationClientConfig)
       contact: buildContactForm,
       resume: buildResumeForm,
       school: buildSchoolForm,
-      about: () => buildSimpleTextForm("about", {
+      about: (item) => buildSimpleTextForm("about", {
         helper: "Legacy section kept for compatibility with existing saved content.",
         titlePlaceholder: "About Me",
         bodyPlaceholder: "Tell your story",
         buttonText: "Save About Section",
-      }),
-      looking: () => buildSimpleTextForm("looking", {
+      }, item),
+      looking: (item) => buildSimpleTextForm("looking", {
         helper: "Legacy section kept for compatibility with existing saved content.",
         titlePlaceholder: "What I'm Looking For",
         bodyPlaceholder: "What kinds of opportunities are you seeking?",
         buttonText: "Save Looking For Section",
-      }),
-      pitch: () => buildSimpleTextForm("pitch", {
+      }, item),
+      pitch: (item) => buildSimpleTextForm("pitch", {
         helper: "Legacy section kept for compatibility with existing saved content.",
         titlePlaceholder: "Pitch",
         bodyPlaceholder: "Short pitch",
         buttonText: "Save Pitch",
-      }),
+      }, item),
       timelineItems: buildTimelineForm,
       recommendations: buildRecommendationsForm,
       star: buildStarForm,
     };
 
-    area.innerHTML = map[select.value] ? map[select.value]() : "";
+    const group = sectionMetaByBuilderValue(select.value)?.key || select.value;
+    const editingItem = getEditingItem(group);
+    area.innerHTML = `${buildEditingNotice(group)}${map[select.value] ? map[select.value](editingItem) : ""}`;
     bindCustomFieldActions(area);
     bindDynamicFormActions();
   }
 
   function bindDynamicFormActions() {
+    document.getElementById("cancel-edit-btn")?.addEventListener("click", () => {
+      clearEditing();
+      setSaveStatus("Edit cancelled", "neutral");
+    });
     document.getElementById("dynamic-save-profile-btn")?.addEventListener("click", async () => {
       try {
         const fileInput = document.getElementById("dynamic-profile-photoFile");
@@ -1422,7 +1490,7 @@ export function initCareerInformationPage(config: CareerInformationClientConfig)
           const uploaded = await uploadProfilePhoto(file);
           photoUrl = uploaded.fileUrl || photoUrl;
         }
-        data.profile = [{
+        upsertEntry("profile", {
           id: data.profile?.[0]?.id || makeId("profile"),
           fullName: getValue("dynamic-profile-fullName"),
           headline: getValue("dynamic-profile-headline"),
@@ -1430,7 +1498,7 @@ export function initCareerInformationPage(config: CareerInformationClientConfig)
           photoUrl,
           visible: getChecked("dynamic-profile-visible"),
           customFields: collectCustomFields("profile"),
-        }];
+        }, { mode: "single", prefix: "profile" });
         await persistAndRefresh();
         renderDynamicForm();
       } catch (error) {
@@ -1442,14 +1510,13 @@ export function initCareerInformationPage(config: CareerInformationClientConfig)
     document.getElementById("dynamic-save-link-btn")?.addEventListener("click", async () => {
       const url = getValue("dynamic-link-url");
       if (!url) return;
-      data.externalLinks.unshift({
-        id: makeId("link"),
+      upsertEntry("externalLinks", {
         type: getValue("dynamic-link-type") || "website",
         label: getValue("dynamic-link-label"),
         url,
         visible: getChecked("dynamic-link-visible"),
         customFields: collectCustomFields("externalLinks"),
-      });
+      }, { prefix: "link" });
       await persistAndRefresh();
       renderDynamicForm();
     });
@@ -1457,8 +1524,7 @@ export function initCareerInformationPage(config: CareerInformationClientConfig)
     document.getElementById("dynamic-save-exp-btn")?.addEventListener("click", async () => {
       const role = getValue("dynamic-exp-role");
       if (!role) return;
-      data.experience.unshift({
-        id: makeId("experience"),
+      upsertEntry("experience", {
         role,
         company: getValue("dynamic-exp-company"),
         location: getValue("dynamic-exp-location"),
@@ -1468,7 +1534,7 @@ export function initCareerInformationPage(config: CareerInformationClientConfig)
         bullets: splitLines(getValue("dynamic-exp-bullets")),
         visible: getChecked("dynamic-exp-visible"),
         customFields: collectCustomFields("experience"),
-      });
+      }, { prefix: "experience" });
       await persistAndRefresh();
       renderDynamicForm();
     });
@@ -1476,8 +1542,7 @@ export function initCareerInformationPage(config: CareerInformationClientConfig)
     document.getElementById("dynamic-save-leadership-btn")?.addEventListener("click", async () => {
       const title = getValue("dynamic-leadership-title");
       if (!title) return;
-      data.leadership.unshift({
-        id: makeId("leadership"),
+      upsertEntry("leadership", {
         title,
         organization: getValue("dynamic-leadership-organization"),
         date: getValue("dynamic-leadership-date"),
@@ -1485,7 +1550,7 @@ export function initCareerInformationPage(config: CareerInformationClientConfig)
         bullets: splitLines(getValue("dynamic-leadership-bullets")),
         visible: getChecked("dynamic-leadership-visible"),
         customFields: collectCustomFields("leadership"),
-      });
+      }, { prefix: "leadership" });
       await persistAndRefresh();
       renderDynamicForm();
     });
@@ -1494,9 +1559,10 @@ export function initCareerInformationPage(config: CareerInformationClientConfig)
       const title = getValue("dynamic-project-title");
       if (!title) return;
       const customFields = collectCustomFields("projects");
+      const editingProject = getEditingItem("projects");
       const coverFileInput = document.getElementById("dynamic-project-cover-file");
       const coverFile = coverFileInput?.files?.[0];
-      let coverPhotoUrl = "";
+      let coverPhotoUrl = editingProject?.coverPhotoUrl || "";
 
       try {
         if (coverFile) {
@@ -1506,14 +1572,14 @@ export function initCareerInformationPage(config: CareerInformationClientConfig)
         }
 
         const project = {
-          id: makeId("project"),
+          ...(editingProject || {}),
           title,
           subtitle: getValue("dynamic-project-subtitle"),
           description: getValue("dynamic-project-description"),
           skills: getValue("dynamic-project-skills"),
           link: getValue("dynamic-project-link"),
           coverPhotoUrl,
-          projectSlug: slugify(title),
+          projectSlug: slugify(getValue("dynamic-project-title") || editingProject?.projectSlug || title),
           visible: getChecked("dynamic-project-visible"),
           cardDisplay: normalizeProjectCardDisplay({
             showCoverPhoto: getChecked("dynamic-project-card-showCoverPhoto"),
@@ -1524,10 +1590,10 @@ export function initCareerInformationPage(config: CareerInformationClientConfig)
           }),
           customFields,
         };
-        data.projects.unshift({
+        upsertEntry("projects", {
           ...project,
           projectPageSections: syncProjectPageSections(project),
-        });
+        }, { prefix: "project" });
         await persistAndRefresh();
         renderDynamicForm();
       } catch (error) {
@@ -1539,15 +1605,14 @@ export function initCareerInformationPage(config: CareerInformationClientConfig)
     document.getElementById("dynamic-save-organization-btn")?.addEventListener("click", async () => {
       const name = getValue("dynamic-organization-name");
       if (!name) return;
-      data.organizations.unshift({
-        id: makeId("organization"),
+      upsertEntry("organizations", {
         name,
         role: getValue("dynamic-organization-role"),
         date: getValue("dynamic-organization-date"),
         description: getValue("dynamic-organization-description"),
         visible: getChecked("dynamic-organization-visible"),
         customFields: collectCustomFields("organizations"),
-      });
+      }, { prefix: "organization" });
       await persistAndRefresh();
       renderDynamicForm();
     });
@@ -1555,8 +1620,7 @@ export function initCareerInformationPage(config: CareerInformationClientConfig)
     document.getElementById("dynamic-save-honor-btn")?.addEventListener("click", async () => {
       const title = getValue("dynamic-honor-title");
       if (!title) return;
-      data.honors.unshift({
-        id: makeId("honor"),
+      upsertEntry("honors", {
         title,
         value: getValue("dynamic-honor-value"),
         issuer: getValue("dynamic-honor-issuer"),
@@ -1564,7 +1628,7 @@ export function initCareerInformationPage(config: CareerInformationClientConfig)
         description: getValue("dynamic-honor-description"),
         visible: getChecked("dynamic-honor-visible"),
         customFields: collectCustomFields("honors"),
-      });
+      }, { prefix: "honor" });
       await persistAndRefresh();
       renderDynamicForm();
     });
@@ -1572,8 +1636,7 @@ export function initCareerInformationPage(config: CareerInformationClientConfig)
     document.getElementById("dynamic-save-license-btn")?.addEventListener("click", async () => {
       const title = getValue("dynamic-license-title");
       if (!title) return;
-      data.licenses.unshift({
-        id: makeId("license"),
+      upsertEntry("licenses", {
         title,
         issuer: getValue("dynamic-license-issuer"),
         date: getValue("dynamic-license-date"),
@@ -1581,7 +1644,7 @@ export function initCareerInformationPage(config: CareerInformationClientConfig)
         link: getValue("dynamic-license-link"),
         visible: getChecked("dynamic-license-visible"),
         customFields: collectCustomFields("licenses"),
-      });
+      }, { prefix: "license" });
       await persistAndRefresh();
       renderDynamicForm();
     });
@@ -1589,16 +1652,16 @@ export function initCareerInformationPage(config: CareerInformationClientConfig)
     document.getElementById("dynamic-save-contact-btn")?.addEventListener("click", async () => {
       const value = getValue("dynamic-contact-value");
       if (!value) return;
-      data.contact = [{
-        id: data.contact?.[0]?.id || makeId("contact"),
+      upsertEntry("contact", {
         preferredMethod: getValue("dynamic-contact-method") || "email",
         value,
         label: getValue("dynamic-contact-label"),
         note: getValue("dynamic-contact-note"),
         visible: getChecked("dynamic-contact-visible"),
         customFields: collectCustomFields("contact"),
-      }];
+      }, { mode: "single", prefix: "contact" });
       await persistAndRefresh();
+      renderDynamicForm();
     });
 
     document.getElementById("dynamic-save-resume-btn")?.addEventListener("click", async () => {
@@ -1626,7 +1689,7 @@ export function initCareerInformationPage(config: CareerInformationClientConfig)
         } else {
           nextResume = { ...nextResume, title, note, visible, customFields: collectCustomFields("resume") };
         }
-        data.resume = [nextResume];
+        upsertEntry("resume", nextResume, { mode: "single", prefix: "resume" });
         await persistAndRefresh();
         renderDynamicForm();
       } catch (error) {
@@ -1657,13 +1720,12 @@ export function initCareerInformationPage(config: CareerInformationClientConfig)
       document.getElementById(`dynamic-save-${key}-btn`)?.addEventListener("click", async () => {
         const body = getValue(`dynamic-${key}-body`);
         if (!body) return;
-        data[key].unshift({
-          id: makeId(key),
+        upsertEntry(key, {
           title: getValue(`dynamic-${key}-title`) || key,
           body,
           visible: getChecked(`dynamic-${key}-visible`),
           customFields: collectCustomFields(key),
-        });
+        }, { prefix: key });
         await persistAndRefresh();
         renderDynamicForm();
       });
@@ -1672,14 +1734,13 @@ export function initCareerInformationPage(config: CareerInformationClientConfig)
     document.getElementById("dynamic-save-timeline-btn")?.addEventListener("click", async () => {
       const title = getValue("dynamic-timeline-title");
       if (!title) return;
-      data.timelineItems.unshift({
-        id: makeId("timeline"),
+      upsertEntry("timelineItems", {
         title,
         date: getValue("dynamic-timeline-date"),
         description: getValue("dynamic-timeline-description"),
         visible: getChecked("dynamic-timeline-visible"),
         customFields: collectCustomFields("timelineItems"),
-      });
+      }, { prefix: "timeline" });
       await persistAndRefresh();
       renderDynamicForm();
     });
@@ -1687,14 +1748,13 @@ export function initCareerInformationPage(config: CareerInformationClientConfig)
     document.getElementById("dynamic-save-rec-btn")?.addEventListener("click", async () => {
       const title = getValue("dynamic-rec-title");
       if (!title) return;
-      data.recommendations.unshift({
-        id: makeId("recommendation"),
+      upsertEntry("recommendations", {
         title,
         body: getValue("dynamic-rec-body"),
         owner: getValue("dynamic-rec-owner"),
         visible: getChecked("dynamic-rec-visible"),
         customFields: collectCustomFields("recommendations"),
-      });
+      }, { prefix: "recommendation" });
       await persistAndRefresh();
       renderDynamicForm();
     });
@@ -1702,8 +1762,7 @@ export function initCareerInformationPage(config: CareerInformationClientConfig)
     document.getElementById("dynamic-save-star-btn")?.addEventListener("click", async () => {
       const title = getValue("dynamic-star-title");
       if (!title) return;
-      data.star.unshift({
-        id: makeId("star"),
+      upsertEntry("star", {
         title,
         situation: getValue("dynamic-star-situation"),
         task: getValue("dynamic-star-task"),
@@ -1711,7 +1770,7 @@ export function initCareerInformationPage(config: CareerInformationClientConfig)
         result: getValue("dynamic-star-result"),
         visible: getChecked("dynamic-star-visible"),
         customFields: collectCustomFields("star"),
-      });
+      }, { prefix: "star" });
       await persistAndRefresh();
       renderDynamicForm();
     });
@@ -1829,6 +1888,9 @@ export function initCareerInformationPage(config: CareerInformationClientConfig)
 
   async function deleteItem(group, id) {
     data[group] = normalizeArray(data[group]).filter((item) => item.id !== id);
+    if (activeEditor.group === group && activeEditor.id === id) {
+      clearEditing({ render: false });
+    }
     await persistAndRefresh();
   }
 
@@ -1872,10 +1934,14 @@ export function initCareerInformationPage(config: CareerInformationClientConfig)
       card.innerHTML = `
         <div class="assignment-main">${buildSavedCard(group, item)}</div>
         <div class="assignment-actions">
+          <button class="button-secondary career-inline-button career-inline-button-mini edit-entry-btn" type="button">Edit</button>
           <button class="button-secondary career-inline-button career-inline-button-mini toggle-visibility-btn" type="button">${item.visible !== false ? "Hide" : "Show"}</button>
           <button class="danger-btn career-inline-button career-inline-button-mini" type="button">Delete</button>
         </div>
       `;
+      card.querySelector(".edit-entry-btn")?.addEventListener("click", () => {
+        startEditing(group, item.id);
+      });
       card.querySelector(".toggle-visibility-btn")?.addEventListener("click", async () => {
         await toggleVisible(group, item.id);
       });
@@ -1909,6 +1975,7 @@ export function initCareerInformationPage(config: CareerInformationClientConfig)
 
   document.getElementById("clear-all-btn")?.addEventListener("click", async () => {
     data = normalizeData(cloneDefaults());
+    clearEditing({ render: false });
     renderDynamicForm();
     renderSavedEntries();
     await saveState();
