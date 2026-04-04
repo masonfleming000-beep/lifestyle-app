@@ -1,4 +1,5 @@
 import { createApiPageStore, fetchPageState, postPageState } from "./pageState";
+import { renderChecklistCard } from "./checklistCardTemplate";
 import type { TodayLocalTask, TodayPlacement, TodayRoutineItem, TodayState, TodayTimeKind } from "../../config/pages/today";
 
 type RoutineKey = "morning" | "night";
@@ -286,43 +287,13 @@ function renderTaskList(items: DerivedChecklistItem[], section: TodayPlacement, 
 
   return `
     <ul class="today-list">
-      ${items.map((item, index) => `
-        <li>
-          <article class="assignment-card today-task-card${item.done ? " is-done" : ""}">
-            <label class="assignment-check-wrap today-check-wrap">
-              <input
-                type="checkbox"
-                class="assignment-check today-check"
-                data-role="toggle"
-                data-kind="${item.origin.kind}"
-                data-id="${escapeHtml(item.origin.id)}"
-                ${item.done ? "checked" : ""}
-              />
-              <span></span>
-            </label>
-
-            <div class="assignment-main today-task-content">
-              <div class="assignment-topline today-task-topline">
-                <h3 class="assignment-title today-task-title">${escapeHtml(item.title)}</h3>
-                <span class="assignment-class-tag today-pill today-pill-source-${item.sourceTone}">${escapeHtml(item.sourceLabel)}</span>
-                <span class="today-pill">${escapeHtml(item.sourceTypeLabel)}</span>
-                ${item.timeLabel ? `<span class="today-pill today-pill-emphasis">${escapeHtml(item.timeLabel)}</span>` : ""}
-              </div>
-              <div class="assignment-meta today-task-meta">
-                ${item.meta.map((meta) => `<span>${escapeHtml(meta)}</span>`).join("") || '<span>Today item</span>'}
-              </div>
-            </div>
-
+      ${items.map((item, index) => {
+        const actionsHtml = section === "ordered"
+          ? `
             <div class="today-task-actions">
-              ${section === "ordered"
-                ? `
-                  <button type="button" class="button-secondary today-mini-btn" data-role="move-up" data-key="${escapeHtml(item.itemKey)}" ${index === 0 ? "disabled" : ""}>Move up</button>
-                  <button type="button" class="button-secondary today-mini-btn" data-role="move-down" data-key="${escapeHtml(item.itemKey)}" ${index === items.length - 1 ? "disabled" : ""}>Move down</button>
-                  <button type="button" class="button-secondary today-mini-btn" data-role="move-section" data-key="${escapeHtml(item.itemKey)}" data-target-section="nonOrdered">Move to flexible</button>
-                `
-                : `
-                  <button type="button" class="button-secondary today-mini-btn" data-role="move-section" data-key="${escapeHtml(item.itemKey)}" data-target-section="ordered">Move to ordered</button>
-                `}
+              <button type="button" class="button-secondary today-mini-btn" data-role="move-up" data-key="${escapeHtml(item.itemKey)}" ${index === 0 ? "disabled" : ""}>Move up</button>
+              <button type="button" class="button-secondary today-mini-btn" data-role="move-down" data-key="${escapeHtml(item.itemKey)}" ${index === items.length - 1 ? "disabled" : ""}>Move down</button>
+              <button type="button" class="button-secondary today-mini-btn" data-role="move-section" data-key="${escapeHtml(item.itemKey)}" data-target-section="nonOrdered">Move to flexible</button>
               ${item.deletable ? `
                 <button
                   type="button"
@@ -334,9 +305,52 @@ function renderTaskList(items: DerivedChecklistItem[], section: TodayPlacement, 
                 </button>
               ` : ""}
             </div>
-          </article>
-        </li>
-      `).join("")}
+          `
+          : `
+            <div class="today-task-actions">
+              <button type="button" class="button-secondary today-mini-btn" data-role="move-section" data-key="${escapeHtml(item.itemKey)}" data-target-section="ordered">Move to ordered</button>
+              ${item.deletable ? `
+                <button
+                  type="button"
+                  class="delete-mini-button today-delete-btn"
+                  data-role="delete-local-task"
+                  data-id="${escapeHtml(item.origin.id)}"
+                >
+                  Delete
+                </button>
+              ` : ""}
+            </div>
+          `;
+
+        return `
+          <li>
+            ${renderChecklistCard({
+              title: item.title,
+              done: item.done,
+              cardClassName: "today-task-card",
+              titleClassName: "today-task-title",
+              contentClassName: "today-task-content",
+              toplineClassName: "today-task-topline",
+              metaClassName: "today-task-meta",
+              checkboxWrapClassName: "today-check-wrap",
+              checkboxClassName: "today-check",
+              checkboxAttrs: {
+                "data-role": "toggle",
+                "data-kind": item.origin.kind,
+                "data-id": item.origin.id,
+              },
+              badges: [
+                { label: item.sourceLabel, className: `assignment-class-tag today-pill today-pill-source-${item.sourceTone}` },
+                { label: item.sourceTypeLabel, className: "today-pill" },
+                ...(item.timeLabel ? [{ label: item.timeLabel, className: "today-pill today-pill-emphasis" }] : []),
+              ],
+              meta: item.meta,
+              emptyMetaLabel: "Today item",
+              actionsHtml,
+            }, escapeHtml)}
+          </li>
+        `;
+      }).join("")}
     </ul>
   `;
 }
@@ -348,36 +362,35 @@ function renderRoutineList(items: TodayRoutineItem[], routineKey: RoutineKey, em
     <ul class="today-list">
       ${items.map((item) => `
         <li>
-          <article class="assignment-card today-task-card${item.done ? " is-done" : ""}">
-            <label class="assignment-check-wrap today-check-wrap">
-              <input
-                type="checkbox"
-                class="assignment-check today-check"
-                data-role="toggle-routine"
+          ${renderChecklistCard({
+            title: item.text,
+            done: item.done,
+            cardClassName: "today-task-card",
+            titleClassName: "today-routine-text",
+            contentClassName: "today-task-content",
+            toplineClassName: "today-task-topline",
+            metaClassName: "today-task-meta",
+            checkboxWrapClassName: "today-check-wrap",
+            checkboxClassName: "today-check",
+            checkboxAttrs: {
+              "data-role": "toggle-routine",
+              "data-routine": routineKey,
+              "data-id": item.id,
+            },
+            badges: [{ label: routineKey === "morning" ? "Morning" : "Night", className: "today-pill" }],
+            hideMeta: true,
+            actionsHtml: `
+              <button
+                type="button"
+                class="delete-mini-button today-delete-btn"
+                data-role="delete-routine"
                 data-routine="${routineKey}"
                 data-id="${escapeHtml(item.id)}"
-                ${item.done ? "checked" : ""}
-              />
-              <span></span>
-            </label>
-
-            <div class="assignment-main today-task-content">
-              <div class="assignment-topline today-task-topline">
-                <h3 class="assignment-title today-routine-text">${escapeHtml(item.text)}</h3>
-                <span class="today-pill">${routineKey === "morning" ? "Morning" : "Night"}</span>
-              </div>
-            </div>
-
-            <button
-              type="button"
-              class="delete-mini-button today-delete-btn"
-              data-role="delete-routine"
-              data-routine="${routineKey}"
-              data-id="${escapeHtml(item.id)}"
-            >
-              Delete
-            </button>
-          </article>
+              >
+                Delete
+              </button>
+            `,
+          }, escapeHtml)}
         </li>
       `).join("")}
     </ul>

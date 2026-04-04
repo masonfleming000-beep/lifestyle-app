@@ -155,7 +155,7 @@ import { todayClientConfig } from "../config/pages/today";
     initTodayPage(config);
   </script>
 
-  <style>
+  <style is:global>
     .today-shell {
       display: grid;
       gap: 1rem;
@@ -351,15 +351,15 @@ import { todayClientConfig } from "../config/pages/today";
       cursor: not-allowed;
       transform: none;
     }
-    
+
     .today-calendar-container {
+      display: flex;
+      justify-content: center;
       width: 100%;
-      display: block;
     }
 
-    :global(.today-calendar-frame) {
-      width: 100%;
-      max-width: 100%;
+    .today-calendar-frame {
+      width: min(100%, 1080px);
       border-radius: 18px;
       overflow: hidden;
       background: var(--embed-surface-color);
@@ -367,10 +367,10 @@ import { todayClientConfig } from "../config/pages/today";
       box-shadow: var(--shadow-soft, none);
     }
 
-    :global(.today-calendar-frame iframe) {
+    .today-calendar-frame iframe {
+      width: 100%;
+      min-height: 540px;
       display: block;
-      width: 100% !important;
-      height: 540px !important;
       border: 0;
       background: var(--embed-surface-color);
     }
