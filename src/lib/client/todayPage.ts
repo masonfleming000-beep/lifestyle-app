@@ -246,9 +246,12 @@ function mergeRoutineDefaults(items: TodayRoutineItem[], defaultTexts: string[],
 
 function normalizeTodayState(value: unknown, config: TodayClientConfig): TodayState {
   const saved = value && typeof value === "object" ? (value as Partial<TodayState> & { todos?: unknown }) : null;
-  const legacyTodos = Array.isArray(saved?.todos) ? saved?.todos : [];
-  const localTaskSource = Array.isArray(saved?.localTasks) && saved?.localTasks.length ? saved.localTasks : legacyTodos;
+  const hasExplicitLocalTasks = Array.isArray(saved?.localTasks);
+  const hasLegacyTodos = Array.isArray(saved?.todos);
+  const legacyTodos = hasLegacyTodos ? saved?.todos : [];
+  const localTaskSource = hasExplicitLocalTasks ? saved?.localTasks : legacyTodos;
   const normalizedLocalTasks = normalizeLocalTasks(localTaskSource, config.defaults.localTasks);
+  const shouldUseExplicitLocalTasks = hasExplicitLocalTasks || hasLegacyTodos;
 
   const removedDefaults = {
     morning: uniqueStrings(saved?.removedDefaults?.morning),
@@ -259,7 +262,7 @@ function normalizeTodayState(value: unknown, config: TodayClientConfig): TodaySt
 
   return {
     calendarEmbed: typeof saved?.calendarEmbed === "string" ? saved.calendarEmbed : config.defaults.calendarEmbed,
-    localTasks: normalizedLocalTasks.length ? normalizedLocalTasks : structuredClone(config.defaults.localTasks),
+    localTasks: shouldUseExplicitLocalTasks ? normalizedLocalTasks : structuredClone(config.defaults.localTasks),
     manualOrderedIds: uniqueStrings(saved?.manualOrderedIds).filter((itemKey) => validOrderedKeys.has(itemKey) || itemKey.includes(":")),
     placementOverrides: normalizePlacementOverrides(saved?.placementOverrides),
     morning: mergeRoutineDefaults(
