@@ -1,0 +1,9 @@
+---
+import ActionRenderer from './ActionRenderer.astro';
+import type { UIAction } from '../../lib/ui/types';
+interface Props { actions?: UIAction[]; }
+const { actions = [] } = Astro.props;
+---
+<div class="editor-toolbar hero-actions">
+  {actions.map((action) => <ActionRenderer action={action} />)}
+</div>

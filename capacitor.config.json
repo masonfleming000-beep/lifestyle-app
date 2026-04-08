@@ -1,0 +1,9 @@
+{
+  "appId": "com.lifestyle03473.app",
+  "appName": "lifestyle-app",
+  "webDir": "dist",
+  "server": {
+    "url": "https://lifestyle-app-sbjx.onrender.com",
+    "cleartext": false
+  }
+}

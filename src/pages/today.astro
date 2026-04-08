@@ -1,0 +1,411 @@
+---
+import BaseLayout from "../layouts/BaseLayout.astro";
+import PageHero from "../components/PageHero.astro";
+import FormCard from "../components/FormCard.astro";
+import DropdownSection from "../components/primitives/DropdownSection.astro";
+import Button from "../components/Button.astro";
+import { todayClientConfig } from "../config/pages/today";
+---
+
+<BaseLayout title="Today | Lifestyle App" description="Today dashboard">
+  <PageHero
+    kicker="Today"
+    title="Run the day with clarity."
+    description="See everything happening today in one place, separate timed items from flexible ones, and keep work and education in sync."
+  />
+
+  <section class="section">
+    <div class="today-shell">
+      <FormCard
+        title="Add task"
+        subtitle="Create a task directly from Today and choose whether it belongs in the ordered or non-ordered section."
+        formId="today-add-task-form"
+        submitLabel="Add Task"
+      >
+        <div class="today-form-grid">
+          <label class="today-label today-label-full">
+            <span>Task name</span>
+            <input id="today-task-text" type="text" required placeholder="Add a task for today" />
+          </label>
+
+          <label class="today-label">
+            <span>Time type</span>
+            <select id="today-task-time-kind">
+              <option value="">No time</option>
+              <option value="start">Start time</option>
+              <option value="due">Due time</option>
+            </select>
+          </label>
+
+          <label class="today-label">
+            <span>Time</span>
+            <input id="today-task-time" type="time" />
+          </label>
+
+          <label class="today-label">
+            <span>Section</span>
+            <select id="today-task-placement">
+              <option value="ordered">Ordered</option>
+              <option value="nonOrdered">Non-ordered</option>
+            </select>
+          </label>
+        </div>
+      </FormCard>
+
+      <DropdownSection
+        title="Ordered today"
+        subtitle="Timed items from Today, Work, and Education, including assignment start and due times, sorted from earliest to latest by default."
+        className="surface-dropdown today-panel"
+      >
+        <div class="today-section-toolbar">
+          <Button id="today-reset-order" type="button">Reset to default order</Button>
+        </div>
+        <div id="today-ordered-list" class="today-list-shell"></div>
+      </DropdownSection>
+
+      <DropdownSection
+        title="Non-ordered today"
+        subtitle="Flexible items for today, including anything without a time or anything you chose to keep out of the ordered list."
+        className="surface-dropdown today-panel"
+      >
+        <div id="today-nonordered-list" class="today-list-shell"></div>
+      </DropdownSection>
+
+      <DropdownSection
+        title="Calendar"
+        subtitle="Keep an embed here if you want today’s calendar visible below your task lists."
+        className="surface-dropdown today-panel"
+      >
+        <div class="today-calendar-stack">
+          <form id="today-calendar-form" class="today-inline-form">
+            <label class="today-label today-label-full">
+              <span>Calendar embed URL</span>
+              <input id="today-calendar-input" type="url" placeholder="Paste Google Calendar embed URL" />
+            </label>
+            <div class="today-inline-actions">
+              <Button type="submit" variant="primary">Save Calendar</Button>
+              <Button id="today-calendar-clear" type="button" variant="danger">Remove</Button>
+            </div>
+          </form>
+
+          <div id="today-calendar-container" class="today-calendar-container"></div>
+        </div>
+      </DropdownSection>
+
+      <div class="today-routine-grid">
+        <DropdownSection
+          title="Morning"
+          subtitle="Start-up routine for the day."
+          className="surface-dropdown today-panel"
+        >
+          <div class="today-routine-stack">
+            <div class="today-inline-actions">
+              <Button id="today-morning-restore" type="button">Restore Defaults</Button>
+            </div>
+
+            <form id="today-morning-form" class="today-inline-form">
+              <label class="today-label today-label-full">
+                <span>Add morning item</span>
+                <input id="today-morning-input" type="text" placeholder="Add morning routine item" />
+              </label>
+              <div class="today-inline-actions">
+                <Button type="submit" variant="primary">Add Morning Item</Button>
+              </div>
+            </form>
+
+            <div id="today-morning-list" class="today-list-shell"></div>
+          </div>
+        </DropdownSection>
+
+        <DropdownSection
+          title="Night"
+          subtitle="Close-down routine for tonight."
+          className="surface-dropdown today-panel"
+        >
+          <div class="today-routine-stack">
+            <div class="today-inline-actions">
+              <Button id="today-night-restore" type="button">Restore Defaults</Button>
+            </div>
+
+            <form id="today-night-form" class="today-inline-form">
+              <label class="today-label today-label-full">
+                <span>Add night item</span>
+                <input id="today-night-input" type="text" placeholder="Add night routine item" />
+              </label>
+              <div class="today-inline-actions">
+                <Button type="submit" variant="primary">Add Night Item</Button>
+              </div>
+            </form>
+
+            <div id="today-night-list" class="today-list-shell"></div>
+          </div>
+        </DropdownSection>
+      </div>
+    </div>
+  </section>
+
+  <script id="today-page-config" type="application/json" set:html={JSON.stringify(todayClientConfig)} />
+
+  <script>
+    import { initTodayPage } from "../lib/client/todayPage";
+
+    const configElement = document.getElementById("today-page-config");
+    const config = JSON.parse(configElement?.textContent || "{}");
+
+    initTodayPage(config);
+  </script>
+
+  <style is:global>
+    .today-shell {
+      display: grid;
+      gap: 1rem;
+    }
+
+    .today-panel {
+      border-radius: 20px;
+    }
+
+    .today-form-grid,
+    .today-routine-grid {
+      display: grid;
+      gap: 0.9rem;
+    }
+
+    .today-form-grid {
+      grid-template-columns: repeat(3, minmax(0, 1fr));
+    }
+
+    .today-routine-grid {
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+    }
+
+    .today-label,
+    .today-list-shell,
+    .today-calendar-stack,
+    .today-routine-stack,
+    .today-section-toolbar {
+      display: grid;
+      gap: 0.65rem;
+    }
+
+    .today-label span {
+      font-size: 0.92rem;
+      color: var(--text-muted);
+    }
+
+    .today-label input,
+    .today-label select {
+      width: 100%;
+      min-height: 46px;
+      border-radius: 14px;
+    }
+
+    .today-label-full {
+      grid-column: 1 / -1;
+    }
+
+    .today-inline-form {
+      display: grid;
+      gap: 0.75rem;
+    }
+
+    .today-inline-actions {
+      display: flex;
+      gap: 0.75rem;
+      flex-wrap: wrap;
+    }
+
+    .today-section-toolbar {
+      margin-bottom: 0.35rem;
+    }
+
+    .today-empty-state {
+      padding: 1rem 1.1rem;
+      border-radius: 16px;
+      background: color-mix(in srgb, var(--card-surface-color) 72%, transparent);
+      border: 1px dashed rgba(20, 30, 50, 0.18);
+      color: var(--text-muted);
+    }
+
+    .today-list {
+      display: grid;
+      gap: 0.8rem;
+      margin: 0;
+      padding: 0;
+      list-style: none;
+    }
+
+    .today-task-card {
+      grid-template-columns: auto minmax(0, 1fr) auto;
+      align-items: start;
+      gap: 0.95rem;
+      padding: 1rem 1.05rem;
+    }
+
+    .today-task-card.is-done .today-task-title,
+    .today-task-card.is-done .today-routine-text {
+      text-decoration: line-through;
+      opacity: 0.6;
+    }
+
+    .today-check-wrap {
+      margin-top: 0.08rem;
+    }
+
+    .today-check {
+      margin-top: 0.12rem;
+    }
+
+    .today-task-content {
+      display: grid;
+      gap: 0.45rem;
+      min-width: 0;
+    }
+
+    .today-task-topline {
+      display: flex;
+      align-items: flex-start;
+      gap: 0.45rem;
+      flex-wrap: wrap;
+    }
+
+    .today-task-title,
+    .today-routine-text {
+      margin: 0;
+      font-size: 1rem;
+      line-height: 1.45;
+      color: var(--text-main);
+      word-break: break-word;
+    }
+
+    .today-task-topline .today-task-title,
+    .today-task-topline .today-routine-text {
+      flex: 1 1 220px;
+      min-width: 0;
+    }
+
+    .today-task-meta {
+      display: flex;
+      gap: 0.45rem;
+      flex-wrap: wrap;
+      align-items: center;
+    }
+
+    .today-pill {
+      display: inline-flex;
+      align-items: center;
+      gap: 0.3rem;
+      padding: 0.32rem 0.6rem;
+      border-radius: 999px;
+      font-size: 0.78rem;
+      font-weight: 600;
+      background: color-mix(in srgb, var(--card-surface-color) 82%, transparent);
+      border: 1px solid var(--border-soft);
+      color: var(--text-muted);
+      line-height: 1.2;
+    }
+
+    .today-pill-emphasis {
+      color: var(--text-main);
+      border-color: color-mix(in srgb, var(--text-main) 16%, transparent);
+      background: color-mix(in srgb, var(--text-main) 8%, transparent);
+    }
+
+    .today-pill-source-work {
+      color: #1d4ed8;
+      border-color: rgba(37, 99, 235, 0.2);
+      background: rgba(37, 99, 235, 0.08);
+    }
+
+    .today-pill-source-education {
+      color: #7c3aed;
+      border-color: rgba(124, 58, 237, 0.2);
+      background: rgba(124, 58, 237, 0.08);
+    }
+
+    .today-pill-source-today {
+      color: #0f766e;
+      border-color: rgba(15, 118, 110, 0.2);
+      background: rgba(15, 118, 110, 0.08);
+    }
+
+    .today-task-actions {
+      display: flex;
+      flex-direction: column;
+      align-items: flex-end;
+      gap: 0.45rem;
+      min-width: 9.5rem;
+    }
+
+    .today-mini-btn,
+    .today-delete-btn {
+      min-height: 38px;
+      width: 100%;
+      padding: 0.5rem 0.85rem;
+      font-size: 0.84rem;
+      text-align: center;
+    }
+
+    .today-mini-btn[disabled] {
+      opacity: 0.45;
+      cursor: not-allowed;
+      transform: none;
+    }
+
+    .today-calendar-container {
+      display: flex;
+      justify-content: center;
+      width: 100%;
+    }
+
+    .today-calendar-frame {
+      width: min(100%, 1080px);
+      border-radius: 18px;
+      overflow: hidden;
+      background: var(--embed-surface-color);
+      border: 1px solid var(--border-soft);
+      box-shadow: var(--shadow-soft, none);
+    }
+
+    .today-calendar-frame iframe {
+      width: 100%;
+      min-height: 540px;
+      display: block;
+      border: 0;
+      background: var(--embed-surface-color);
+    }
+
+    @media (max-width: 900px) {
+      .today-form-grid,
+      .today-routine-grid {
+        grid-template-columns: 1fr;
+      }
+    }
+
+    @media (max-width: 720px) {
+      .today-task-card {
+        grid-template-columns: auto minmax(0, 1fr);
+      }
+
+      .today-task-actions {
+        grid-column: 2;
+        flex-direction: row;
+        flex-wrap: wrap;
+        justify-content: flex-start;
+        align-items: stretch;
+        min-width: 0;
+      }
+
+      .today-mini-btn,
+      .today-delete-btn {
+        width: auto;
+      }
+    }
+
+    @media (max-width: 640px) {
+      .today-calendar-frame iframe {
+        min-height: 440px;
+      }
+    }
+  </style>
+</BaseLayout>

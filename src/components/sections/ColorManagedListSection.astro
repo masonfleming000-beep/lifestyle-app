@@ -1,0 +1,56 @@
+---
+import SurfaceCard from "../ui/SurfaceCard.astro";
+import SectionHeader from "../SectionHeader.astro";
+import Button from "../ui/Button.astro";
+import FormSection from "./FormSection.astro";
+import type { RendererColorManagedListSectionConfig } from "../../types/ui";
+
+interface Props {
+  section: RendererColorManagedListSectionConfig;
+}
+
+const { section } = Astro.props;
+---
+
+<div class={section.sectionClassName || undefined}>
+  <SurfaceCard id={section.id} class={section.cardClassName || undefined}>
+    <SectionHeader title={section.title} subtitle={section.subtitle} kicker={section.kicker}>
+      {section.restoreAction && (
+        <Button id={section.restoreAction.id} type={section.restoreAction.type || "button"} variant={section.restoreAction.variant || "secondary"} class={section.restoreAction.className || ""}>
+          {section.restoreAction.label}
+        </Button>
+      )}
+    </SectionHeader>
+
+    <FormSection section={{
+      kind: 'form-card',
+      key: `${section.key}-form`,
+      title: section.formTitle || '',
+      subtitle: section.formSubtitle || '',
+      kicker: section.formKicker || '',
+      compact: true,
+      cardClassName: section.formCardClassName || '',
+      fieldsWrapperClassName: section.formFieldsWrapperClassName || '',
+      form: section.form,
+    }}>
+      <div slot="custom-fields" class={section.colorFieldWrapperClassName || undefined}>
+        <span>{section.colorLabel || 'Color'}</span>
+        <input type="hidden" id={section.colorFieldId} name={section.colorFieldName || section.colorFieldId} value={section.defaultColor} />
+
+        <div class:list={["color-picker-row", section.colorPickerClassName]} id={section.colorPickerId}>
+          {section.colorOptions.map((color, index) => (
+            <button
+              type="button"
+              class:list={["color-swatch", index === 0 && color === section.defaultColor && "is-selected"]}
+              data-color={color}
+              style={`background:${color};`}
+              aria-label={`Select ${color}`}
+            ></button>
+          ))}
+        </div>
+      </div>
+    </FormSection>
+
+    <div id={section.listId} class={section.listClassName || undefined}></div>
+  </SurfaceCard>
+</div>

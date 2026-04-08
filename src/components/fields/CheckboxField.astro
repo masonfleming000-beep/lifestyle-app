@@ -1,0 +1,9 @@
+---
+import type { FieldConfig } from '../../lib/ui/types';
+interface Props { field: FieldConfig; }
+const { field } = Astro.props;
+---
+<label class="checklist-card-toggle">
+  <input id={field.id} name={field.name} type="checkbox" checked={Boolean(field.value)} />
+  <span>{field.label}</span>
+</label>

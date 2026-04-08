@@ -1,0 +1,37 @@
+---
+import BaseLayout from "../layouts/BaseLayout.astro";
+import DeclarativePage from "../components/config/DeclarativePage.astro";
+import {
+  fitnessEditableSections,
+  fitnessPageClientConfig,
+  fitnessPageConfig,
+} from "../config/pages/fitness";
+
+const fitnessClientConfig = {
+  pageKey: fitnessPageClientConfig.pageKey,
+  defaults: fitnessPageClientConfig.defaults,
+  sections: fitnessEditableSections,
+};
+---
+
+<BaseLayout
+  title={fitnessPageConfig.meta.title}
+  description={fitnessPageConfig.meta.description}
+>
+  <DeclarativePage config={fitnessPageConfig} />
+
+  <script
+    id="fitness-page-config"
+    type="application/json"
+    set:html={JSON.stringify(fitnessClientConfig)}
+  />
+
+  <script>
+    import { initFitnessPage } from "../lib/client/fitnessPage";
+
+    const configElement = document.getElementById("fitness-page-config");
+    const config = JSON.parse(configElement?.textContent || "{}");
+
+    void initFitnessPage(config);
+  </script>
+</BaseLayout>

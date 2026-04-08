@@ -1,0 +1,18 @@
+---
+import SurfaceCard from "../SurfaceCard.astro";
+import SectionHeader from "../SectionHeader.astro";
+
+interface Props {
+  title: string;
+  subtitle?: string;
+  message?: string;
+  className?: string;
+}
+
+const { title, subtitle = "", message = "Loading...", className = "public-profile-loading-card" } = Astro.props;
+---
+
+<SurfaceCard className={className}>
+  <SectionHeader title={title} subtitle={subtitle} align="start" />
+  <p>{message}</p>
+</SurfaceCard>

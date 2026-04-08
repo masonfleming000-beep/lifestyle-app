@@ -1,0 +1,33 @@
+---
+import ExpandableSection from "../ExpandableSection.astro";
+import EmptyState from "../EmptyState.astro";
+
+interface Props {
+  title: string;
+  countId: string;
+  containerId: string;
+  emptyTitle: string;
+  emptyText: string;
+  open?: boolean;
+  bodyClass?: string;
+  containerClassName?: string;
+}
+
+const {
+  title,
+  countId,
+  containerId,
+  emptyTitle,
+  emptyText,
+  open = false,
+  bodyClass = "",
+  containerClassName = "grid one",
+} = Astro.props;
+---
+
+<ExpandableSection title={title} open={open} bodyClass={bodyClass}>
+  <span slot="summary-actions" id={countId} class="saved-count">0</span>
+  <div id={containerId} class={containerClassName}>
+    <EmptyState compact title={emptyTitle} text={emptyText} />
+  </div>
+</ExpandableSection>

@@ -1,0 +1,296 @@
+---
+/**
+ * Base layout for the app.
+ * Imports global styles, renders the shared navbar,
+ * sets page metadata, and applies global UI/theme settings.
+ * Also handles Capacitor deep-link auth redirect behavior.
+ */
+import "../styles/global.css";
+import Navbar from "../components/Navbar.astro";
+
+interface Props {
+  title?: string;
+  description?: string;
+}
+
+const {
+  title = "Lifestyle App",
+  description = "A clean mobile-first lifestyle dashboard.",
+} = Astro.props;
+---
+
+<!doctype html>
+<html lang="en" data-theme="custom" data-text-size="md">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta name="description" content={description} />
+    <title>{title}</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+      href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap"
+      rel="stylesheet"
+    />
+  </head>
+
+  <body class="surface-background">
+    <Navbar />
+    <main class="site-shell">
+      <slot />
+    </main>
+
+    <script type="module">
+      import { App } from "@capacitor/app";
+      import { Browser } from "@capacitor/browser";
+
+      App.addListener("appUrlOpen", async ({ url }) => {
+        if (url.startsWith("com.lifestyle.app://auth/success")) {
+          await Browser.close();
+          window.location.href = "/dashboard";
+        }
+      });
+    </script>
+
+    <script is:inline>
+      (() => {
+        const root = document.documentElement;
+        const pageKey = window.location.pathname;
+
+        const DEFAULT_UI = {
+          scope: "global",
+          mode: "light",
+          textSize: "md",
+          surfaces: {
+            header: { color: "#ffffff", texture: "solid" },
+            section: { color: "#ffffff", texture: "solid" },
+            background: { color: "#f8fafc", texture: "solid" },
+            dropdown: { color: "#ffffff", texture: "solid" },
+          },
+          components: {
+            navbar: { surface: "header" },
+            hero: { surface: "header" },
+            sectionCard: { surface: "section" },
+            quickLinkCard: { surface: "section" },
+            quoteCard: { surface: "section" },
+            statCard: { surface: "section" },
+            card: { surface: "section" },
+            dropdownCard: { surface: "dropdown" },
+            embed: { surface: "section" },
+            metric: { surface: "section" },
+            input: { surface: "section" },
+          },
+        };
+
+        function safeParse(value, fallback) {
+          try {
+            return value ? JSON.parse(value) : fallback;
+          } catch {
+            return fallback;
+          }
+        }
+
+        function mergeUiSettings(globalUi, pageUi) {
+          return {
+            ...globalUi,
+            ...pageUi,
+            surfaces: {
+              ...globalUi?.surfaces,
+              ...pageUi?.surfaces,
+              header: {
+                ...globalUi?.surfaces?.header,
+                ...pageUi?.surfaces?.header,
+              },
+              section: {
+                ...globalUi?.surfaces?.section,
+                ...pageUi?.surfaces?.section,
+              },
+              background: {
+                ...globalUi?.surfaces?.background,
+                ...pageUi?.surfaces?.background,
+              },
+              dropdown: {
+                ...globalUi?.surfaces?.dropdown,
+                ...pageUi?.surfaces?.dropdown,
+              },
+            },
+            components: {
+              ...globalUi?.components,
+              ...pageUi?.components,
+              navbar: {
+                ...globalUi?.components?.navbar,
+                ...pageUi?.components?.navbar,
+              },
+              hero: {
+                ...globalUi?.components?.hero,
+                ...pageUi?.components?.hero,
+              },
+              sectionCard: {
+                ...globalUi?.components?.sectionCard,
+                ...pageUi?.components?.sectionCard,
+              },
+              quickLinkCard: {
+                ...globalUi?.components?.quickLinkCard,
+                ...pageUi?.components?.quickLinkCard,
+              },
+              quoteCard: {
+                ...globalUi?.components?.quoteCard,
+                ...pageUi?.components?.quoteCard,
+              },
+              statCard: {
+                ...globalUi?.components?.statCard,
+                ...pageUi?.components?.statCard,
+              },
+              card: {
+                ...globalUi?.components?.card,
+                ...pageUi?.components?.card,
+              },
+              dropdownCard: {
+                ...globalUi?.components?.dropdownCard,
+                ...pageUi?.components?.dropdownCard,
+              },
+              embed: {
+                ...globalUi?.components?.embed,
+                ...pageUi?.components?.embed,
+              },
+              metric: {
+                ...globalUi?.components?.metric,
+                ...pageUi?.components?.metric,
+              },
+              input: {
+                ...globalUi?.components?.input,
+                ...pageUi?.components?.input,
+              },
+            },
+          };
+        }
+
+        function normalizeThemeMode(mode) {
+          if (mode === "dark" || mode === "light" || mode === "custom") return mode;
+          return "custom";
+        }
+
+        function applySurfaceColor(name, config) {
+          root.style.setProperty(`--${name}-color`, config?.color || "");
+        }
+
+        function getEffectiveSurfaces(mode, surfaces) {
+          if (mode === "light") {
+            return DEFAULT_UI.surfaces;
+          }
+
+          return surfaces;
+        }
+
+        function applyUiSettings(settings) {
+          const ui = {
+            ...DEFAULT_UI,
+            ...(settings || {}),
+            surfaces: {
+              ...DEFAULT_UI.surfaces,
+              ...(settings?.surfaces || {}),
+              header: {
+                ...DEFAULT_UI.surfaces.header,
+                ...(settings?.surfaces?.header || {}),
+              },
+              section: {
+                ...DEFAULT_UI.surfaces.section,
+                ...(settings?.surfaces?.section || {}),
+              },
+              background: {
+                ...DEFAULT_UI.surfaces.background,
+                ...(settings?.surfaces?.background || {}),
+              },
+              dropdown: {
+                ...DEFAULT_UI.surfaces.dropdown,
+                ...(settings?.surfaces?.dropdown || {}),
+              },
+            },
+            components: {
+              ...DEFAULT_UI.components,
+              ...(settings?.components || {}),
+              navbar: {
+                ...DEFAULT_UI.components.navbar,
+                ...(settings?.components?.navbar || {}),
+              },
+              hero: {
+                ...DEFAULT_UI.components.hero,
+                ...(settings?.components?.hero || {}),
+              },
+              sectionCard: {
+                ...DEFAULT_UI.components.sectionCard,
+                ...(settings?.components?.sectionCard || {}),
+              },
+              quickLinkCard: {
+                ...DEFAULT_UI.components.quickLinkCard,
+                ...(settings?.components?.quickLinkCard || {}),
+              },
+              quoteCard: {
+                ...DEFAULT_UI.components.quoteCard,
+                ...(settings?.components?.quoteCard || {}),
+              },
+              statCard: {
+                ...DEFAULT_UI.components.statCard,
+                ...(settings?.components?.statCard || {}),
+              },
+              card: {
+                ...DEFAULT_UI.components.card,
+                ...(settings?.components?.card || {}),
+              },
+              dropdownCard: {
+                ...DEFAULT_UI.components.dropdownCard,
+                ...(settings?.components?.dropdownCard || {}),
+              },
+              embed: {
+                ...DEFAULT_UI.components.embed,
+                ...(settings?.components?.embed || {}),
+              },
+              metric: {
+                ...DEFAULT_UI.components.metric,
+                ...(settings?.components?.metric || {}),
+              },
+              input: {
+                ...DEFAULT_UI.components.input,
+                ...(settings?.components?.input || {}),
+              },
+            },
+          };
+
+          const resolvedMode = normalizeThemeMode(ui.mode);
+          const effectiveSurfaces = getEffectiveSurfaces(resolvedMode, ui.surfaces);
+
+          root.dataset.theme = resolvedMode;
+          root.dataset.textSize = ui.textSize || "md";
+
+          root.dataset.headerTexture = effectiveSurfaces.header?.texture || "solid";
+          root.dataset.sectionTexture = effectiveSurfaces.section?.texture || "solid";
+          root.dataset.backgroundTexture = effectiveSurfaces.background?.texture || "solid";
+          root.dataset.dropdownTexture = effectiveSurfaces.dropdown?.texture || "solid";
+
+          root.dataset.navbarSurface = ui.components.navbar?.surface || "header";
+          root.dataset.heroSurface = ui.components.hero?.surface || "header";
+          root.dataset.sectionCardSurface = ui.components.sectionCard?.surface || "section";
+          root.dataset.quickLinkCardSurface = ui.components.quickLinkCard?.surface || "section";
+          root.dataset.quoteCardSurface = ui.components.quoteCard?.surface || "section";
+          root.dataset.statCardSurface = ui.components.statCard?.surface || "section";
+          root.dataset.cardSurface = ui.components.card?.surface || "section";
+          root.dataset.dropdownCardSurface = ui.components.dropdownCard?.surface || "dropdown";
+          root.dataset.embedSurface = ui.components.embed?.surface || "section";
+          root.dataset.metricSurface = ui.components.metric?.surface || "section";
+          root.dataset.inputSurface = ui.components.input?.surface || "section";
+
+          applySurfaceColor("header", effectiveSurfaces.header);
+          applySurfaceColor("section", effectiveSurfaces.section);
+          applySurfaceColor("background", effectiveSurfaces.background);
+          applySurfaceColor("dropdown", effectiveSurfaces.dropdown);
+        }
+
+        const globalUi = safeParse(localStorage.getItem("app-ui-settings"), DEFAULT_UI);
+        const pageUi = safeParse(localStorage.getItem(`app-ui-page-settings:${pageKey}`), {});
+        const mergedUi = mergeUiSettings(globalUi, pageUi);
+
+        applyUiSettings(mergedUi);
+      })();
+    </script>
+  </body>
+</html>

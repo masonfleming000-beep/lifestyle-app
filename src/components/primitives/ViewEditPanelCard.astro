@@ -1,0 +1,43 @@
+---
+import SurfaceCard from "../SurfaceCard.astro";
+import SectionHeader from "../SectionHeader.astro";
+import Button from "../Button.astro";
+
+interface Props {
+  title: string;
+  subtitle?: string;
+  viewPanelId: string;
+  editPanelId: string;
+  toggleButtonId?: string;
+  toggleLabel?: string;
+  editButtonId?: string;
+  editLabel?: string;
+  cardClassName?: string;
+}
+
+const {
+  title,
+  subtitle = '',
+  viewPanelId,
+  editPanelId,
+  toggleButtonId,
+  toggleLabel = 'Collapse',
+  editButtonId,
+  editLabel = 'Edit',
+  cardClassName = '',
+} = Astro.props;
+---
+
+<SurfaceCard className={cardClassName}>
+  <SectionHeader title={title} subtitle={subtitle}>
+    <slot name="header-actions" />
+    {toggleButtonId && <Button id={toggleButtonId} type="button" variant="secondary">{toggleLabel}</Button>}
+    {editButtonId && <Button id={editButtonId} type="button" variant="primary">{editLabel}</Button>}
+  </SectionHeader>
+
+  <slot name="before-view" />
+  <div id={viewPanelId}></div>
+  <div id={editPanelId} hidden>
+    <slot name="edit" />
+  </div>
+</SurfaceCard>

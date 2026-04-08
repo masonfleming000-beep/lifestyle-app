@@ -1,0 +1,525 @@
+---
+/**
+ * Main homepage/dashboard for the app.
+ * Introduces the lifestyle system and provides quick access
+ * to major sections like Today, Fitness, Nutrition, Mind, and more.
+ */
+import ActionBar from "../components/ActionBar.astro";
+import BaseLayout from "../layouts/BaseLayout.astro";
+import Button from "../components/Button.astro";
+import ExpandableSection from "../components/ExpandableSection.astro";
+import FormCard from "../components/FormCard.astro";
+import PageHero from "../components/PageHero.astro";
+import QuickLinkCard from "../components/QuickLinkCard.astro";
+import SectionHeader from "../components/SectionHeader.astro";
+import SurfaceCard from "../components/SurfaceCard.astro";
+import { quotes, morals } from "../data/home";
+
+const navCards = [
+  { href: "/today", title: "Today", text: "Daily dashboard, routines, and priorities." },
+  { href: "/fitness", title: "Fitness", text: "Training hub for running and lifting." },
+  { href: "/nutrition", title: "Nutrition", text: "Macros, food reminders, and tracking." },
+  { href: "/mind", title: "Mind", text: "Recovery, yoga, and calming techniques." },
+  { href: "/education", title: "Education", text: "Classes, school goals, and planning." },
+  { href: "/work", title: "Work", text: "Tasks, meetings, sections, and deadlines." },
+  { href: "/career", title: "Career", text: "Professional direction, projects, and skills." },
+  { href: "/hobbies", title: "Hobbies", text: "Personal interests and development." },
+];
+
+const defaultQuotes = JSON.stringify(quotes);
+const defaultMorals = JSON.stringify(morals);
+---
+
+<BaseLayout title="Home | Lifestyle App" description="Personal lifestyle home page">
+  <PageHero
+    kicker="Home"
+    title="Your life, organized simply."
+    description="Use this page as the main hub. Tap into each area below."
+  >
+    <div class="page-hero-actions">
+      <Button href="/today" variant="primary">Open Today</Button>
+      <Button href="/career" variant="secondary">Career Hub</Button>
+    </div>
+  </PageHero>
+
+  <section class="section">
+    <SurfaceCard>
+      <SectionHeader title="Navigate" subtitle="Choose a section.">
+        <ActionBar align="end" wrap={true}>
+          <button
+            type="button"
+            class="button-secondary view-btn is-active"
+            data-view-btn="grid"
+            aria-pressed="true"
+          >
+            Grid
+          </button>
+          <button
+            type="button"
+            class="button-secondary view-btn"
+            data-view-btn="list"
+            aria-pressed="false"
+          >
+            List
+          </button>
+        </ActionBar>
+      </SectionHeader>
+
+      <div id="nav-cards" class="quick-links-grid quick-links-grid--grid">
+        {navCards.map((card) => (
+          <QuickLinkCard href={card.href} title={card.title} text={card.text} />
+        ))}
+      </div>
+    </SurfaceCard>
+  </section>
+
+  <section class="section">
+    <ExpandableSection
+      title="Featured Quotes"
+      subtitle="Open when you want perspective."
+      open={true}
+    >
+      <FormCard formId="quote-form" title="Add Quote" submitLabel="Add Quote">
+        <input id="quote-text" type="text" placeholder="Quote text" required />
+        <input id="quote-author" type="text" placeholder="Author or reminder source" />
+      </FormCard>
+
+      <ActionBar class="section-inline-actions" align="start">
+        <Button id="restore-quotes-btn" type="button" variant="secondary">
+          Restore Default Quotes
+        </Button>
+      </ActionBar>
+
+      <div id="quotes-list" class="grid three"></div>
+    </ExpandableSection>
+  </section>
+
+  <section class="section">
+    <ExpandableSection
+      title="Core Reminders"
+      subtitle="Keep these tucked away until needed."
+    >
+      <FormCard formId="reminder-form" title="Add Core Reminder" submitLabel="Add Reminder">
+        <input id="reminder-title" type="text" placeholder="Reminder title" required />
+        <textarea id="reminder-text" placeholder="Reminder details" rows="4" required></textarea>
+      </FormCard>
+
+      <ActionBar class="section-inline-actions" align="start">
+        <Button id="restore-reminders-btn" type="button" variant="secondary">
+          Restore Default Reminders
+        </Button>
+      </ActionBar>
+
+      <div id="reminders-list" class="grid three"></div>
+    </ExpandableSection>
+  </section>
+
+  <script define:vars={{ defaultQuotes, defaultMorals }}>
+    const pageKey = "home";
+    const navViewStorageKey = "home-nav-view";
+
+    const quotesList = document.getElementById("quotes-list");
+    const remindersList = document.getElementById("reminders-list");
+
+    const quoteForm = document.getElementById("quote-form");
+    const quoteTextInput = document.getElementById("quote-text");
+    const quoteAuthorInput = document.getElementById("quote-author");
+    const restoreQuotesBtn = document.getElementById("restore-quotes-btn");
+
+    const reminderForm = document.getElementById("reminder-form");
+    const reminderTitleInput = document.getElementById("reminder-title");
+    const reminderTextInput = document.getElementById("reminder-text");
+    const restoreRemindersBtn = document.getElementById("restore-reminders-btn");
+
+    const navCardsContainer = document.getElementById("nav-cards");
+    const viewButtons = document.querySelectorAll("[data-view-btn]");
+
+    const defaultQuoteItems = JSON.parse(defaultQuotes);
+    const defaultMoralItems = JSON.parse(defaultMorals);
+
+    function quoteKey(q) {
+      return `${q.text}::${q.author || ""}`;
+    }
+
+    function moralKey(m) {
+      return `${m.title}::${m.text}`;
+    }
+
+    const defaultQuoteKeySet = new Set(defaultQuoteItems.map(quoteKey));
+    const defaultMoralKeySet = new Set(defaultMoralItems.map(moralKey));
+
+    let state = {
+      quotes: [],
+      morals: [],
+      removedDefaultQuotes: [],
+      removedDefaultMorals: [],
+    };
+
+    function normalizeState(saved) {
+      return {
+        quotes: Array.isArray(saved?.quotes) ? saved.quotes : [],
+        morals: Array.isArray(saved?.morals) ? saved.morals : [],
+        removedDefaultQuotes: Array.isArray(saved?.removedDefaultQuotes) ? saved.removedDefaultQuotes : [],
+        removedDefaultMorals: Array.isArray(saved?.removedDefaultMorals) ? saved.removedDefaultMorals : [],
+      };
+    }
+
+    function mergeDefaults(savedItems, defaultItems, removedKeys, keyFn) {
+      const removedSet = new Set(removedKeys || []);
+      const merged = [...(savedItems || [])];
+      const existingKeys = new Set(merged.map(keyFn));
+
+      defaultItems.forEach((defaultItem) => {
+        const key = keyFn(defaultItem);
+        if (removedSet.has(key)) return;
+        if (existingKeys.has(key)) return;
+
+        merged.push(defaultItem);
+        existingKeys.add(key);
+      });
+
+      return merged;
+    }
+
+    function dedupeBy(items, keyFn) {
+      const seen = new Set();
+      return (items || []).filter((item) => {
+        const key = keyFn(item);
+        if (seen.has(key)) return false;
+        seen.add(key);
+        return true;
+      });
+    }
+
+    async function loadState() {
+      try {
+        const res = await fetch(`/api/state?pageKey=${encodeURIComponent(pageKey)}`, {
+          credentials: "include",
+        });
+
+        if (!res.ok) return null;
+
+        const data = await res.json();
+        return data?.state ?? null;
+      } catch (error) {
+        console.error("Failed to load state:", error);
+        return null;
+      }
+    }
+
+    async function saveState() {
+      try {
+        await fetch("/api/state", {
+          method: "POST",
+          credentials: "include",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ pageKey, state }),
+        });
+      } catch (error) {
+        console.error("Failed to save state:", error);
+      }
+    }
+
+    function saveStateOnLeave() {
+      try {
+        navigator.sendBeacon(
+          "/api/state",
+          new Blob([JSON.stringify({ pageKey, state })], {
+            type: "application/json",
+          })
+        );
+      } catch (error) {
+        console.error("Failed to save on leave:", error);
+      }
+    }
+
+    function escapeHtml(value) {
+      return String(value)
+        .replaceAll("&", "&amp;")
+        .replaceAll("<", "&lt;")
+        .replaceAll(">", "&gt;")
+        .replaceAll('"', "&quot;")
+        .replaceAll("'", "&#039;");
+    }
+
+    function setNavView(view) {
+      if (!navCardsContainer) return;
+
+      const normalizedView = view === "list" ? "list" : "grid";
+
+      navCardsContainer.classList.remove("quick-links-grid--grid", "quick-links-grid--list");
+      navCardsContainer.classList.add(`quick-links-grid--${normalizedView}`);
+
+      viewButtons.forEach((button) => {
+        const isActive = button.getAttribute("data-view-btn") === normalizedView;
+        button.classList.toggle("is-active", isActive);
+        button.setAttribute("aria-pressed", String(isActive));
+      });
+
+      localStorage.setItem(navViewStorageKey, normalizedView);
+    }
+
+    function initNavView() {
+      const savedView = localStorage.getItem(navViewStorageKey);
+      setNavView(savedView === "list" ? "list" : "grid");
+
+      viewButtons.forEach((button) => {
+        button.addEventListener("click", () => {
+          const view = button.getAttribute("data-view-btn");
+          setNavView(view);
+        });
+      });
+    }
+
+    function renderQuotes() {
+      if (!quotesList) return;
+      quotesList.innerHTML = "";
+
+      state.quotes.forEach((quote, index) => {
+        const article = document.createElement("article");
+        article.className = "quote-card surface-section home-quote-card";
+
+        article.innerHTML = `
+          <div>
+            <p class="quote-text">“${escapeHtml(quote.text)}”</p>
+            <span class="quote-author">${escapeHtml(quote.author || "Personal reminder")}</span>
+          </div>
+          <button class="button-secondary delete-btn" data-quote-index="${index}" type="button">Remove</button>
+        `;
+
+        quotesList.appendChild(article);
+      });
+
+      quotesList.querySelectorAll("[data-quote-index]").forEach((btn) => {
+        btn.addEventListener("click", async (event) => {
+          const index = Number(event.currentTarget.getAttribute("data-quote-index"));
+          const item = state.quotes[index];
+          if (!item) return;
+
+          const key = quoteKey(item);
+
+          state.quotes.splice(index, 1);
+
+          if (defaultQuoteKeySet.has(key) && !state.removedDefaultQuotes.includes(key)) {
+            state.removedDefaultQuotes.push(key);
+          }
+
+          renderQuotes();
+          await saveState();
+        });
+      });
+    }
+
+    function renderMorals() {
+      if (!remindersList) return;
+      remindersList.innerHTML = "";
+
+      state.morals.forEach((item, index) => {
+        const article = document.createElement("article");
+        article.className = "note-card note-card-padded home-reminder-card";
+
+        article.innerHTML = `
+          <div>
+            <h3 class="card-title">${escapeHtml(item.title)}</h3>
+            <p>${escapeHtml(item.text)}</p>
+          </div>
+          <button class="button-secondary delete-btn" data-reminder-index="${index}" type="button">Remove</button>
+        `;
+
+        remindersList.appendChild(article);
+      });
+
+      remindersList.querySelectorAll("[data-reminder-index]").forEach((btn) => {
+        btn.addEventListener("click", async (event) => {
+          const index = Number(event.currentTarget.getAttribute("data-reminder-index"));
+          const item = state.morals[index];
+          if (!item) return;
+
+          const key = moralKey(item);
+
+          state.morals.splice(index, 1);
+
+          if (defaultMoralKeySet.has(key) && !state.removedDefaultMorals.includes(key)) {
+            state.removedDefaultMorals.push(key);
+          }
+
+          renderMorals();
+          await saveState();
+        });
+      });
+    }
+
+    quoteForm?.addEventListener("submit", async (event) => {
+      event.preventDefault();
+
+      const text = quoteTextInput?.value.trim();
+      const author = quoteAuthorInput?.value.trim() || "Personal reminder";
+      if (!text) return;
+
+      const newQuote = { text, author };
+      const newKey = quoteKey(newQuote);
+
+      state.quotes = dedupeBy([newQuote, ...state.quotes], quoteKey);
+      state.removedDefaultQuotes = state.removedDefaultQuotes.filter((key) => key !== newKey);
+
+      renderQuotes();
+      quoteForm.reset();
+      await saveState();
+    });
+
+    reminderForm?.addEventListener("submit", async (event) => {
+      event.preventDefault();
+
+      const title = reminderTitleInput?.value.trim();
+      const text = reminderTextInput?.value.trim();
+      if (!title || !text) return;
+
+      const newReminder = { title, text };
+      const newKey = moralKey(newReminder);
+
+      state.morals = dedupeBy([newReminder, ...state.morals], moralKey);
+      state.removedDefaultMorals = state.removedDefaultMorals.filter((key) => key !== newKey);
+
+      renderMorals();
+      reminderForm.reset();
+      await saveState();
+    });
+
+    restoreQuotesBtn?.addEventListener("click", async () => {
+      state.removedDefaultQuotes = [];
+      state.quotes = mergeDefaults(
+        state.quotes,
+        defaultQuoteItems,
+        state.removedDefaultQuotes,
+        quoteKey
+      );
+      state.quotes = dedupeBy(state.quotes, quoteKey);
+      renderQuotes();
+      await saveState();
+    });
+
+    restoreRemindersBtn?.addEventListener("click", async () => {
+      state.removedDefaultMorals = [];
+      state.morals = mergeDefaults(
+        state.morals,
+        defaultMoralItems,
+        state.removedDefaultMorals,
+        moralKey
+      );
+      state.morals = dedupeBy(state.morals, moralKey);
+      renderMorals();
+      await saveState();
+    });
+
+    window.addEventListener("pagehide", saveStateOnLeave);
+    window.addEventListener("beforeunload", saveStateOnLeave);
+
+    async function init() {
+      const saved = normalizeState(await loadState());
+
+      state = {
+        quotes: mergeDefaults(
+          saved.quotes,
+          defaultQuoteItems,
+          saved.removedDefaultQuotes,
+          quoteKey
+        ),
+        morals: mergeDefaults(
+          saved.morals,
+          defaultMoralItems,
+          saved.removedDefaultMorals,
+          moralKey
+        ),
+        removedDefaultQuotes: [...saved.removedDefaultQuotes],
+        removedDefaultMorals: [...saved.removedDefaultMorals],
+      };
+
+      state.quotes = dedupeBy(state.quotes, quoteKey);
+      state.morals = dedupeBy(state.morals, moralKey);
+
+      initNavView();
+      renderQuotes();
+      renderMorals();
+    }
+
+    init();
+  </script>
+
+  <style>
+    .page-hero-actions {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 0.75rem;
+      margin-top: 0.85rem;
+    }
+
+    .view-switcher {
+      display: inline-flex;
+      align-items: center;
+      gap: 0.5rem;
+      flex-wrap: wrap;
+    }
+
+    .view-btn.is-active {
+      filter: brightness(1.08);
+    }
+
+    .quick-links-grid {
+      align-items: stretch;
+      margin-top: 1rem;
+    }
+
+    .quick-links-grid--grid {
+      display: grid;
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+      gap: 1rem;
+    }
+
+    .quick-links-grid--list {
+      display: grid;
+      grid-template-columns: 1fr;
+      gap: 0.85rem;
+    }
+
+    .section-inline-actions {
+      margin: 0 0 1rem 0;
+    }
+
+    .home-quote-card,
+    .home-reminder-card {
+      display: flex;
+      flex-direction: column;
+      gap: 0.9rem;
+      justify-content: space-between;
+      height: 100%;
+    }
+
+    .home-reminder-card p,
+    .home-quote-card .quote-text,
+    .home-quote-card .quote-author {
+      margin: 0;
+    }
+
+    .home-quote-card .quote-author {
+      display: inline-block;
+      margin-top: 0.5rem;
+      color: var(--text-secondary);
+      font-size: 0.95rem;
+    }
+
+    .home-reminder-card .card-title {
+      margin: 0 0 0.45rem;
+    }
+
+    .home-quote-card .delete-btn,
+    .home-reminder-card .delete-btn {
+      align-self: flex-start;
+    }
+
+    @media (max-width: 720px) {
+      .quick-links-grid--grid {
+        grid-template-columns: 1fr;
+      }
+    }
+  </style>
+</BaseLayout>
