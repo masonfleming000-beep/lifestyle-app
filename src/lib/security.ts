@@ -3,7 +3,6 @@ import crypto from "node:crypto";
 const rateLimitStore = new Map<string, { count: number; resetAt: number }>();
 
 const APP_URL = import.meta.env.PUBLIC_APP_URL || import.meta.env.APP_URL || "";
-//const HOST = import.meta.env.HOST || "";
 const PUBLIC_FRAME_ANCESTORS = String(import.meta.env.PUBLIC_FRAME_ANCESTORS || "");
 const INVITE_ONLY = String(import.meta.env.INVITE_ONLY || "true").toLowerCase() === "true";
 const ALLOWED_SIGNUP_EMAILS = new Set(
@@ -22,6 +21,160 @@ const RESERVED_PAGE_KEYS = new Set([
   "weightlifting",
   "workouts",
 ]);
+
+const DEFAULT_NATIVE_ORIGINS = ["capacitor://localhost", "ionic://localhost"];
+
+type OriginDecision = {
+  trusted: boolean;
+  reason: string;
+  matchedOrigin?: string;
+  candidateOrigin?: string;
+  allowedOrigins: string[];
+};
+
+function splitEnvList(...values: Array<string | undefined>) {
+  return values
+    .flatMap((value) => String(value || "").split(","))
+    .map((value) => value.trim())
+    .filter(Boolean);
+}
+
+function normalizeOriginValue(value: string) {
+  const trimmed = String(value || "").trim();
+  if (!trimmed) return null;
+
+  try {
+    return new URL(trimmed).origin;
+  } catch {
+    return null;
+  }
+}
+
+function safeParseUrl(value: string | null) {
+  if (!value) return null;
+
+  try {
+    return new URL(value);
+  } catch {
+    return null;
+  }
+}
+
+function getConfiguredAllowedOrigins(requestUrl: URL) {
+  const allowed = new Set<string>([requestUrl.origin]);
+
+  for (const value of splitEnvList(
+    import.meta.env.APP_URL,
+    import.meta.env.PUBLIC_APP_URL,
+    APP_URL,
+    import.meta.env.ALLOWED_ORIGINS,
+    import.meta.env.NATIVE_ALLOWED_ORIGINS,
+    import.meta.env.PUBLIC_NATIVE_ALLOWED_ORIGINS
+  )) {
+    const normalized = normalizeOriginValue(value);
+    if (normalized) allowed.add(normalized);
+  }
+
+  for (const value of DEFAULT_NATIVE_ORIGINS) {
+    const normalized = normalizeOriginValue(value);
+    if (normalized) allowed.add(normalized);
+  }
+
+  return allowed;
+}
+
+function deriveCandidateOrigin(request: Request, requestUrl: URL) {
+  const originHeader = request.headers.get("origin");
+  if (originHeader) {
+    const parsed = normalizeOriginValue(originHeader);
+    if (parsed) {
+      return { candidateOrigin: parsed, source: "origin" as const };
+    }
+
+    return { candidateOrigin: null, source: "origin-invalid" as const };
+  }
+
+  const referer = safeParseUrl(request.headers.get("referer"));
+  if (referer) {
+    return { candidateOrigin: referer.origin, source: "referer" as const };
+  }
+
+  const forwardedProto = request.headers.get("x-forwarded-proto")?.split(",")[0]?.trim();
+  const forwardedHost = request.headers.get("x-forwarded-host")?.split(",")[0]?.trim();
+  if (forwardedProto && forwardedHost) {
+    const forwarded = normalizeOriginValue(`${forwardedProto}://${forwardedHost}`);
+    if (forwarded) {
+      return { candidateOrigin: forwarded, source: "forwarded" as const };
+    }
+  }
+
+  const host = request.headers.get("host")?.split(",")[0]?.trim();
+  if (host) {
+    const proto = requestUrl.protocol || "https:";
+    const hostOrigin = normalizeOriginValue(`${proto}//${host}`);
+    if (hostOrigin) {
+      return { candidateOrigin: hostOrigin, source: "host" as const };
+    }
+  }
+
+  return { candidateOrigin: null, source: "missing" as const };
+}
+
+export function explainTrustedOriginDecision(request: Request): OriginDecision {
+  const method = request.method.toUpperCase();
+  const requestUrl = new URL(request.url);
+  const allowedOrigins = Array.from(getConfiguredAllowedOrigins(requestUrl)).sort();
+
+  if (["GET", "HEAD", "OPTIONS"].includes(method)) {
+    return {
+      trusted: true,
+      reason: "safe-method",
+      matchedOrigin: requestUrl.origin,
+      candidateOrigin: requestUrl.origin,
+      allowedOrigins,
+    };
+  }
+
+  const secFetchSite = String(request.headers.get("sec-fetch-site") || "").toLowerCase();
+  const { candidateOrigin, source } = deriveCandidateOrigin(request, requestUrl);
+
+  if (!request.headers.get("origin") && !request.headers.get("referer")) {
+    if (secFetchSite === "same-origin" || secFetchSite === "none") {
+      return {
+        trusted: true,
+        reason: `missing-origin-allowed:${secFetchSite || "no-fetch-site"}`,
+        matchedOrigin: requestUrl.origin,
+        candidateOrigin: requestUrl.origin,
+        allowedOrigins,
+      };
+    }
+  }
+
+  if (!candidateOrigin) {
+    return {
+      trusted: false,
+      reason: `no-parseable-origin:${source}`,
+      allowedOrigins,
+    };
+  }
+
+  if (allowedOrigins.includes(candidateOrigin)) {
+    return {
+      trusted: true,
+      reason: `matched:${source}`,
+      matchedOrigin: candidateOrigin,
+      candidateOrigin,
+      allowedOrigins,
+    };
+  }
+
+  return {
+    trusted: false,
+    reason: `origin-not-allowed:${source}`,
+    candidateOrigin,
+    allowedOrigins,
+  };
+}
 
 export function normalizeEmail(email: string) {
   return email.trim().toLowerCase();
@@ -52,48 +205,7 @@ export function getClientIp(request: Request) {
 }
 
 export function isTrustedOrigin(request: Request) {
-  const method = request.method.toUpperCase();
-  if (["GET", "HEAD", "OPTIONS"].includes(method)) return true;
-
-  const originHeader = request.headers.get("origin");
-  if (!originHeader) return true;
-
-  const requestUrl = new URL(request.url);
-  const allowedOrigins = new Set<string>();
-
-  allowedOrigins.add(requestUrl.origin);
-
-  if (APP_URL) {
-    try {
-      allowedOrigins.add(new URL(APP_URL).origin);
-    } catch {}
-  }
-
-  /*if (HOST) {
-    const hostValue =
-      HOST.startsWith("http://") || HOST.startsWith("https://") ? HOST : `https://${HOST}`;
-    try {
-      allowedOrigins.add(new URL(hostValue).origin);
-    } catch {}
-  }*/
-
-  const extraOrigins = String(import.meta.env.ALLOWED_ORIGINS || "")
-    .split(",")
-    .map((value) => value.trim())
-    .filter(Boolean);
-
-  for (const value of extraOrigins) {
-    try {
-      allowedOrigins.add(new URL(value).origin);
-    } catch {}
-  }
-
-  try {
-    const origin = new URL(originHeader).origin;
-    return allowedOrigins.has(origin);
-  } catch {
-    return false;
-  }
+  return explainTrustedOriginDecision(request).trusted;
 }
 
 export function consumeRateLimit(options: {

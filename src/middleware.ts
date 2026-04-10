@@ -1,6 +1,10 @@
 import { defineMiddleware } from "astro:middleware";
 import { getCurrentUser } from "./lib/auth";
-import { buildSecurityHeaders, createRequestId, isTrustedOrigin } from "./lib/security";
+import {
+  buildSecurityHeaders,
+  createRequestId,
+  explainTrustedOriginDecision,
+} from "./lib/security";
 
 const PUBLIC_PATHS = new Set([
   "/",
@@ -147,8 +151,24 @@ export const onRequest = defineMiddleware(async (context, next) => {
   const requestId = createRequestId();
   context.locals.requestId = requestId;
 
-  if (!isTrustedOrigin(context.request)) {
-    return new Response(JSON.stringify({ error: "Invalid request origin." }), {
+  const originDecision = explainTrustedOriginDecision(context.request);
+  if (!originDecision.trusted) {
+    console.warn("Blocked untrusted request origin", {
+      requestId,
+      method: context.request.method,
+      path: context.url.pathname,
+      reason: originDecision.reason,
+      candidateOrigin: originDecision.candidateOrigin || null,
+      allowedOrigins: originDecision.allowedOrigins,
+      originHeader: context.request.headers.get("origin"),
+      referer: context.request.headers.get("referer"),
+      secFetchSite: context.request.headers.get("sec-fetch-site"),
+      host: context.request.headers.get("host"),
+      forwardedHost: context.request.headers.get("x-forwarded-host"),
+      forwardedProto: context.request.headers.get("x-forwarded-proto"),
+    });
+
+    return new Response(JSON.stringify({ error: "Invalid request origin.", requestId }), {
       status: 403,
       headers: {
         "Content-Type": "application/json",
