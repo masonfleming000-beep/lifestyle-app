@@ -23,3 +23,9 @@ NATIVE_ALLOWED_ORIGINS=capacitor://localhost,ionic://localhost
 
 ## Why this is safer than disabling origin checks
 This patch broadens trust only to explicitly configured or same-origin cases and keeps clear rejection behavior for unknown origins.
+
+
+Second-pass hardening:
+- Treats invalid or `Origin: null` values as fallback cases instead of immediate hard failures.
+- Falls back to Referer, forwarded host/proto, then Host when Origin is malformed or non-URL.
+- Allows constrained same-origin/native cases when Sec-Fetch-Site indicates same-origin or none.

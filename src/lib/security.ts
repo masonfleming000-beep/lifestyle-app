@@ -84,19 +84,20 @@ function getConfiguredAllowedOrigins(requestUrl: URL) {
 }
 
 function deriveCandidateOrigin(request: Request, requestUrl: URL) {
-  const originHeader = request.headers.get("origin");
+  const originHeader = request.headers.get("origin")?.trim() || "";
   if (originHeader) {
     const parsed = normalizeOriginValue(originHeader);
     if (parsed) {
       return { candidateOrigin: parsed, source: "origin" as const };
     }
-
-    return { candidateOrigin: null, source: "origin-invalid" as const };
   }
 
   const referer = safeParseUrl(request.headers.get("referer"));
   if (referer) {
-    return { candidateOrigin: referer.origin, source: "referer" as const };
+    return {
+      candidateOrigin: referer.origin,
+      source: originHeader ? ("referer-after-invalid-origin" as const) : ("referer" as const),
+    };
   }
 
   const forwardedProto = request.headers.get("x-forwarded-proto")?.split(",")[0]?.trim();
@@ -104,7 +105,10 @@ function deriveCandidateOrigin(request: Request, requestUrl: URL) {
   if (forwardedProto && forwardedHost) {
     const forwarded = normalizeOriginValue(`${forwardedProto}://${forwardedHost}`);
     if (forwarded) {
-      return { candidateOrigin: forwarded, source: "forwarded" as const };
+      return {
+        candidateOrigin: forwarded,
+        source: originHeader ? ("forwarded-after-invalid-origin" as const) : ("forwarded" as const),
+      };
     }
   }
 
@@ -113,11 +117,17 @@ function deriveCandidateOrigin(request: Request, requestUrl: URL) {
     const proto = requestUrl.protocol || "https:";
     const hostOrigin = normalizeOriginValue(`${proto}//${host}`);
     if (hostOrigin) {
-      return { candidateOrigin: hostOrigin, source: "host" as const };
+      return {
+        candidateOrigin: hostOrigin,
+        source: originHeader ? ("host-after-invalid-origin" as const) : ("host" as const),
+      };
     }
   }
 
-  return { candidateOrigin: null, source: "missing" as const };
+  return {
+    candidateOrigin: null,
+    source: originHeader ? ("origin-invalid-no-fallback" as const) : ("missing" as const),
+  };
 }
 
 export function explainTrustedOriginDecision(request: Request): OriginDecision {
@@ -138,13 +148,38 @@ export function explainTrustedOriginDecision(request: Request): OriginDecision {
   const secFetchSite = String(request.headers.get("sec-fetch-site") || "").toLowerCase();
   const { candidateOrigin, source } = deriveCandidateOrigin(request, requestUrl);
 
-  if (!request.headers.get("origin") && !request.headers.get("referer")) {
+  const originHeader = request.headers.get("origin")?.trim() || "";
+  const refererHeader = request.headers.get("referer")?.trim() || "";
+
+  if (!originHeader && !refererHeader) {
     if (secFetchSite === "same-origin" || secFetchSite === "none") {
       return {
         trusted: true,
         reason: `missing-origin-allowed:${secFetchSite || "no-fetch-site"}`,
         matchedOrigin: requestUrl.origin,
         candidateOrigin: requestUrl.origin,
+        allowedOrigins,
+      };
+    }
+  }
+
+  if (originHeader.toLowerCase() === "null") {
+    if (candidateOrigin && allowedOrigins.includes(candidateOrigin)) {
+      return {
+        trusted: true,
+        reason: `matched-fallback-after-null-origin:${source}`,
+        matchedOrigin: candidateOrigin,
+        candidateOrigin,
+        allowedOrigins,
+      };
+    }
+
+    if (secFetchSite === "same-origin" || secFetchSite === "none") {
+      return {
+        trusted: true,
+        reason: `null-origin-allowed:${secFetchSite || "no-fetch-site"}`,
+        matchedOrigin: requestUrl.origin,
+        candidateOrigin: candidateOrigin || requestUrl.origin,
         allowedOrigins,
       };
     }
