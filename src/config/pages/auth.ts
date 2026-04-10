@@ -137,7 +137,7 @@ export const loginClientConfig = (message = ""): AuthClientConfig => ({
   requestBodyFields: ["email", "password"],
   successMessage: "Login successful. Redirecting...",
   genericErrorMessage: "Login failed.",
-  successRedirectTo: "/",
+  successRedirectTo: "/home",
   initialMessage: message,
   initialError: false,
 });

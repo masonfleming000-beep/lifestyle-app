@@ -5,7 +5,7 @@
  * and padded body content for displaying notes or grouped information.
  */
 const links = [
-  { href: "/", label: "Home" },
+  { href: "/home", label: "Home" },
   { href: "/today", label: "Today" },
   { href: "/fitness", label: "Fitness" },
   { href: "/nutrition", label: "Nutrition" },
@@ -22,12 +22,12 @@ const currentPage =
   links.find((link) => link.href === currentPath)?.label ??
   (currentPath.startsWith("/profile/") ? "My Profile" : "Menu");
 
-const isHomePage = currentPath === "/";
+const isHomePage = currentPath === "/home";
 ---
 
 <header class="topbar surface-header">
   <div class="topbar-inner compact">
-    <a href="/" class="brand">
+    <a href="/home" class="brand">
       <span class="brand-mark">LIFE</span>
       <div>
         <p class="brand-kicker">Lifestyle</p>

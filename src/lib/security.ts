@@ -68,8 +68,8 @@ export function isTrustedOrigin(request: Request) {
       allowedOrigins.add(new URL(APP_URL).origin);
     } catch {}
   }
-/*
-  if (HOST) {
+
+  /*if (HOST) {
     const hostValue =
       HOST.startsWith("http://") || HOST.startsWith("https://") ? HOST : `https://${HOST}`;
     try {

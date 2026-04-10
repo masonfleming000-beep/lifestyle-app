@@ -204,5 +204,5 @@ export const GET: APIRoute = async ({ url, cookies, redirect }) => {
     return redirect("com.lifestyle.app://auth/success", 302);
   }
 
-  return redirect("/", 302);
+  return redirect("/home", 302);
 };
