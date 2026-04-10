@@ -3,7 +3,7 @@ import crypto from "node:crypto";
 const rateLimitStore = new Map<string, { count: number; resetAt: number }>();
 
 const APP_URL = import.meta.env.PUBLIC_APP_URL || import.meta.env.APP_URL || "";
-const HOST = import.meta.env.HOST || "";
+//const HOST = import.meta.env.HOST || "";
 const PUBLIC_FRAME_ANCESTORS = String(import.meta.env.PUBLIC_FRAME_ANCESTORS || "");
 const INVITE_ONLY = String(import.meta.env.INVITE_ONLY || "true").toLowerCase() === "true";
 const ALLOWED_SIGNUP_EMAILS = new Set(
@@ -68,14 +68,14 @@ export function isTrustedOrigin(request: Request) {
       allowedOrigins.add(new URL(APP_URL).origin);
     } catch {}
   }
-
+/*
   if (HOST) {
     const hostValue =
       HOST.startsWith("http://") || HOST.startsWith("https://") ? HOST : `https://${HOST}`;
     try {
       allowedOrigins.add(new URL(hostValue).origin);
     } catch {}
-  }
+  }*/
 
   const extraOrigins = String(import.meta.env.ALLOWED_ORIGINS || "")
     .split(",")
