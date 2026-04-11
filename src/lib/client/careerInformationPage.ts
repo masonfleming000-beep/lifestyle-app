@@ -29,8 +29,33 @@ export function initCareerInformationPage(config: CareerInformationClientConfig)
       .replaceAll(">", "&gt;")
       .replaceAll('"', "&quot;")
       .replaceAll("'", "&#039;");
-  }
+  } 
 
+  function resolveAssetUrl(value) {
+    const text = String(value || "").trim();
+    if (!text) return "";
+    if (/^(data:|blob:|mailto:)/i.test(text)) return text;
+
+    try {
+      const parsed = new URL(text);
+      if (/^\/(uploads|api\/uploads)\//i.test(parsed.pathname)) {
+        return `${window.location.origin}${parsed.pathname}${parsed.search}${parsed.hash}`;
+      }
+      return text;
+    } catch {
+      // not an absolute URL
+    }
+
+    if (text.startsWith("/")) {
+      try {
+        return new URL(text, `${window.location.origin.replace(/\/$/, "")}/`).toString();
+      } catch {
+        return text;
+      }
+    }
+
+    return text;
+  }
   function normalizeArray(value) {
     return Array.isArray(value) ? value : [];
   }
@@ -310,7 +335,7 @@ export function initCareerInformationPage(config: CareerInformationClientConfig)
             return `
               <div class="custom-field-upload-item custom-field-upload-item-image">
                 ${isProbablyUrl(value)
-                  ? `<img class="custom-field-upload-preview custom-field-upload-preview-image" src="${safeValue}" alt="${safeLabel}" />`
+                  ? `<img class="custom-field-upload-preview custom-field-upload-preview-image" src="${escapeHtml(resolveAssetUrl(value))}" alt="${safeLabel}" />`
                   : `<p>${safeValue}</p>`}
                 <button type="button" class="button-secondary career-inline-button career-inline-button-mini" data-action="remove-custom-field-asset" data-asset-index="${index}">Remove</button>
               </div>
@@ -320,7 +345,7 @@ export function initCareerInformationPage(config: CareerInformationClientConfig)
             return `
               <div class="custom-field-upload-item custom-field-upload-item-video">
                 ${isProbablyUrl(value)
-                  ? `<video class="custom-field-upload-preview custom-field-upload-preview-video" src="${safeValue}" controls preload="metadata"></video>`
+                  ? `<video class="custom-field-upload-preview custom-field-upload-preview-video" src="${escapeHtml(resolveAssetUrl(value))}" controls preload="metadata"></video>`
                   : `<p>${safeValue}</p>`}
                 <div class="custom-field-upload-meta-row">
                   <span class="field-hint">${escapeHtml(fileNameFromValue(value))}</span>
@@ -333,7 +358,7 @@ export function initCareerInformationPage(config: CareerInformationClientConfig)
             <div class="custom-field-upload-item custom-field-upload-item-file">
               <div>
                 <p class="custom-field-upload-file-name">${escapeHtml(fileNameFromValue(value))}</p>
-                ${isProbablyUrl(value) ? `<a class="button-secondary career-inline-button career-inline-button-mini" href="${safeValue}" target="_blank" rel="noreferrer">Open</a>` : ""}
+                ${isProbablyUrl(value) ? `<a class="button-secondary career-inline-button career-inline-button-mini" href="${escapeHtml(resolveAssetUrl(value))}" target="_blank" rel="noreferrer">Open</a>` : ""}
               </div>
               <button type="button" class="button-secondary career-inline-button career-inline-button-mini" data-action="remove-custom-field-asset" data-asset-index="${index}">Remove</button>
             </div>
@@ -457,7 +482,7 @@ export function initCareerInformationPage(config: CareerInformationClientConfig)
       return `
         <div class="custom-field-media-grid">
           ${media.filter(Boolean).map((value) => isProbablyUrl(value)
-            ? `<img class="custom-field-media" src="${escapeHtml(value)}" alt="${escapeHtml(field?.label || "Image")}" />`
+            ? `<img class="custom-field-media" src="${escapeHtml(resolveAssetUrl(value))}" alt="${escapeHtml(field?.label || "Image")}" />`
             : `<p>${escapeHtml(value)}</p>`).join("\n")}
         </div>
       `;
@@ -467,7 +492,7 @@ export function initCareerInformationPage(config: CareerInformationClientConfig)
       return `
         <div class="custom-field-media-grid">
           ${media.filter(Boolean).map((value) => isProbablyUrl(value)
-            ? `<video class="custom-field-media custom-field-video" src="${escapeHtml(value)}" controls preload="metadata"></video>`
+            ? `<video class="custom-field-media custom-field-video" src="${escapeHtml(resolveAssetUrl(value))}" controls preload="metadata"></video>`
             : `<p>${escapeHtml(value)}</p>`).join("\n")}
         </div>
       `;
@@ -477,7 +502,7 @@ export function initCareerInformationPage(config: CareerInformationClientConfig)
       return `
         <div class="custom-field-media-grid custom-field-file-grid">
           ${links.filter(Boolean).map((value, index) => isProbablyUrl(value)
-            ? `<div class="custom-field-file-card"><p class="custom-field-upload-file-name">${escapeHtml(fileNameFromValue(value))}</p><a class="button-secondary career-inline-button career-inline-button-mini" href="${escapeHtml(value)}" target="_blank" rel="noreferrer">${escapeHtml(field?.label || type)} ${links.length > 1 ? index + 1 : ""}</a></div>`
+            ? `<div class="custom-field-file-card"><p class="custom-field-upload-file-name">${escapeHtml(fileNameFromValue(value))}</p><a class="button-secondary career-inline-button career-inline-button-mini" href="${escapeHtml(resolveAssetUrl(value))}" target="_blank" rel="noreferrer">${escapeHtml(field?.label || type)} ${links.length > 1 ? index + 1 : ""}</a></div>`
             : `<span>${escapeHtml(value)}</span>`).join("\n")}
         </div>
       `;
@@ -487,7 +512,7 @@ export function initCareerInformationPage(config: CareerInformationClientConfig)
       return `
         <div class="resume-link-row">
           ${links.filter(Boolean).map((value, index) => isProbablyUrl(value)
-            ? `<a class="button-secondary career-inline-button career-inline-button-mini" href="${escapeHtml(value)}" target="_blank" rel="noreferrer">${escapeHtml(field?.label || type)} ${links.length > 1 ? index + 1 : ""}</a>`
+            ? `<a class="button-secondary career-inline-button career-inline-button-mini" href="${escapeHtml(resolveAssetUrl(value))}" target="_blank" rel="noreferrer">${escapeHtml(field?.label || type)} ${links.length > 1 ? index + 1 : ""}</a>`
             : `<span>${escapeHtml(value)}</span>`).join("\n")}
         </div>
       `;
@@ -950,8 +975,7 @@ export function initCareerInformationPage(config: CareerInformationClientConfig)
           <label class="edu-label"><span>Headline</span><input id="dynamic-profile-headline" class="form-input" value="${escapeHtml(item.headline || "")}" placeholder="Product Designer · CS Student · Software Engineer" /></label>
           <label class="edu-label"><span>Professional photo upload (optional)</span><input id="dynamic-profile-photoFile" class="form-input" type="file" accept="image/png,image/jpeg,image/webp,image/gif" /></label>
           <label class="edu-label"><span>Professional photo URL (optional)</span><input id="dynamic-profile-photoUrl" class="form-input" value="${escapeHtml(item.photoUrl || "")}" placeholder="https://... or leave blank if uploading" /></label>
-          ${item.photoUrl ? `<div class="portfolio-inline-preview"><span class="field-hint">Current professional photo</span><div class="portfolio-inline-photo-frame"><img src="${escapeHtml(item.photoUrl)}" alt="Professional portfolio photo" class="portfolio-inline-photo" /></div></div>` : `<p class="field-hint">No professional portfolio photo uploaded yet. If left blank, preview falls back to your account avatar.</p>`}
-          <label class="edu-label"><span>Description</span><textarea id="dynamic-profile-description" class="form-textarea" placeholder="Short intro for your portfolio">${escapeHtml(item.description || "")}</textarea></label>
+          ${item.photoUrl ? `<div class="portfolio-inline-preview"><span class="field-hint">Current professional photo</span><div class="portfolio-inline-photo-frame"><img src="${escapeHtml(resolveAssetUrl(item.photoUrl))}" alt="Professional portfolio photo" class="portfolio-inline-photo" /></div></div>` : `<p class="field-hint">No professional portfolio photo uploaded yet. If left blank, preview falls back to your account avatar.</p>`}
           <label class="check-row"><input id="dynamic-profile-visible" type="checkbox" ${item.visible !== false ? "checked" : ""} /><span>Show in portfolio</span></label>
         </div>
         ${buildCustomFieldsManager("profile", item.customFields)}
