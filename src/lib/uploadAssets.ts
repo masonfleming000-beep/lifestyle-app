@@ -58,7 +58,9 @@ export async function storeUploadedFile(file: File, rule: UploadRule, userId?: s
   const userPart = rule.userScoped && userId ? `-${sanitizeUploadBaseName(userId, "user")}` : "";
   const storedFileName = `${baseName}${userPart}-${unique}${ext}`;
 
-  const normalizedTargetDir = rule.targetDir.replace(/^\/+/g, "").replace(/\/g, "/");
+  const normalizedTargetDir = rule.targetDir
+  .replace(/^\/+/g, "")
+  .replace(/\\/g, "/");
   const runtimeUploadsDir = path.join(process.cwd(), normalizedTargetDir);
   const legacyPublicUploadsDir = path.join(process.cwd(), "public", normalizedTargetDir);
 
