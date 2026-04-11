@@ -222,6 +222,7 @@ const defaultMorals = JSON.stringify(morals);
 
     function saveStateOnLeave() {
       try {
+        if (!navigator.sendBeacon) return;
         navigator.sendBeacon(
           "/api/state",
           new Blob([JSON.stringify({ pageKey, state })], {
@@ -412,7 +413,6 @@ const defaultMorals = JSON.stringify(morals);
     });
 
     window.addEventListener("pagehide", saveStateOnLeave);
-    window.addEventListener("beforeunload", saveStateOnLeave);
 
     async function init() {
       const saved = normalizeState(await loadState());

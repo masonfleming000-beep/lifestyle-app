@@ -27,9 +27,9 @@ function normalizeState(value: unknown) {
   return value;
 }
 
-export const GET: APIRoute = async ({ cookies, url }) => {
+export const GET: APIRoute = async ({ cookies, url, locals }) => {
   try {
-    const user = await getCurrentUser(cookies);
+    const user = locals.currentUser ?? (await getCurrentUser(cookies));
 
     if (!user) {
       return json({ ok: false, error: "Unauthorized" }, 401);
@@ -42,40 +42,35 @@ export const GET: APIRoute = async ({ cookies, url }) => {
     }
 
     const sql = getSql();
+    const rows = await sql<
+      { state: unknown; updated_at: string }[]
+    >`
+      select state, updated_at
+      from page_state
+      where user_id = ${user.id}
+        and page_key = ${pageKey}
+      order by updated_at desc
+      limit 1
+    `;
 
-    try {
-      const rows = await sql<
-        { state: unknown; updated_at: string }[]
-      >`
-        select state, updated_at
-        from page_state
-        where user_id = ${user.id}
-          and page_key = ${pageKey}
-        order by updated_at desc
-        limit 1
-      `;
+    const saved = rows[0] ?? null;
+    const normalized = saved ? normalizeState(saved.state) : null;
 
-      const saved = rows[0] ?? null;
-      const normalized = saved ? normalizeState(saved.state) : null;
-
-      return json({
-        ok: true,
-        pageKey,
-        state: normalized,
-        updated_at: saved ? saved.updated_at : null,
-      });
-    } finally {
-      await sql.end();
-    }
+    return json({
+      ok: true,
+      pageKey,
+      state: normalized,
+      updated_at: saved ? saved.updated_at : null,
+    });
   } catch (error) {
     console.error("GET /api/state failed:", error);
     return json({ ok: false, error: "Failed to fetch state." }, 500);
   }
 };
 
-export const POST: APIRoute = async ({ cookies, request }) => {
+export const POST: APIRoute = async ({ cookies, request, locals }) => {
   try {
-    const user = await getCurrentUser(cookies);
+    const user = locals.currentUser ?? (await getCurrentUser(cookies));
 
     if (!user) {
       return json({ ok: false, error: "Unauthorized" }, 401);
@@ -98,32 +93,27 @@ export const POST: APIRoute = async ({ cookies, request }) => {
     }
 
     const sql = getSql();
+    const rows = await sql<
+      { state: unknown; updated_at: string }[]
+    >`
+      insert into page_state (user_id, page_key, state, updated_at)
+      values (${user.id}, ${pageKey}, ${sql.json(state)}, now())
+      on conflict (user_id, page_key)
+      do update set
+        state = excluded.state,
+        updated_at = now()
+      returning state, updated_at
+    `;
 
-    try {
-      const rows = await sql<
-        { state: unknown; updated_at: string }[]
-      >`
-        insert into page_state (user_id, page_key, state, updated_at)
-        values (${user.id}, ${pageKey}, ${sql.json(state)}, now())
-        on conflict (user_id, page_key)
-        do update set
-          state = excluded.state,
-          updated_at = now()
-        returning state, updated_at
-      `;
+    const saved = rows[0] ?? null;
+    const normalized = saved ? normalizeState(saved.state) : null;
 
-      const saved = rows[0] ?? null;
-      const normalized = saved ? normalizeState(saved.state) : null;
-
-      return json({
-        ok: true,
-        pageKey,
-        state: normalized,
-        updated_at: saved?.updated_at ?? null,
-      });
-    } finally {
-      await sql.end();
-    }
+    return json({
+      ok: true,
+      pageKey,
+      state: normalized,
+      updated_at: saved?.updated_at ?? null,
+    });
   } catch (error) {
     console.error("POST /api/state failed:", error);
     return json({ ok: false, error: "Failed to save state." }, 500);

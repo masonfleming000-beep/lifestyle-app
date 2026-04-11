@@ -121,7 +121,7 @@ const isHomePage = currentPath === "/home";
       }
     } catch (error) {
       console.error("Failed to load current user:", error);
-      setLoggedOut();
+      if (authStatusEl) authStatusEl.textContent = "Loading account…";
     }
   }
 
