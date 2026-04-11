@@ -107,27 +107,34 @@ export function initCareerPortfolioPreviewPage(config: CareerPortfolioPreviewCon
     if (!text) return "";
     if (/^(data:|blob:|mailto:)/i.test(text)) return text;
 
+    const assetBase = String(assetBaseUrl || "").trim().replace(/\/$/, "");
+    const currentOrigin = window.location.origin.replace(/\/$/, "");
+
     try {
       const parsed = new URL(text);
+
+      // If an old saved URL points at the temp preview domain, force it to the real asset domain.
       if (/^\/(uploads|api\/uploads)\//i.test(parsed.pathname)) {
-        return `${window.location.origin}${parsed.pathname}${parsed.search}${parsed.hash}`;
+        const base = assetBase || currentOrigin;
+        return `${base}${parsed.pathname}${parsed.search}${parsed.hash}`;
       }
+
       return text;
     } catch {
       // not an absolute URL
     }
 
     if (text.startsWith("/")) {
-      try {
-        return new URL(text, `${window.location.origin.replace(/\/$/, "")}/`).toString();
-      } catch {
-        return text;
-      }
+      const base = /^\/(uploads|api\/uploads)\//i.test(text)
+        ? (assetBase || currentOrigin)
+        : currentOrigin;
+
+      return `${base}${text}`;
     }
 
     return text;
   }
-  
+
   function defaultMenuItems() {
     return [{ id: "main", label: "Home", slug: "home" }];
   }
@@ -492,7 +499,7 @@ export function initCareerPortfolioPreviewPage(config: CareerPortfolioPreviewCon
             "file-name": `<p class="preview-muted">${escapeHtml(resume.fileName || "Uploaded file")}</p>`,
             "actions": `<div class="preview-link-row">${isPdf(resume) ? `<a class="preview-pill-link" href="${escapeHtml(resolveAssetUrl(resume.fileUrl))}#toolbar=1" target="_blank" rel="noreferrer">View</a>` : ""}${resume.fileUrl ? `<a class="preview-pill-link" href="${escapeHtml(resolveAssetUrl(resume.fileUrl))}" target="_blank" rel="noreferrer">Open</a>` : ""}${resume.fileUrl ? `<a class="preview-pill-link" href="${escapeHtml(resolveAssetUrl(resume.fileUrl))}" download>Download</a>` : ""}</div>`,
             "note": resume.note ? `<p>${escapeHtml(resume.note)}</p>` : "",
-            "preview": isPdf(resume) && resume.fileUrl ? `<div class="preview-resume-frame-wrap"><iframe class="preview-resume-frame" src="${escapeHtml(resume.fileUrl)}" title="Resume Preview"></iframe></div>` : "",
+            "preview": isPdf(resume) && resume.fileUrl ? `<div class="preview-resume-frame-wrap"><iframe class="preview-resume-frame" src="${escapeHtml(resolveAssetUrl(resume.fileUrl))}" title="Resume Preview"></iframe></div>` : "",
           }, renderCustomFields(resume.customFields))}
         </article>
       `
@@ -595,7 +602,7 @@ export function initCareerPortfolioPreviewPage(config: CareerPortfolioPreviewCon
       return renderSectionShell(
         section?.title || "Media",
         `<div class="preview-project-media-grid">${media.filter(Boolean).map((value) => isProbablyUrl(value)
-          ? `<img class="preview-project-detail-image" src="${escapeHtml(value)}" alt="${escapeHtml(section?.title || "Project image")}" />`
+          ? `<img class="preview-project-detail-image" src="${escapeHtml(resolveAssetUrl(value))}" alt="${escapeHtml(section?.title || "Project image")}" />`
           : `<p>${escapeHtml(value)}</p>`).join("")}</div>`,
         true,
         "Media"
@@ -736,7 +743,7 @@ export function initCareerPortfolioPreviewPage(config: CareerPortfolioPreviewCon
             <h3>${escapeHtml(item.title || "Credential")}</h3>
             <p class="preview-muted">${escapeHtml(item.issuer || "")}${item.date ? ` · ${escapeHtml(item.date)}` : ""}</p>
             ${item.credentialId ? `<p><strong>Credential ID:</strong> ${escapeHtml(item.credentialId)}</p>` : ""}
-            ${item.link ? `<a class="preview-inline-link" href="${escapeHtml(item.link)}" target="_blank" rel="noreferrer">View credential</a>` : ""}
+            ${item.link ? `<a class="preview-inline-link" href="${escapeHtml(resolveAssetUrl(item.link))}" target="_blank" rel="noreferrer">View credential</a>` : ""}
             ${renderCustomFields(item.customFields)}
           </article>
         `,
