@@ -1,0 +1,62 @@
+---
+import type { RendererFieldConfig } from "../../types/ui";
+
+interface Props {
+  field: RendererFieldConfig;
+}
+
+const { field } = Astro.props;
+const type = field.type || "text";
+const label = field.label || "";
+const wrapperClassName = field.className || "";
+const inputClassName = field.inputClassName || "";
+---
+
+<label class:list={["form-field-renderer", wrapperClassName, field.hiddenLabel && "form-field-hidden-label"]}>
+  {label && <span class:list={[field.hiddenLabel && "sr-only"]}>{label}</span>}
+
+  {type === "textarea" ? (
+    <textarea
+      id={field.id}
+      name={field.name}
+      rows={field.rows || 4}
+      class={inputClassName || undefined}
+      placeholder={field.placeholder || undefined}
+      required={field.required}
+    ></textarea>
+  ) : (
+    <input
+      id={field.id}
+      name={field.name}
+      type={type}
+      class={inputClassName || undefined}
+      placeholder={field.placeholder || undefined}
+      required={field.required}
+    />
+  )}
+
+  {field.helpText && <small>{field.helpText}</small>}
+</label>
+
+<style>
+  .form-field-renderer {
+    display: grid;
+    gap: 0.5rem;
+  }
+
+  .form-field-hidden-label {
+    gap: 0;
+  }
+
+  .sr-only {
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    padding: 0;
+    margin: -1px;
+    overflow: hidden;
+    clip: rect(0, 0, 0, 0);
+    white-space: nowrap;
+    border: 0;
+  }
+</style>

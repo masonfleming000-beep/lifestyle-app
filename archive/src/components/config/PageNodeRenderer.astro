@@ -1,0 +1,50 @@
+---
+import ActionBar from "../ActionBar.astro";
+import QuickLinkCard from "../QuickLinkCard.astro";
+import type { GridColumns, PageNodeConfig } from "../../types/ui";
+import PageLeafRenderer from "./PageLeafRenderer.astro";
+
+interface Props {
+  node: PageNodeConfig;
+}
+
+const { node } = Astro.props as Props;
+
+function gridClass(columns?: GridColumns) {
+  if (columns === 1) return "declarative-grid-1";
+  if (columns === 3) return "declarative-grid-3";
+  return "declarative-grid-2";
+}
+---
+
+{node.kind === "quick-links" ? (
+  <section class="section">
+    <div class:list={["grid", gridClass(node.columns)]}>
+      {node.items.map((item) => (
+        <QuickLinkCard href={item.href} title={item.title} text={item.text || ""} />
+      ))}
+    </div>
+  </section>
+) : node.kind === "actions" ? (
+  <section class="section">
+    <div class="section-actions declarative-page-actions">
+      <ActionBar
+        actions={node.actions}
+        align={node.align || "start"}
+        wrap={node.wrap ?? true}
+      />
+    </div>
+  </section>
+) : node.kind === "group" ? (
+  <section class="section">
+    <div class:list={["grid", gridClass(node.columns)]}>
+      {node.children.map((child) => (
+        <PageLeafRenderer section={child} />
+      ))}
+    </div>
+  </section>
+) : (
+  <section class="section">
+    <PageLeafRenderer section={node} />
+  </section>
+)}

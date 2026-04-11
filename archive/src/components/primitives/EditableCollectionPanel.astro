@@ -1,0 +1,54 @@
+---
+import SurfaceCard from "../SurfaceCard.astro";
+import SectionHeader from "../SectionHeader.astro";
+import Button from "../Button.astro";
+
+interface Props {
+  title: string;
+  subtitle?: string;
+  listId: string;
+  formId: string;
+  inputId: string;
+  inputPlaceholder: string;
+  editButtonId: string;
+  restoreButtonId?: string;
+  addLabel?: string;
+  listClassName?: string;
+  cardClassName?: string;
+}
+
+const {
+  title,
+  subtitle = '',
+  listId,
+  formId,
+  inputId,
+  inputPlaceholder,
+  editButtonId,
+  restoreButtonId,
+  addLabel = 'Add',
+  listClassName = 'list-clean',
+  cardClassName = '',
+} = Astro.props;
+---
+
+<SurfaceCard className={cardClassName}>
+  <SectionHeader title={title} subtitle={subtitle}>
+    {restoreButtonId && <Button id={restoreButtonId} type="button" variant="secondary">Restore</Button>}
+    <Button id={editButtonId} type="button" variant="primary">Edit</Button>
+  </SectionHeader>
+
+  <form id={formId} class="todo-form today-form-hidden collection-panel-form">
+    <input id={inputId} type="text" class="todo-input" placeholder={inputPlaceholder} />
+    <Button type="submit" variant="primary">{addLabel}</Button>
+  </form>
+
+  <ul id={listId} class:list={[listClassName, 'collection-panel-list']}></ul>
+</SurfaceCard>
+
+<style>
+  .collection-panel-form,
+  .collection-panel-list {
+    margin-top: 1rem;
+  }
+</style>

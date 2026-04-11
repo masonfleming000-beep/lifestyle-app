@@ -1,0 +1,26 @@
+---
+import ActionBar from "../ActionBar.astro";
+import type { ActionAlign, ActionItemConfig } from "../../types/ui";
+
+interface Props {
+  actions?: ActionItemConfig[];
+  align?: ActionAlign;
+  wrap?: boolean;
+  className?: string;
+  hidden?: boolean;
+  id?: string;
+}
+
+const {
+  actions = [],
+  align = "start",
+  wrap = true,
+  className = "",
+  hidden = false,
+  id,
+} = Astro.props;
+---
+
+<div id={id || undefined} class:list={[className, hidden && "today-form-hidden"]}>
+  <ActionBar actions={actions} align={align} wrap={wrap} />
+</div>

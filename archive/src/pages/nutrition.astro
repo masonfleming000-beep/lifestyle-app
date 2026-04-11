@@ -1,0 +1,244 @@
+---
+/**
+ * Nutrition page.
+ * Used to track food choices, nutrition habits,
+ * micronutrients, meals, and general diet-related guidance.
+ */
+import BaseLayout from "../layouts/BaseLayout.astro";
+import SurfaceCard from "../components/SurfaceCard.astro";
+import SectionHeader from "../components/SectionHeader.astro";
+import Button from "../components/Button.astro";
+import DropdownSection from "../components/primitives/DropdownSection.astro";
+import EditableCollectionPanel from "../components/primitives/EditableCollectionPanel.astro";
+import { nutritionClientConfig } from "../config/pages/nutrition";
+---
+
+<BaseLayout title="Nutrition | Lifestyle App" description="Nutrition dashboard">
+  <section class="section">
+    <div class="hero surface-card">
+      <p class="kicker">Nutrition</p>
+      <h1>Track nutrition, hydration, food quality, and macro targets from one dashboard.</h1>
+      <p>Save targets, log meals and water, search foods, and manage good-food and limit-food lists with the shared UI layer.</p>
+    </div>
+  </section>
+
+  <section class="section">
+    <DropdownSection kicker="Nutrition" title="Target Macros + Water" contentClassName="dropdown-content stack-gap">
+      <SurfaceCard>
+        <SectionHeader title="Macro Targets" subtitle="Saved cross-platform to your account." align="start" />
+
+        <form id="macro-form" class="nutrition-grid">
+          <label class="nutrition-field">
+            <span>Calories</span>
+            <input id="target-calories" type="number" min="0" step="0.0001" />
+          </label>
+
+          <label class="nutrition-field">
+            <span>Protein (g)</span>
+            <input id="target-protein" type="number" min="0" step="0.0001" />
+          </label>
+
+          <label class="nutrition-field">
+            <span>Carbs (g)</span>
+            <input id="target-carbs" type="number" min="0" step="0.0001" />
+          </label>
+
+          <label class="nutrition-field">
+            <span>Fat (g)</span>
+            <input id="target-fat" type="number" min="0" step="0.0001" />
+          </label>
+
+          <label class="nutrition-field">
+            <span>Water Target (oz)</span>
+            <input id="target-water" type="number" min="0" step="0.0001" />
+          </label>
+
+          <div class="nutrition-actions">
+            <Button type="submit" variant="primary">Save Targets</Button>
+          </div>
+        </form>
+      </SurfaceCard>
+    </DropdownSection>
+  </section>
+
+  <section class="section">
+    <DropdownSection kicker="Nutrition" title="Progress" contentClassName="dropdown-content stack-gap">
+      <div class="nutrition-progress-grid">
+        <article class="metric">
+          <p class="metric-label">Calories</p>
+          <p class="big-number" id="total-calories">0</p>
+          <p class="meta" id="remaining-calories">0 remaining</p>
+        </article>
+
+        <article class="metric">
+          <p class="metric-label">Protein</p>
+          <p class="big-number" id="total-protein">0g</p>
+          <p class="meta" id="remaining-protein">0g remaining</p>
+        </article>
+
+        <article class="metric">
+          <p class="metric-label">Carbs</p>
+          <p class="big-number" id="total-carbs">0g</p>
+          <p class="meta" id="remaining-carbs">0g remaining</p>
+        </article>
+
+        <article class="metric">
+          <p class="metric-label">Fat</p>
+          <p class="big-number" id="total-fat">0g</p>
+          <p class="meta" id="remaining-fat">0g remaining</p>
+        </article>
+
+        <article class="metric">
+          <p class="metric-label">Water</p>
+          <p class="big-number" id="total-water">0 oz</p>
+          <p class="meta" id="remaining-water">0 oz remaining</p>
+        </article>
+      </div>
+
+      <SurfaceCard>
+        <SectionHeader title="Micronutrient Progress" subtitle="Optional vitamins and minerals to track." align="start" />
+        <div id="micro-progress-list" class="micro-progress-list"></div>
+      </SurfaceCard>
+    </DropdownSection>
+  </section>
+
+  <section class="section">
+    <DropdownSection kicker="Nutrition" title="Search & Add Food" contentClassName="dropdown-content stack-gap">
+      <SurfaceCard>
+        <SectionHeader title="Search Food" subtitle="Search NutritionValue directly." align="start" />
+
+        <form id="nutrition-search-form" class="todo-form">
+          <input
+            id="nutrition-search-input"
+            type="text"
+            class="todo-input"
+            placeholder="Search apple, chicken breast, greek yogurt..."
+            autocomplete="off"
+          />
+          <Button type="submit" variant="primary">Search</Button>
+        </form>
+
+        <ul id="nutrition-search-results" class="food-log"></ul>
+      </SurfaceCard>
+
+      <SurfaceCard>
+        <SectionHeader title="Add Food" subtitle="Auto-fill from source, then edit if needed." align="start" />
+
+        <form id="food-form" class="nutrition-grid">
+          <label class="nutrition-field nutrition-field-wide"><span>Food Name</span><input id="food-name" type="text" placeholder="Chicken breast, banana, yogurt..." /></label>
+          <label class="nutrition-field"><span>Calories</span><input id="food-calories" type="number" min="0" step="0.0001" /></label>
+          <label class="nutrition-field"><span>Protein (g)</span><input id="food-protein" type="number" min="0" step="0.0001" /></label>
+          <label class="nutrition-field"><span>Carbs (g)</span><input id="food-carbs" type="number" min="0" step="0.0001" /></label>
+          <label class="nutrition-field"><span>Fat (g)</span><input id="food-fat" type="number" min="0" step="0.0001" /></label>
+          <label class="nutrition-field"><span>Fiber (g)</span><input id="food-fiber" type="number" min="0" step="0.0001" /></label>
+          <label class="nutrition-field"><span>Sugars (g)</span><input id="food-sugars" type="number" min="0" step="0.0001" /></label>
+          <label class="nutrition-field"><span>Sodium (mg)</span><input id="food-sodium" type="number" min="0" step="0.0001" /></label>
+          <label class="nutrition-field"><span>Potassium (mg)</span><input id="food-potassium" type="number" min="0" step="0.0001" /></label>
+          <label class="nutrition-field"><span>Calcium (mg)</span><input id="food-calcium" type="number" min="0" step="0.0001" /></label>
+          <label class="nutrition-field"><span>Iron (mg)</span><input id="food-iron" type="number" min="0" step="0.0001" /></label>
+          <label class="nutrition-field"><span>Magnesium (mg)</span><input id="food-magnesium" type="number" min="0" step="0.0001" /></label>
+          <label class="nutrition-field"><span>Zinc (mg)</span><input id="food-zinc" type="number" min="0" step="0.0001" /></label>
+          <label class="nutrition-field"><span>Copper (mg)</span><input id="food-copper" type="number" min="0" step="0.0001" /></label>
+          <label class="nutrition-field"><span>Niacin (mg)</span><input id="food-niacin" type="number" min="0" step="0.0001" /></label>
+
+          <div class="nutrition-actions">
+            <Button type="submit" variant="primary">Add Food</Button>
+          </div>
+        </form>
+      </SurfaceCard>
+
+      <SurfaceCard>
+        <SectionHeader title="Water Log" subtitle="Track hydration separately from food." align="start" />
+        <form id="water-form" class="todo-form">
+          <input id="water-amount" type="number" class="todo-input" min="0" step="0.0001" placeholder="Add water in ounces" />
+          <Button type="submit" variant="primary">Add Water</Button>
+        </form>
+      </SurfaceCard>
+    </DropdownSection>
+  </section>
+
+  <section class="section">
+    <DropdownSection kicker="Nutrition" title="Today’s Intake">
+      <SurfaceCard>
+        <SectionHeader title="Today’s Intake">
+          <p id="nutrition-date-label" class="section-subtitle"></p>
+          <Button id="clear-food-log" type="button" variant="secondary">Clear Today</Button>
+        </SectionHeader>
+        <ul id="food-log" class="food-log"></ul>
+      </SurfaceCard>
+    </DropdownSection>
+  </section>
+
+  <section class="section">
+    <div class="grid two">
+      <DropdownSection kicker="Nutrition" title="Good Foods">
+        <EditableCollectionPanel
+          title="Good Foods"
+          subtitle="Add, delete, edit mode, and restore defaults without removing your custom items."
+          restoreButtonId="good-foods-restore-btn"
+          editButtonId="good-foods-edit-btn"
+          formId="good-foods-form"
+          inputId="good-foods-input"
+          inputPlaceholder="Add a good food..."
+          listId="good-foods-list"
+        />
+      </DropdownSection>
+
+      <DropdownSection kicker="Nutrition" title="Foods to Limit">
+        <EditableCollectionPanel
+          title="Foods to Limit"
+          subtitle="Add, delete, edit mode, and restore defaults without removing your custom items."
+          restoreButtonId="bad-foods-restore-btn"
+          editButtonId="bad-foods-edit-btn"
+          formId="bad-foods-form"
+          inputId="bad-foods-input"
+          inputPlaceholder="Add a food to limit..."
+          listId="bad-foods-list"
+        />
+      </DropdownSection>
+    </div>
+  </section>
+
+  <section class="section">
+    <DropdownSection kicker="Nutrition" title="Macros Calculator" contentClassName="dropdown-content stack-gap">
+      <SurfaceCard>
+        <SectionHeader title="Inch Calculator" subtitle="Use the calculator, then copy the results into your saved targets below." align="start" />
+        <div class="macro-widget-wrap">
+          <div id="inch-calculator-icw" data-ct="macros" data-cw="100%" data-ch="950" data-cv="MTE3NzM4NTE1MzM=">
+            <div id="inch-calculator-icwh">Macros Calculator</div>
+            <div id="inch-calculator-icwf">
+              <a id="inch-calculator-icwi" href="https://www.inchcalculator.com/macros-calculator/" target="_blank" rel="noopener noreferrer">
+                <img id="inch-calculator-icwl" src="https://cdn.inchcalculator.com/e/inch-calculator-logo-tiny.png" alt="Inch Calculator Logo" width="40" height="49" />
+                <span id="inch-calculator-icwb">Inch Calculator</span>
+              </a>
+            </div>
+          </div>
+          <script src="https://cdn.inchcalculator.com/e/widgets.min.js" async defer></script>
+        </div>
+      </SurfaceCard>
+
+      <SurfaceCard>
+        <SectionHeader title="Apply Calculator Results" subtitle="Paste the calculator results here and save them to your targets." align="start" />
+        <form id="calculator-apply-form" class="nutrition-grid">
+          <label class="nutrition-field"><span>Calories</span><input id="calc-calories" type="number" min="0" step="0.0001" /></label>
+          <label class="nutrition-field"><span>Protein (g)</span><input id="calc-protein" type="number" min="0" step="0.0001" /></label>
+          <label class="nutrition-field"><span>Carbs (g)</span><input id="calc-carbs" type="number" min="0" step="0.0001" /></label>
+          <label class="nutrition-field"><span>Fat (g)</span><input id="calc-fat" type="number" min="0" step="0.0001" /></label>
+          <label class="nutrition-field"><span>Water Target (oz)</span><input id="calc-water" type="number" min="0" step="0.0001" /></label>
+          <div class="nutrition-actions"><Button type="submit" variant="primary">Apply To Targets</Button></div>
+        </form>
+      </SurfaceCard>
+    </DropdownSection>
+  </section>
+
+  <script id="nutrition-page-config" type="application/json" set:html={JSON.stringify(nutritionClientConfig)} />
+
+  <script>
+    import { initNutritionPage } from "../lib/client/nutritionPage";
+
+    const configElement = document.getElementById("nutrition-page-config");
+    const config = JSON.parse(configElement?.textContent || "{}");
+
+    initNutritionPage(config);
+  </script>
+</BaseLayout>

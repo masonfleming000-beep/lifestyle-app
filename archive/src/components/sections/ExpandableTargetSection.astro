@@ -1,0 +1,28 @@
+---
+import ExpandableSection from "../ExpandableSection.astro";
+import type { RendererExpandableTargetSectionConfig } from "../../types/ui";
+
+interface Props {
+  section: RendererExpandableTargetSectionConfig;
+}
+
+const { section } = Astro.props;
+---
+
+<div class={section.sectionClassName || undefined}>
+  <ExpandableSection
+    title={section.title}
+    subtitle={section.subtitle}
+    kicker={section.kicker}
+    open={section.open}
+    bodyClass={section.bodyClassName || ""}
+  >
+    {section.countBadgeId && (
+      <span slot="summary-actions" id={section.countBadgeId} class={section.countBadgeClassName || undefined}>
+        {section.countBadgeText || "0"}
+      </span>
+    )}
+
+    <div id={section.containerId} class={section.containerClassName || undefined}></div>
+  </ExpandableSection>
+</div>

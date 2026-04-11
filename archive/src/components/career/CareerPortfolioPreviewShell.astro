@@ -1,0 +1,92 @@
+---
+import PageHero from "../PageHero.astro";
+import Button from "../Button.astro";
+import SurfaceCard from "../SurfaceCard.astro";
+import SectionHeader from "../SectionHeader.astro";
+import PageActions from "../ui/PageActions.astro";
+import "../../styles/career-portfolio-preview.css";
+
+interface Props {
+  pageKey: string;
+  sectionTitles: Record<string, string>;
+  shareBasePath?: string;
+  publicUsername?: string;
+  shareLinkBaseUrl?: string;
+  assetBaseUrl?: string;
+  projectSlug?: string;
+}
+
+const {
+  pageKey,
+  sectionTitles,
+  shareBasePath = "/portfolio",
+  publicUsername = "",
+  shareLinkBaseUrl = "",
+  assetBaseUrl = "",
+  projectSlug = "",
+} = Astro.props;
+
+const isPublicPage = Boolean(String(publicUsername || "").trim());
+const isProjectPage = Boolean(String(projectSlug || "").trim());
+const pageTitle = isProjectPage
+  ? isPublicPage
+    ? "Public Project"
+    : "Project Preview"
+  : isPublicPage
+  ? "Public Portfolio"
+  : "Portfolio Preview";
+const heroDescription = isProjectPage
+  ? "Preview the dedicated project page with separate dropdown sections for every piece of project information the user decided to show."
+  : isPublicPage
+  ? "Public-facing portfolio view powered by an application in development."
+  : "Preview the public-facing portfolio using the shared career UI shell before copying a share link or publishing it.";
+---
+
+<section class="section preview-page-shell">
+  <PageHero
+    kicker="Career / Portfolio"
+    title={pageTitle}
+    description={heroDescription}
+  >
+    <PageActions>
+      {!isPublicPage && <Button href="/career/portfolio" variant="secondary">Back to portfolio layout</Button>}
+      {!isPublicPage && <Button href="/career/information" variant="secondary">Edit information</Button>}
+    </PageActions>
+  </PageHero>
+
+  <div id="career-portfolio-preview-root" class="career-portfolio-preview-root">
+    <div class="preview-loading-shell">
+      <SurfaceCard className="preview-loading-card">
+        <SectionHeader
+          kicker={isPublicPage ? "Shared portfolio" : "Portfolio preview"}
+          title="Loading preview"
+          subtitle="This public-style portfolio view is loading with shared page components and your saved section layout."
+          align="start"
+        />
+      </SurfaceCard>
+    </div>
+  </div>
+</section>
+
+<script
+  id="career-portfolio-preview-config"
+  type="application/json"
+  set:html={JSON.stringify({
+    pageKey,
+    sectionTitles,
+    publicUsername,
+    shareBasePath,
+    shareLinkBaseUrl,
+    assetBaseUrl,
+    projectSlug,
+  })}
+/>
+
+<script>
+  import { initCareerPortfolioPreviewPage } from "../../lib/client/careerPortfolioPreviewPage";
+
+  const configElement = document.getElementById("career-portfolio-preview-config");
+  const config = JSON.parse(configElement?.textContent || "{}");
+
+  initCareerPortfolioPreviewPage(config);
+</script>

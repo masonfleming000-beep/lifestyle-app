@@ -1,0 +1,132 @@
+---
+import ActionBar from "../ActionBar.astro";
+import Button from "../Button.astro";
+import FormCard from "../FormCard.astro";
+import PageHero from "../PageHero.astro";
+import SectionHeader from "../SectionHeader.astro";
+import SurfaceCard from "../SurfaceCard.astro";
+import type { AuthPageRenderConfig } from "../../config/pages/auth";
+
+interface Props {
+  config: AuthPageRenderConfig;
+}
+
+const { config } = Astro.props;
+const messageVisible = Boolean(config.message?.text);
+const messageStyle = messageVisible ? (config.message?.isError ? "color:#b42318;" : "") : "display:none;";
+---
+
+<section class="auth-page">
+  <div class="auth-shell">
+    <PageHero
+      kicker={config.hero.kicker}
+      title={config.hero.title}
+      description={config.hero.description}
+    />
+
+    <SurfaceCard className="auth-card auth-surface-card">
+      <SectionHeader
+        title={config.card.title}
+        subtitle={config.card.subtitle}
+        align="start"
+      />
+
+      <p id={config.message.id} class="auth-note" style={messageStyle}>
+        {config.message?.text || ""}
+      </p>
+
+      <FormCard
+        formId={config.form.id}
+        compact={true}
+        className="auth-form-card"
+        formClass="auth-form auth-form-stack"
+      >
+        {config.form.hiddenFields?.map((field) => (
+          <input
+            type="hidden"
+            name={field.name}
+            value={field.value}
+          />
+        ))}
+
+        {config.form.fields.map((field) => (
+          <label for={field.id}>
+            {field.label}
+            <input
+              id={field.id}
+              name={field.name}
+              type={field.type}
+              minlength={field.minlength}
+              maxlength={field.maxlength}
+              pattern={field.pattern}
+              autocomplete={field.autocomplete || undefined}
+              required={field.required}
+              inputmode={field.inputmode || undefined}
+              spellcheck={field.spellcheck}
+            />
+          </label>
+        ))}
+
+        <Fragment slot="actions">
+          <Button type="submit" variant="primary" className="auth-submit-button">
+            {config.form.submitLabel}
+          </Button>
+        </Fragment>
+      </FormCard>
+
+      {config.oauthAction && (
+        <ActionBar align="start">
+          <Button href={config.oauthAction.href} variant={config.oauthAction.variant || "secondary"} className="google-button auth-oauth-button">
+            {config.oauthAction.label}
+          </Button>
+        </ActionBar>
+      )}
+
+      <div class:list={["auth-footer-group", !config.footerLinks?.length && "auth-footer-group-empty"]}>
+        {config.footerLinks?.map((link) => (
+          <p class="auth-footer">
+            {link.prefix && <Fragment>{link.prefix} </Fragment>}
+            <a href={link.href}>{link.label}</a>
+          </p>
+        ))}
+      </div>
+    </SurfaceCard>
+  </div>
+</section>
+
+<style>
+  .auth-surface-card {
+    display: grid;
+    gap: 1rem;
+  }
+
+  .auth-form-card {
+    padding: 0;
+    background: transparent;
+    border: 0;
+    box-shadow: none;
+  }
+
+  .auth-form-stack {
+    gap: 0.8rem;
+  }
+
+  .auth-submit-button,
+  .auth-oauth-button {
+    width: 100%;
+    justify-content: center;
+  }
+
+  .auth-oauth-button {
+    text-decoration: none;
+  }
+
+  .auth-footer-group {
+    display: grid;
+    gap: 0.25rem;
+  }
+
+  .auth-footer-group-empty {
+    display: none;
+  }
+</style>

@@ -1,0 +1,28 @@
+---
+export interface Props {
+  frameId?: string;
+  imageId?: string;
+  fallbackId?: string;
+  frameClassName?: string;
+  imageClassName?: string;
+  fallbackClassName?: string;
+  fallbackText?: string;
+  alt?: string;
+}
+
+const {
+  frameId,
+  imageId,
+  fallbackId,
+  frameClassName = "ui-picture-frame",
+  imageClassName = "ui-picture-frame-image",
+  fallbackClassName = "ui-picture-frame-fallback",
+  fallbackText = "U",
+  alt = "Picture preview",
+} = Astro.props;
+---
+
+<div id={frameId} class={frameClassName}>
+  <img id={imageId} src="" alt={alt} class={imageClassName} hidden />
+  <div id={fallbackId} class={fallbackClassName}>{fallbackText}</div>
+</div>

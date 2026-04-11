@@ -1,0 +1,19 @@
+---
+import PageHero from "../PageHero.astro";
+import SectionRenderer from "./SectionRenderer.astro";
+import type { RendererPageConfig } from "../../types/ui";
+
+interface Props {
+  config: RendererPageConfig;
+}
+
+const { config } = Astro.props;
+---
+
+<PageHero
+  kicker={config.hero.kicker || ""}
+  title={config.hero.title}
+  description={config.hero.description || ""}
+/>
+
+{config.sections.map((section) => <SectionRenderer section={section} />)}

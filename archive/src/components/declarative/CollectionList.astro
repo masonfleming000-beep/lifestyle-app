@@ -1,0 +1,9 @@
+---
+import CollectionItem from './CollectionItem.astro';
+import type { CollectionItemData, UIAction } from '../../lib/ui/types';
+interface Props { items?: CollectionItemData[]; itemActions?: UIAction[]; mode?: 'list' | 'checklist'; }
+const { items = [], itemActions = [], mode = 'list' } = Astro.props;
+---
+<ul class:list={['checklist-card-list', mode === 'checklist' ? 'routine-list' : 'list-clean']}>
+  {items.map((item) => <CollectionItem item={item} actions={itemActions} mode={mode} />)}
+</ul>

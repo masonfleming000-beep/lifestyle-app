@@ -1,0 +1,22 @@
+---
+interface TimelineItem { title: string; subtitle?: string; date?: string; description?: string; }
+interface Props { title?: string; items?: TimelineItem[]; }
+const { title = 'Timeline', items = [] } = Astro.props;
+---
+<section class="input-card timeline-card">
+  <h3 class="section-title">{title}</h3>
+  <ol class="timeline-list">
+    {items.map((item) => (
+      <li>
+        <strong>{item.title}</strong>
+        {item.date && <small>{item.date}</small>}
+        {item.subtitle && <p>{item.subtitle}</p>}
+        {item.description && <p>{item.description}</p>}
+      </li>
+    ))}
+  </ol>
+</section>
+<style>
+  .timeline-list { display:grid; gap:0.9rem; margin:0; padding-left:1.1rem; }
+  .timeline-list p, .timeline-list small { margin:0.15rem 0 0; }
+</style>

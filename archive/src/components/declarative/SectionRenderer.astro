@@ -1,0 +1,32 @@
+---
+import CollectionSection from './CollectionSection.astro';
+import FormRenderer from './FormRenderer.astro';
+import DetailGrid from './DetailGrid.astro';
+import TimelineCard from './TimelineCard.astro';
+import MediaCard from './MediaCard.astro';
+import RoutineSection from '../domain/RoutineSection.astro';
+import TaskSection from '../domain/TaskSection.astro';
+import CalendarSection from '../domain/CalendarSection.astro';
+import WorkoutHistorySection from '../domain/WorkoutHistorySection.astro';
+import NutritionTargetsSection from '../domain/NutritionTargetsSection.astro';
+import SettingsSection from '../domain/SettingsSection.astro';
+import SectionCard from '../SectionCard.astro';
+import type { SectionConfig } from '../../lib/ui/types';
+interface Props { section: SectionConfig; }
+const { section } = Astro.props;
+const map = {
+  collection: CollectionSection,
+  form: FormRenderer,
+  'detail-grid': DetailGrid,
+  timeline: TimelineCard,
+  media: MediaCard,
+  routine: RoutineSection,
+  tasks: TaskSection,
+  calendar: CalendarSection,
+  'workout-history': WorkoutHistorySection,
+  'nutrition-targets': NutritionTargetsSection,
+  settings: SettingsSection,
+};
+const Component = map[section.type as keyof typeof map];
+---
+{Component ? <Component section={section} /> : <SectionCard title={section.title} subtitle={section.subtitle} open={section.open}><slot /></SectionCard>}

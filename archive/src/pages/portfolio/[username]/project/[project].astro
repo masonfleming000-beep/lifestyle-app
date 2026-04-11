@@ -1,0 +1,27 @@
+---
+import PublicLayout from "../../../../layouts/PublicLayout.astro";
+import CareerPortfolioPreviewShell from "../../../../components/career/CareerPortfolioPreviewShell.astro";
+import {
+  careerInformationPageKey,
+  careerPortfolioSectionTitles,
+} from "../../../../config/pages/careerShared";
+
+const { username = "", project = "" } = Astro.params;
+const useTempPublicPortfolio = import.meta.env.TEMP_PUBLIC_PORTFOLIO_ONLY === "true";
+const shareLinkBaseUrl = useTempPublicPortfolio
+  ? import.meta.env.TEMP_PUBLIC_PORTFOLIO_URL || import.meta.env.PUBLIC_APP_URL || import.meta.env.APP_URL || ""
+  : import.meta.env.PUBLIC_APP_URL || import.meta.env.APP_URL || "";
+const assetBaseUrl = import.meta.env.PUBLIC_APP_URL || import.meta.env.APP_URL || shareLinkBaseUrl || "";
+---
+
+<PublicLayout title="Project | Lifestyle App" description="Public project page">
+  <CareerPortfolioPreviewShell
+    pageKey={careerInformationPageKey}
+    sectionTitles={careerPortfolioSectionTitles}
+    publicUsername={username}
+    projectSlug={project}
+    shareBasePath="/portfolio"
+    shareLinkBaseUrl={shareLinkBaseUrl}
+    assetBaseUrl={assetBaseUrl}
+  />
+</PublicLayout>

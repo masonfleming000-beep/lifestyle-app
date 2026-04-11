@@ -1,0 +1,149 @@
+.declarative-page {
+  display: grid;
+  gap: 1rem;
+}
+
+.declarative-page .section {
+  margin-top: 0;
+}
+
+.declarative-page .section > :where(.card, .expandable-section, .grid, .editor-toolbar) {
+  width: 100%;
+}
+
+.declarative-grid-1 {
+  grid-template-columns: 1fr;
+}
+
+.declarative-grid-2 {
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+}
+
+.declarative-grid-3 {
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+}
+
+.declarative-card,
+.declarative-static-list-card {
+  display: grid;
+  gap: 0.9rem;
+}
+
+.declarative-target-content {
+  min-width: 0;
+}
+
+.declarative-editable-list {
+  display: flex;
+  flex-direction: column;
+  gap: 0.85rem;
+  padding: 0;
+  margin: 0;
+  list-style: none;
+}
+
+.declarative-editable-list .routine-item {
+  margin-bottom: 0;
+}
+
+.declarative-editable-list .routine-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.75rem;
+  width: 100%;
+}
+
+.declarative-editable-list .routine-row-actions {
+  margin-top: 0.5rem;
+}
+
+.declarative-editable-list .routine-left {
+  flex: 1;
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  min-width: 0;
+}
+
+.declarative-editable-list .routine-inline-input,
+.declarative-editable-list .routine-static-text {
+  width: 100%;
+  border: 1px solid var(--border-color, #d9d9d9);
+  border-radius: 12px;
+  padding: 0.8rem 0.95rem;
+  background: var(--card-background, #fff);
+  color: inherit;
+  font: inherit;
+  line-height: 1.45;
+  box-sizing: border-box;
+}
+
+.declarative-editable-list .routine-inline-input {
+  min-height: 48px;
+}
+
+.declarative-editable-list .routine-static-text {
+  min-height: 48px;
+  display: flex;
+  align-items: center;
+}
+
+.declarative-editable-list .routine-actions-group {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  flex-wrap: wrap;
+}
+
+.declarative-editable-list .routine-empty-state {
+  margin: 0;
+  color: var(--text-muted);
+}
+
+.declarative-target-content .strava-empty-state {
+  display: grid;
+  gap: 1rem;
+}
+
+.declarative-target-content .strava-guide ol {
+  margin: 0.75rem 0 0;
+  padding-left: 1.25rem;
+}
+
+.declarative-target-content .embed-example-label {
+  margin-top: 1rem;
+  margin-bottom: 0.4rem;
+}
+
+.declarative-target-content .embed-example {
+  display: block;
+  white-space: pre-wrap;
+  word-break: break-word;
+  padding: 0.85rem;
+  border-radius: 12px;
+  background: rgba(0, 0, 0, 0.05);
+  font-size: 0.9rem;
+}
+
+.declarative-target-content .strava-form {
+  display: grid;
+  gap: 0.75rem;
+}
+
+.declarative-target-content .routine-input {
+  width: 100%;
+  border: 1px solid var(--border-color, #d9d9d9);
+  border-radius: 12px;
+  padding: 0.8rem 0.95rem;
+  background: var(--card-background, #fff);
+  color: inherit;
+  font: inherit;
+}
+
+@media (max-width: 900px) {
+  .declarative-grid-2,
+  .declarative-grid-3 {
+    grid-template-columns: 1fr;
+  }
+}
