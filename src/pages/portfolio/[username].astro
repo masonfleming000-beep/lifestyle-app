@@ -8,10 +8,13 @@ import {
 
 const { username = "" } = Astro.params;
 const useTempPublicPortfolio = import.meta.env.TEMP_PUBLIC_PORTFOLIO_ONLY === "true";
+
 const shareLinkBaseUrl = useTempPublicPortfolio
   ? import.meta.env.TEMP_PUBLIC_PORTFOLIO_URL || import.meta.env.PUBLIC_APP_URL || import.meta.env.APP_URL || ""
   : import.meta.env.PUBLIC_APP_URL || import.meta.env.APP_URL || "";
-const assetBaseUrl = import.meta.env.PUBLIC_APP_URL || import.meta.env.APP_URL || shareLinkBaseUrl || "";
+
+// Assets should always come from the main app domain, never the temp portfolio domain
+const assetBaseUrl = import.meta.env.PUBLIC_APP_URL || import.meta.env.APP_URL || "";
 ---
 
 <PublicLayout title="Public Portfolio | Lifestyle App" description="Public portfolio">
