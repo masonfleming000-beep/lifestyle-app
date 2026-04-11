@@ -58,12 +58,16 @@ export async function storeUploadedFile(file: File, rule: UploadRule, userId?: s
   const userPart = rule.userScoped && userId ? `-${sanitizeUploadBaseName(userId, "user")}` : "";
   const storedFileName = `${baseName}${userPart}-${unique}${ext}`;
 
-  const uploadsDir = path.join(process.cwd(), "public", rule.targetDir);
-  await mkdir(uploadsDir, { recursive: true });
+  const normalizedTargetDir = rule.targetDir.replace(/^\/+/g, "").replace(/\/g, "/");
+  const runtimeUploadsDir = path.join(process.cwd(), normalizedTargetDir);
+  const legacyPublicUploadsDir = path.join(process.cwd(), "public", normalizedTargetDir);
 
-  const filePath = path.join(uploadsDir, storedFileName);
+  await mkdir(runtimeUploadsDir, { recursive: true });
+  await mkdir(legacyPublicUploadsDir, { recursive: true });
+
   const buffer = Buffer.from(await file.arrayBuffer());
-  await writeFile(filePath, buffer);
+  await writeFile(path.join(runtimeUploadsDir, storedFileName), buffer);
+  await writeFile(path.join(legacyPublicUploadsDir, storedFileName), buffer);
 
   return {
     ok: true,

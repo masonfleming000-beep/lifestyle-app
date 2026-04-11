@@ -1951,9 +1951,9 @@ export function initCareerInformationPage(config: CareerInformationClientConfig)
     if (!item?.fileUrl) return `<p><strong>File:</strong> Not uploaded yet</p>`;
     return `
       <div class="resume-link-row">
-        ${isPdfResume(item) ? `<a class="button-secondary career-inline-button career-inline-button-mini" href="${escapeHtml(item.fileUrl)}#toolbar=1" target="_blank" rel="noreferrer">View PDF</a>` : ""}
-        <a class="button-primary career-inline-button career-inline-button-mini" href="${escapeHtml(item.fileUrl)}" target="_blank" rel="noreferrer">Open</a>
-        <a class="button-primary career-inline-button career-inline-button-mini resume-download-btn" href="${escapeHtml(item.fileUrl)}" download>Download</a>
+        ${isPdfResume(item) ? `<a class="button-secondary career-inline-button career-inline-button-mini" href="${escapeHtml(resolveAssetUrl(item.fileUrl))}#toolbar=1" target="_blank" rel="noreferrer">View PDF</a>` : ""}
+        <a class="button-primary career-inline-button career-inline-button-mini" href="${escapeHtml(resolveAssetUrl(item.fileUrl))}" target="_blank" rel="noreferrer">Open</a>
+        <a class="button-primary career-inline-button career-inline-button-mini resume-download-btn" href="${escapeHtml(resolveAssetUrl(item.fileUrl))}" download>Download</a>
       </div>
     `;
   }
@@ -1962,7 +1962,7 @@ export function initCareerInformationPage(config: CareerInformationClientConfig)
     if (!item?.fileUrl || !isPdfResume(item)) return "";
     return `
       <div class="resume-preview-wrap">
-        <iframe src="${escapeHtml(item.fileUrl)}" title="${escapeHtml(item.title || "Resume Preview")}" class="resume-preview-frame"></iframe>
+        <iframe src="${escapeHtml(resolveAssetUrl(item.fileUrl))}" title="${escapeHtml(item.title || "Resume Preview")}" class="resume-preview-frame"></iframe>
       </div>
     `;
   }
@@ -1971,7 +1971,7 @@ export function initCareerInformationPage(config: CareerInformationClientConfig)
     const top = buildVisibilityBadge(item);
     const extra = buildCustomFieldsBlock(item?.customFields);
     if (group === "profile") {
-      return `${top}<h3 class="card-title">${escapeHtml(item.fullName || "Profile basics")}</h3><p><strong>Headline:</strong> ${escapeHtml(item.headline || "—")}</p><p>${escapeHtml(item.description || "—")}</p><p><strong>Professional photo:</strong> ${escapeHtml(item.photoUrl || "Using account avatar fallback")}</p>${extra}`;
+      return `${top}<h3 class="card-title">${escapeHtml(item.fullName || "Profile basics")}</h3><p><strong>Headline:</strong> ${escapeHtml(item.headline || "—")}</p><p>${escapeHtml(item.description || "—")}</p><p><strong>Professional photo:</strong> ${escapeHtml(resolveAssetUrl(item.photoUrl) || "Using account avatar fallback")}</p>${extra}`;
     }
     if (group === "externalLinks") {
       return `${top}<h3 class="card-title">${escapeHtml(item.label || item.type || "Link")}</h3><p><strong>Type:</strong> ${escapeHtml(item.type || "—")}</p><p><strong>URL / value:</strong> ${escapeHtml(item.url || "—")}</p>${extra}`;
@@ -1988,7 +1988,7 @@ export function initCareerInformationPage(config: CareerInformationClientConfig)
       return `
         ${top}
         <h3 class="card-title">${escapeHtml(item.title || "Project")}</h3>
-        ${item.coverPhotoUrl ? `<div class="project-cover-preview-wrap"><img class="project-cover-preview" src="${escapeHtml(item.coverPhotoUrl)}" alt="${escapeHtml(item.title || "Project cover")}" /></div>` : ""}
+        ${item.coverPhotoUrl ? `<div class="project-cover-preview-wrap"><img class="project-cover-preview" src="${escapeHtml(resolveAssetUrl(item.coverPhotoUrl))}" alt="${escapeHtml(item.title || "Project cover")}" /></div>` : ""}
         <p><strong>Slug:</strong> ${escapeHtml(item.projectSlug || slugify(item.title || "project"))}</p>
         <p><strong>Subtitle:</strong> ${escapeHtml(item.subtitle || "—")}</p>
         <p>${escapeHtml(item.description || "—")}</p>

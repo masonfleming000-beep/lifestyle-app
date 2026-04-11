@@ -15,16 +15,52 @@ function json(data: unknown, status = 200) {
   });
 }
 
+function normalizeAssetUrl(value: unknown): unknown {
+  if (typeof value !== "string") return value;
+
+  const text = value.trim();
+  if (!text) return value;
+
+  if (/^(\/uploads\/|\/api\/uploads\/)/i.test(text)) {
+    return text;
+  }
+
+  try {
+    const parsed = new URL(text);
+    if (/^\/(uploads|api\/uploads)\//i.test(parsed.pathname)) {
+      return parsed.pathname + parsed.search + parsed.hash;
+    }
+  } catch {}
+
+  return value;
+}
+
+function deepNormalizeAssetUrls(value: unknown): unknown {
+  if (Array.isArray(value)) {
+    return value.map((item) => deepNormalizeAssetUrls(item));
+  }
+
+  if (value && typeof value === "object") {
+    const output: Record<string, unknown> = {};
+    for (const [key, entry] of Object.entries(value as Record<string, unknown>)) {
+      output[key] = deepNormalizeAssetUrls(normalizeAssetUrl(entry));
+    }
+    return output;
+  }
+
+  return normalizeAssetUrl(value);
+}
+
 function normalizeState(value: unknown) {
   if (typeof value === "string") {
     try {
-      return JSON.parse(value);
+      return deepNormalizeAssetUrls(JSON.parse(value));
     } catch {
       return null;
     }
   }
 
-  return value;
+  return deepNormalizeAssetUrls(value);
 }
 
 export const GET: APIRoute = async ({ cookies, url, locals }) => {

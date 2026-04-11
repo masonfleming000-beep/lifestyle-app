@@ -223,7 +223,7 @@ export function isKnownAppPageKey(value: unknown) {
   return typeof value === "string" && RESERVED_PAGE_KEYS.has(value);
 }
 
-export function isReasonableJsonSize(value: unknown, maxBytes = 50_000) {
+export function isReasonableJsonSize(value: unknown, maxBytes = 500_000) {
   try {
     return Buffer.byteLength(JSON.stringify(value), "utf8") <= maxBytes;
   } catch {
