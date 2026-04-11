@@ -103,35 +103,31 @@ export function initCareerPortfolioPreviewPage(config: CareerPortfolioPreviewCon
   }
 
   function resolveAssetUrl(value) {
-  const text = String(value || "").trim();
-  if (!text) return "";
-  if (/^(data:|blob:|mailto:)/i.test(text)) return text;
+    const text = String(value || "").trim();
+    if (!text) return "";
+    if (/^(data:|blob:|mailto:)/i.test(text)) return text;
 
-  try {
-    const parsed = new URL(text);
-    if (/^\/(uploads|api\/uploads)\//i.test(parsed.pathname)) {
-      return `${window.location.origin}${parsed.pathname}${parsed.search}${parsed.hash}`;
-    }
-    return text;
-  } catch {}
-
-  if (text.startsWith("/")) {
     try {
-      return new URL(text, `${window.location.origin.replace(/\/$/, "")}/`).toString();
-    } catch {
+      const parsed = new URL(text);
+      if (/^\/(uploads|api\/uploads)\//i.test(parsed.pathname)) {
+        return `${window.location.origin}${parsed.pathname}${parsed.search}${parsed.hash}`;
+      }
       return text;
+    } catch {
+      // not an absolute URL
     }
-  }
 
-  return text;
-}
- catch {
+    if (text.startsWith("/")) {
+      try {
+        return new URL(text, `${window.location.origin.replace(/\/$/, "")}/`).toString();
+      } catch {
         return text;
       }
     }
+
     return text;
   }
-
+  
   function defaultMenuItems() {
     return [{ id: "main", label: "Home", slug: "home" }];
   }
