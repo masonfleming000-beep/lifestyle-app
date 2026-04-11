@@ -24,17 +24,12 @@ export function sanitizeUploadBaseName(value: string, fallback = "file") {
 }
 
 export function buildPublicFileUrl(targetDir: string, storedFileName: string) {
-  return `/${targetDir.replace(/^\/+|\/+$/g, "")}/${storedFileName}`;
+  return `/${targetDir.replace(/^\/+/g, "").replace(/\/+$/g, "")}/${storedFileName}`;
 }
 
 export async function storeUploadedFile(file: File, rule: UploadRule, userId?: string) {
-  if (!(file instanceof File)) {
-    throw new Error("No file received.");
-  }
-
-  if (file.size <= 0) {
-    throw new Error("Empty file.");
-  }
+  if (!(file instanceof File)) throw new Error("No file received.");
+  if (file.size <= 0) throw new Error("Empty file.");
 
   if (file.size > rule.maxFileSize) {
     const maxMb = Math.round((rule.maxFileSize / (1024 * 1024)) * 10) / 10;
@@ -45,10 +40,7 @@ export async function storeUploadedFile(file: File, rule: UploadRule, userId?: s
   const ext = path.extname(originalName).toLowerCase();
   const mimeType = String(file.type || "").toLowerCase();
 
-  if (!rule.allowedExtensions.has(ext)) {
-    throw new Error(`Unsupported ${rule.errorLabel} type.`);
-  }
-
+  if (!rule.allowedExtensions.has(ext)) throw new Error(`Unsupported ${rule.errorLabel} type.`);
   if (rule.allowedMimeTypes && mimeType && !rule.allowedMimeTypes.has(mimeType)) {
     throw new Error(`Unsupported ${rule.errorLabel} type.`);
   }
@@ -58,18 +50,17 @@ export async function storeUploadedFile(file: File, rule: UploadRule, userId?: s
   const userPart = rule.userScoped && userId ? `-${sanitizeUploadBaseName(userId, "user")}` : "";
   const storedFileName = `${baseName}${userPart}-${unique}${ext}`;
 
-  const normalizedTargetDir = rule.targetDir
-  .replace(/^\/+/g, "")
-  .replace(/\\/g, "/");
-  const runtimeUploadsDir = path.join(process.cwd(), normalizedTargetDir);
-  const legacyPublicUploadsDir = path.join(process.cwd(), "public", normalizedTargetDir);
+  const normalizedTargetDir = rule.targetDir.replace(/^\/+/g, "").replace(/\\/g, "/");
 
-  await mkdir(runtimeUploadsDir, { recursive: true });
-  await mkdir(legacyPublicUploadsDir, { recursive: true });
+  const runtimeDir = path.join(process.cwd(), normalizedTargetDir);
+  const publicDir = path.join(process.cwd(), "public", normalizedTargetDir);
+
+  await mkdir(runtimeDir, { recursive: true });
+  await mkdir(publicDir, { recursive: true });
 
   const buffer = Buffer.from(await file.arrayBuffer());
-  await writeFile(path.join(runtimeUploadsDir, storedFileName), buffer);
-  await writeFile(path.join(legacyPublicUploadsDir, storedFileName), buffer);
+  await writeFile(path.join(runtimeDir, storedFileName), buffer);
+  await writeFile(path.join(publicDir, storedFileName), buffer);
 
   return {
     ok: true,

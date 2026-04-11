@@ -2,7 +2,6 @@ import { defineConfig } from "astro/config";
 import node from "@astrojs/node";
 
 export default defineConfig({
-  site: "https://www.hublifeapp.com", // 👈 add this
   security: {
     allowedDomains: [
       { protocol: "https", hostname: "www.hublifeapp.com" },
@@ -14,4 +13,3 @@ export default defineConfig({
     mode: "standalone",
   }),
 });
-
